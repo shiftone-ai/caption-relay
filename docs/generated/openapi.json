@@ -1,0 +1,564 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Caption Relay",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Index",
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/view/demo": {
+      "get": {
+        "summary": "View",
+        "operationId": "view_view_demo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/session": {
+      "get": {
+        "summary": "Session",
+        "operationId": "session_api_session_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events": {
+      "get": {
+        "summary": "Events",
+        "operationId": "events_api_events_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Caption"
+                  },
+                  "type": "array",
+                  "title": "Response Events Api Events Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/source/events": {
+      "post": {
+        "summary": "Source Event",
+        "operationId": "source_event_api_source_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Caption"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SourceIgnored"
+                    }
+                  ],
+                  "title": "Response Source Event Api Source Events Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/captions/{caption_id}": {
+      "patch": {
+        "summary": "Patch Caption",
+        "operationId": "patch_caption_api_captions__caption_id__patch",
+        "parameters": [
+          {
+            "name": "caption_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Caption Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptionPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Caption"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/commands": {
+      "post": {
+        "summary": "Command",
+        "operationId": "command_api_commands_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Visibility"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/view": {
+      "get": {
+        "summary": "Public View",
+        "operationId": "public_view_api_view_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/view/events": {
+      "get": {
+        "summary": "Public Events",
+        "operationId": "public_events_api_view_events_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Caption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "utterance_id": {
+            "type": "string",
+            "title": "Utterance Id"
+          },
+          "source_revision": {
+            "type": "integer",
+            "title": "Source Revision"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "original": {
+            "type": "string",
+            "title": "Original"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "human_edited": {
+            "type": "boolean",
+            "title": "Human Edited",
+            "default": false
+          },
+          "published": {
+            "type": "boolean",
+            "title": "Published"
+          },
+          "publish_eligible": {
+            "type": "boolean",
+            "title": "Publish Eligible"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "utterance_id",
+          "source_revision",
+          "revision",
+          "original",
+          "text",
+          "published",
+          "publish_eligible"
+        ],
+        "title": "Caption"
+      },
+      "CaptionPatch": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "base_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Base Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text",
+          "base_revision"
+        ],
+        "title": "CaptionPatch"
+      },
+      "Command": {
+        "properties": {
+          "command": {
+            "type": "string",
+            "enum": [
+              "show",
+              "hide"
+            ],
+            "title": "Command"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "command"
+        ],
+        "title": "Command"
+      },
+      "ConflictDetail": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "const": "revision conflict",
+            "title": "Message",
+            "default": "revision conflict"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/Caption"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "latest"
+        ],
+        "title": "ConflictDetail"
+      },
+      "ConflictResponse": {
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/ConflictDetail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ConflictResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "PublicCaption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "text"
+        ],
+        "title": "PublicCaption"
+      },
+      "PublicSnapshot": {
+        "properties": {
+          "visible": {
+            "type": "boolean",
+            "title": "Visible"
+          },
+          "captions": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCaption"
+            },
+            "type": "array",
+            "title": "Captions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "visible",
+          "captions"
+        ],
+        "title": "PublicSnapshot"
+      },
+      "Session": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "const": "demo",
+            "title": "Name",
+            "default": "demo"
+          },
+          "visible": {
+            "type": "boolean",
+            "title": "Visible"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "visible",
+          "count"
+        ],
+        "title": "Session"
+      },
+      "SourceEvent": {
+        "properties": {
+          "utterance_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Utterance Id"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "is_final": {
+            "type": "boolean",
+            "title": "Is Final",
+            "default": true
+          },
+          "source_event_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Source Event Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "utterance_id",
+          "revision",
+          "text",
+          "source_event_id"
+        ],
+        "title": "SourceEvent"
+      },
+      "SourceIgnored": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "duplicate",
+              "stale"
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SourceIgnored"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Visibility": {
+        "properties": {
+          "visible": {
+            "type": "boolean",
+            "title": "Visible"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "visible"
+        ],
+        "title": "Visibility"
+      }
+    }
+  }
+}
