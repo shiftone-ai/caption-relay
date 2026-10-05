@@ -6,18 +6,18 @@
 
 ## 起動
 
-Node.js 22.12 以上、Python 3.12 以上、npm、uv を使用します。プロジェクトのルートから実行します。
+Node.js 22.22.3（推奨）、Python 3.12、npm、uv を使用します。依存関係の Node.js 要件は `frontend/package.json`、推奨バージョンは `.node-version` と `.python-version` に記載しています。プロジェクトのルートから実行します。
 
 ```bash
-cd frontend
-npm ci
-npm run build
-cd ../backend
-uv sync --extra dev
-uv run uvicorn app.main:app --host 127.0.0.1 --port 24681
+bash scripts/setup.sh
+bash scripts/dev.sh
 ```
 
 操作画面は `http://127.0.0.1:24681/`、観客画面は `http://127.0.0.1:24681/view/demo` です。FastAPI が `frontend/dist/` を配信するため、初回起動とフロントエンド変更後にビルドしてください。
+
+`setup.sh` は `uv.lock` と `package-lock.json` に従って依存関係を導入し、画面をビルドします。`dev.sh` はバックエンドの変更を自動で読み込みます。使用するポートは `CAPTION_RELAY_PORT` で変更できます。
+
+[リモート開発](docs/remote-development.md)に Codex Cloud と `shiftone-macmini` のセットアップ、SSH ポート転送を記載しています。
 
 ## 開発
 
@@ -65,18 +65,14 @@ curl -X POST http://127.0.0.1:24681/api/source/events \
 ## 検証
 
 ```bash
-cd frontend
-npm run check:api
-npm test
-npm run build
-cd ../backend
-uv run --extra dev pyright
-uv run --extra dev pytest -q
+bash scripts/check.sh
 ```
 
 API モデルを変更したら `cd frontend && npm run generate:api` で型を再生成してください。生成元と TypeScript 型の一致は `check:api` で確認します。
 
 テストではイベント伝播、下書き保持、保存失敗・競合、重複操作、古い取得結果、入力の型検証、公開データの分離、SSE スナップショットを確認します。日本語入力ソフトを使った IME の実機試験は別途必要です。
+
+GitHub Actions でも同じチェックを Linux 上で実行します。
 
 ## 構成と制約
 

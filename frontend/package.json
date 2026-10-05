@@ -2,6 +2,9 @@
   "name": "caption-relay-frontend",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "generate:api": "uv run --project ../backend python ../scripts/export_openapi.py && openapi-typescript ../docs/generated/openapi.json -o src/generated/api.d.ts",

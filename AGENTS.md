@@ -1,5 +1,7 @@
 # Caption Relay の変更ルール
 
+初回はルートで `bash scripts/setup.sh`、変更後の検証は `bash scripts/check.sh` を実行する。依存関係はロックファイルから導入し、API 型は生成コマンドで更新する。Codex Cloud と SSH 接続での開発手順は [リモート開発](docs/remote-development.md)を参照する。
+
 画面・コンポーネントを新設または変更するときは、[フロントエンドの構成](docs/frontend-architecture.md)を読み、変更対象を次の構成へ段階的に移行する。
 
 - 全コンポーネントを画面の Root 配下へ置き、親を明示する。
