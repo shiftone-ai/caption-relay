@@ -1,6 +1,10 @@
-# フロントエンドの構成と API の型
+# フロントエンドの構成
 
-画面を変更する際に、Root、Passive View、Presenter、Mediator、Adapter の責務へ段階的に移す。現在の操作画面と観客画面は TypeScript、React、XState、shadcn/ui を使用する。Vite でビルドし、FastAPI が `frontend/dist/` を配信する。
+実装確認日：2026-10-05
+
+画面を変更する際に、Root、Passive View、Presenter、Mediator、Adapter の責務へ段階的に移す。現在の操作画面と観客画面は TypeScript、React、XState、shadcn/ui を使用する。システム全体の責務とバックエンドは[システム構成](../ARCHITECTURE.md)、画面の振る舞いは[現行 PoC の仕様](current-behavior.md)を参照する。
+
+以下の `src/` は `frontend/src/` を指す。
 
 ## コンポーネント階層
 
@@ -45,21 +49,15 @@ Presenter は操作ごとに `snapshot.can(event)` を参照し、ボタンの�
 
 `src/machines/audience.ts` は `connecting → live ↔ reconnecting` を管理する。切断中は直前の字幕を保持し、再接続後のスナップショットで同期する。公開・非公開の決定はバックエンドが担当する。
 
-## バックエンドと型の受け渡し
-
-`backend/app/models.py` は Pydantic v2 のモデルを定義する。入力の余分な項目と暗黙の型変換を拒否し、字幕の空白だけの修正を検証する。コマンドは `show / hide` の Literal とし、不正な入力には FastAPI の 422 応答を返す。
-
-`backend/app/relay.py` がセッション状態を所有する。API 層はモデルを渡して結果を受け取り、存在しない字幕や改版競合を HTTP エラーへ変換する。状態や購読キューの値も型付けし、応答モデルと SSE のシリアライズには Pydantic を使う。
-
-観客への配信は PublicSnapshot と PublicCaption を使用し、字幕 ID、改版、表示文だけを送る。原文や入力側の管理情報は送らない。購読開始時のスナップショットと、満杯になったキューの再同期も同じモデルを使用する。
+## API 型の利用
 
 [API の型生成](generated/README.md)で OpenAPI と TypeScript 型を同期する。フロントエンドの Adapter は生成した型を使用し、独自に API モデルを再定義しない。TypeScript の型はブラウザでの JSON の実行時検証を行うものではなく、サーバー側の応答検証と組み合わせる。
 
 ## 検証と今後の移行
 
-フロントエンドのテストはイベントの伝播・停止、下書き保持、保存失敗・競合、重複操作、取得のキャンセル、SSE の解放を確認する。バックエンドは入力検証、編集競合、公開データの分離、非表示期間、スナップショットを検証する。View の責務分離はソースレビューでも確認する。
+`npm --prefix frontend test` でイベントの伝播・停止、下書き保持、保存失敗・競合、重複操作、取得のキャンセル、SSE の解放を確認する。View の責務分離はソースレビューでも確認する。テストファイルの対応は[現行 PoC の仕様](current-behavior.md#検証の対応)、全体の検証とブラウザ操作は[開発手順](development.md#検証)を参照する。
 
-次に触る画面・コンポーネントをこの構成へ移し、変更範囲の外まで一括で書き換えない。認証、永続化、UDトーク実機、Gemini 接続は未実装であり、今回の移行にも含めない。
+次に触る画面・コンポーネントをこの構成へ移し、変更範囲の外まで一括で書き換えない。新旧の責務を同じ経路に重ねず、移行後の経路を一つにする。
 
 ## 使用した公式資料
 
