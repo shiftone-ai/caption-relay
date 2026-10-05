@@ -37,3 +37,35 @@ it("bubbles UI events to the actor and preserves the focused input across pollin
   fireEvent.keyDown(input, { key: "Enter", ctrlKey: true });
   await waitFor(() => expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ text: "修正中", baseRevision: 1 }), expect.any(AbortSignal)));
 });
+
+it("routes saving to the selected row while allowing drafts on other rows", async () => {
+  const other = { ...caption, id: "two", utterance_id: "two", text: "別の字幕" };
+  let resolve!: (value: Caption) => void;
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [caption, other] }),
+    save: vi.fn().mockReturnValue(new Promise<Caption>(value => { resolve = value; })),
+    setVisible: vi.fn().mockResolvedValue(false), sendTest: vi.fn().mockResolvedValue(undefined),
+  };
+  render(<OperatorRoot api={api} />);
+  await screen.findAllByRole("textbox");
+  const [first, second] = screen.getAllByRole<HTMLTextAreaElement>("textbox");
+  const user = userEvent.setup();
+  await user.clear(second);
+  await user.type(second, "二行目の修正");
+  await user.click(screen.getAllByRole("button", { name: "反映" })[1]);
+  await waitFor(() => expect(api.save).toHaveBeenCalledWith(
+    expect.objectContaining({ captionId: "two", text: "二行目の修正", baseRevision: 1 }), expect.any(AbortSignal),
+  ));
+  expect(second.readOnly).toBe(true);
+  expect(first.readOnly).toBe(false);
+  expect(screen.getAllByRole<HTMLButtonElement>("button").every(button => button.disabled)).toBe(true);
+  await user.clear(first);
+  await user.type(first, "一行目の下書き");
+  fireEvent.keyDown(first, { key: "Enter", metaKey: true });
+  expect(api.save).toHaveBeenCalledTimes(1);
+  await act(async () => { resolve({ ...other, text: "二行目の修正", revision: 2, human_edited: true }); });
+  expect(first.value).toBe("一行目の下書き");
+  expect(second.value).toBe("二行目の修正");
+  expect(second.readOnly).toBe(false);
+  expect(screen.getAllByRole<HTMLButtonElement>("button").every(button => !button.disabled)).toBe(true);
+});

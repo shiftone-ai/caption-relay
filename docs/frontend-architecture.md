@@ -6,6 +6,8 @@
 
 各画面が Root を一つ持つ。`events/hierarchy.tsx` の Scope は親を必須とし、Root の外に生成するとエラーになる。shadcn/ui の表示部品も、所属する Scope の下に描画する。
 
+各 View が自身の Scope を持ち、親 View の Scope の直下に接続する。操作画面の ToolbarView と CaptionListView・CaptionRowView は `src/views/operator/` に置く。操作を通知する View は Scope の描画関数が受け取る `emit` を使い、自身の Scope から伝播を始める。Scope 内の表示部品がイベントを通知する場合は `useBubble` で所属先へ接続できる。階層を作るためのラッパーを呼び出し側へ重ねる必要はない。
+
 ```text
 Operator Root
 └─ 操作画面
@@ -28,6 +30,8 @@ Root は XState actor を起動して Presenter を接続する。actor は Reac
 5. `src/api.ts` の Adapter が HTTP と SSE を扱う。XState の invoke が結果・失敗を受け取り、状態遷移へ戻す。
 
 View は actor や API を直接呼び出さず、業務状態を保持しない。入力イベントの読み取り、キーボード操作の対応、フォーカスや選択範囲は表示側の責務とする。下書きと編集開始時の改版は Mediator が保持する。
+
+Presenter は操作ごとに `snapshot.can(event)` を参照し、ボタンの無効化や入力の読み取り専用指定へ変換する。状態名から操作の可否を再判定せず、Mediator の遷移と guard を使う。空欄の反映も検証メッセージを出すイベントとして受理し、通信するかどうかは Mediator が決める。
 
 ## 状態遷移
 
