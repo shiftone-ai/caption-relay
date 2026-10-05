@@ -1,0 +1,25 @@
+[project]
+name = "caption-relay"
+version = "0.2.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.142,<1",
+  "pydantic>=2.13,<3",
+  "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pyright>=1.1.414",
+    "httpx2>=2.13.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.pyright]
+include = ["app"]
+typeCheckingMode = "strict"
+pythonVersion = "3.12"
