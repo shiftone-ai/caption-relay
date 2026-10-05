@@ -17,11 +17,14 @@ function createHierarchy<Event>() {
   }
 
   function Scope({ name, handle, children }: {
-    name: string; handle?: EventHandler<Event>; children: ReactNode;
+    name: string;
+    handle?: EventHandler<Event>;
+    children: ReactNode | ((emit: (event: Event) => boolean) => ReactNode);
   }) {
     const parent = useParent();
     const node = useMemo(() => parent.child(name, handle), [parent, name, handle]);
-    return <Context.Provider value={node}>{children}</Context.Provider>;
+    const emit = useCallback((event: Event) => node.bubble(event), [node]);
+    return <Context.Provider value={node}>{typeof children === "function" ? children(emit) : children}</Context.Provider>;
   }
 
   function useBubble() {

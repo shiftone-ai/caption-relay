@@ -10,18 +10,26 @@ export interface RowParameters {
   message: string;
 }
 
-export interface OperatorParameters {
-  disabled: boolean;
+export interface ToolbarParameters {
+  testDisabled: boolean;
+  toggleDisabled: boolean;
   toggleLabel: string;
+}
+
+export interface OperatorParameters {
+  toolbar: ToolbarParameters;
   message: string;
   rows: RowParameters[];
 }
 
 export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters {
   const { context } = snapshot;
-  const disabled = !snapshot.matches({ ready: "idle" }) && !snapshot.matches({ ready: "refreshing" });
   return {
-    disabled, toggleLabel: context.visible ? "非表示にする" : "表示する",
+    toolbar: {
+      testDisabled: !snapshot.can({ type: "test.requested" }),
+      toggleDisabled: !snapshot.can({ type: "visibility.toggle.requested" }),
+      toggleLabel: context.visible ? "非表示にする" : "表示する",
+    },
     message: context.error,
     rows: context.captions.map(caption => {
       const draft = context.drafts.get(caption.id);
@@ -29,7 +37,9 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
       return {
         id: caption.id, original: caption.original, text: draft?.text ?? caption.text,
         saveLabel: saving ? "反映中…" : (draft?.conflict || caption.human_edited ? "再反映" : "反映"),
-        disabled, readOnly: saving, message: draft?.conflict ?? "",
+        disabled: !snapshot.can({ type: "caption.save.requested", captionId: caption.id }),
+        readOnly: !snapshot.can({ type: "caption.draft.changed", captionId: caption.id, text: draft?.text ?? caption.text }),
+        message: draft?.conflict ?? "",
       };
     }),
   };
