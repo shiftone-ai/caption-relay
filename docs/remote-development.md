@@ -18,7 +18,7 @@ bash scripts/dev.sh
 
 環境に `shiftone-ai/caption-relay` を選び、次の内容でセットアップする。
 
-- Node.js 22.22.3、Python 3.12、uv 0.12.17 を導入する。
+- Node.js は `frontend/package.json` の要件を満たすもの、Python は 3.12 を使う。uv は 0.12.17 を基準にする。Cloud に用意された互換バージョンも使用できる。
 - リポジトリのルートで `bash scripts/setup.sh` と `bash scripts/check.sh` を実行する。
 - インストール手順に `bash scripts/setup.sh` を登録する。
 - 起動手順に `bash scripts/dev.sh` を登録し、操作画面 `/` と観客画面 `/view/demo` を確認する。
@@ -27,6 +27,8 @@ bash scripts/dev.sh
 検証後に環境を公開すると、その準備済みの環境を新しい作業で使える。リポジトリの更新後も、依存関係が変わった場合は `setup.sh`、画面が変わった場合はビルドを実行する。
 
 環境の作成・更新・公開は [OpenAI の Cloud environments 手順](https://learn.chatgpt.com/docs/environments/cloud-environments)を参照する。
+
+2026-10-05 の環境構築では、Cloud の Node.js 24.19.0、Python 3.12.14、uv 0.12.19 で共通のチェックを通した。Mac mini は Node.js 22.22.3、Python 3.12.13、uv 0.12.17 を使用した。
 
 ## shiftone-macmini
 
