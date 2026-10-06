@@ -1,5 +1,6 @@
 import asyncio
 import json
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -75,6 +76,29 @@ def test_text_during_recognition_can_have_unknown_type():
     decoder = UdtalkDecoder("room")
     partial = decoder.decode([message("途中の入力", phase="updated", kind=-1, end=None)])[0]
     assert partial.text == "途中の入力" and partial.is_final is False
+
+
+def test_recorded_blackhole_speech_is_private_until_all_fragments_are_final():
+    # Captured from iOS UD Talk 344 on macOS via BlackHole + Kyoko.
+    # Only protocol fields are retained; identifiers and clock origin are replaced.
+    batches = json.loads((Path(__file__).parent / "fixtures/udtalk-blackhole-speech.json").read_text())
+    decoder = UdtalkDecoder("test-room")
+    relay = CaptionRelay()
+    for index, batch in enumerate(batches):
+        events = decoder.decode([WebMessage(meta=json.dumps(record)) for record in batch])
+        assert len(events) == 1
+        assert events[0].revision == index + 1
+        for event in events:
+            relay.source_event(event)
+        if index < len(batches) - 1:
+            assert events[0].is_final is False
+            assert relay.public_snapshot().captions == []
+        else:
+            assert events[0].is_final is True
+            assert relay.public_snapshot().captions[0].text == (
+                "キャプションリレーの音声認識テストです。\n本日はありがとうございます。\n"
+            )
+        assert decoder.decode([WebMessage(meta=json.dumps(record)) for record in batch]) == []
 
 
 def test_invalid_batch_does_not_partly_advance_decoder():
