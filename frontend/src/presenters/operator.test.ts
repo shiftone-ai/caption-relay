@@ -70,7 +70,7 @@ it("shows saved text on a dirty closed row while retaining the draft only in the
   expect(parameters.editor).toBeNull();
   expect(parameters.rows[0]).toMatchObject({ text: "字幕", dirty: true, source: "unsaved" });
   expect(parameters.rows[0].state).toContain("この行は保存済み");
-  expect(parameters.rows[0].contentDescription).toContain("原文：原文");
+  expect(parameters.rows[0].contentDescription).not.toContain("原文：");
   expect(parameters.rows[0].contentDescription).toContain("保存済みの表示文：字幕");
   expect(parameters.rows[0].contentDescription).not.toContain("未保存の訂正");
 });

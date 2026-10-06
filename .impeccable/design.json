@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-06T02:34:44.086557Z",
+  "generatedAt": "2026-10-06T02:49:16.092501Z",
   "title": "Design System: Caption Relay",
   "extensions": {
     "colorMeta": {
@@ -351,16 +351,16 @@
         "purpose": "訂正・設定の見出し。"
       },
       "body": {
-        "displayName": "比較と訂正の本文",
-        "purpose": "原文、保存済み文、訂正文。"
+        "displayName": "原文と訂正の本文",
+        "purpose": "原文、訂正文、補助欄の本文。"
       },
       "label": {
         "displayName": "状態と補助説明",
-        "purpose": "列名、番号、保存の結果。"
+        "purpose": "領域名、補助説明、保存の結果。"
       },
       "compact-label": {
         "displayName": "短い補足",
-        "purpose": "料金比較、モデル名の補足、プレビューの説明。"
+        "purpose": "字幕番号と受信時刻、料金比較、モデル名の補足、プレビューの説明。"
       },
       "audience-default": {
         "displayName": "観客字幕の初期値",
@@ -369,6 +369,10 @@
       "button": {
         "displayName": "操作ボタン",
         "purpose": "本文と同じ大きさと行間で、太さを一段上げる。"
+      },
+      "transcript": {
+        "displayName": "履歴の本文",
+        "purpose": "保存済み文を一列で読む。16px／24px。"
       }
     },
     "shadows": [],
@@ -428,9 +432,9 @@
       "name": "訂正欄",
       "kind": "input",
       "refersTo": "textarea",
-      "description": "下書きを編集する白い欄。保存するまで観客へ送らない。",
-      "html": "<label class=\"ds-editor-label\" for=\"ds-caption-edit\">字幕 14 の表示文</label><textarea id=\"ds-caption-edit\" class=\"ds-textarea\">ここからは、会場で起こりやすい場面を順に見ていきます。</textarea>",
-      "css": ".ds-editor-label{display:block;color:#525252;font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:24px} .ds-textarea{min-height:160px;width:100%;padding:8px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:24px;color:#171717;border:1px solid #737373;border-radius:4px;background:#fff;box-shadow:none;resize:vertical;caret-color:#1d4ed8} .ds-textarea:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;} .ds-textarea[aria-invalid=\"true\"]{border-color:#991b1b} .ds-textarea:disabled{cursor:not-allowed;opacity:.5} .ds-textarea::selection{background:#dbeafe;color:#172554} @media(max-width:720px){.ds-textarea{min-height:96px;font-size:16px}}"
+      "description": "選択した字幕の原文を上に置き、下書きを編集する。保存するまで観客へ送らない。",
+      "html": "<section class=\"ds-reference\" aria-label=\"訂正する字幕の原文\"><h3>原文</h3><p tabindex=\"0\">ここからは、会場で起こりやすい場面を順に見ていきます。</p></section><label class=\"ds-editor-label\" for=\"ds-caption-edit\">字幕 14 の表示文</label><textarea id=\"ds-caption-edit\" class=\"ds-textarea\">ここからは、会場で起こりやすい場面を順に見ていきます。</textarea>",
+      "css": ".ds-editor-label{display:block;color:#525252;font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:24px} .ds-textarea{min-height:160px;width:100%;padding:8px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:24px;color:#171717;border:1px solid #737373;border-radius:4px;background:#fff;box-shadow:none;resize:vertical;caret-color:#1d4ed8} .ds-textarea:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;} .ds-textarea[aria-invalid=\"true\"]{border-color:#991b1b} .ds-textarea:disabled{cursor:not-allowed;opacity:.5} .ds-textarea::selection{background:#dbeafe;color:#172554} @media(max-width:720px){.ds-textarea{min-height:96px;font-size:16px}}.ds-reference{margin-bottom:16px}.ds-reference h3{margin:0;font-size:12px;line-height:24px;font-weight:400;color:#525252}.ds-reference p{margin:0;max-height:144px;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:24px;color:#404040}.ds-reference p:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px}@media(max-width:720px){.ds-reference{margin-bottom:8px}.ds-reference p{max-height:72px}}"
     },
     {
       "name": "観客画面への導線",
@@ -453,15 +457,15 @@
       "kind": "custom",
       "description": "2つのアイコンを別々に読み、ホバーとフォーカスで説明を出す。",
       "html": "<div class=\"ds-states\"><span class=\"ds-state\" tabindex=\"0\" role=\"img\" aria-label=\"原文\" aria-describedby=\"ds-source-tip\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/><path d=\"M10 9H8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/></svg><span id=\"ds-source-tip\" class=\"ds-tip\">原文</span></span><span class=\"ds-state ds-live\" tabindex=\"0\" role=\"img\" aria-label=\"観客に表示中\" aria-describedby=\"ds-publication-tip\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg><span id=\"ds-publication-tip\" class=\"ds-tip\">観客に表示中</span></span></div>",
-      "css": ".ds-states{display:flex;align-items:center;gap:8px;min-height:32px;color:#525252;font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:24px} .ds-state{position:relative;display:inline-grid;place-items:center;flex-shrink:0;width:24px;height:24px;cursor:help}.ds-live{color:#15406a;font-weight:700}.ds-tip{display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:6;width:max-content;max-width:280px;padding:8px;background:#171717;color:#fff;white-space:normal;pointer-events:none}.ds-state:hover .ds-tip,.ds-state:focus .ds-tip{display:block}.ds-state:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;} @media(max-width:720px){.ds-states{min-height:24px;gap:16px;flex-wrap:wrap}.ds-tip{max-width:224px;right:auto;left:0}}"
+      "css": ".ds-states{display:flex;align-items:center;gap:8px;min-height:32px;color:#525252;font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:24px} .ds-state{position:relative;display:inline-grid;place-items:center;flex-shrink:0;width:24px;height:24px;cursor:help}.ds-live{color:#15406a;font-weight:700}.ds-tip{display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:6;width:max-content;max-width:280px;padding:8px;background:#171717;color:#fff;white-space:normal;pointer-events:none}.ds-state:hover .ds-tip,.ds-state:focus .ds-tip{display:block}.ds-state:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;} @media(max-width:720px){.ds-states{min-height:40px;gap:8px}.ds-tip{max-width:224px;right:0;left:auto}}"
     },
     {
-      "name": "字幕の比較行",
+      "name": "字幕の履歴行",
       "kind": "custom",
       "refersTo": "caption-row",
-      "description": "長文を折り返す5列。番号の下に受信時刻を添え、編集中の背景と公開中の番号を分ける。",
-      "html": "<article class=\"ds-row\" data-editing=\"true\" data-current=\"true\"><div class=\"ds-number\"><span>14</span><time class=\"ds-received-time\" datetime=\"2026-10-06T02:32:54Z\" title=\"受信時刻：2026/10/06 11:32:54 JST\">11:32</time></div><div class=\"ds-original\"><span class=\"ds-mobile-label\">原文</span>ここからは、会場で起こりやすい場面を順に見ていきます。</div><div class=\"ds-text\"><span class=\"ds-mobile-label\">保存済みの表示文</span><button class=\"ds-edit-text\" aria-label=\"字幕 14 を編集\">ここからは、会場で起こりやすい場面を順に見ていきます。</button></div><div class=\"ds-row-state\" aria-label=\"観客に表示中\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/><path d=\"M10 9H8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/></svg><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg></div><button class=\"ds-row-edit\" aria-label=\"字幕 14 の編集欄を開く\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\"/><path d=\"m15 5 4 4\"/></svg></button></article>",
-      "css": ".ds-row{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,1.2fr) 64px 32px;column-gap:16px;min-height:48px;align-items:start;padding:8px 24px;color:#171717;background:#fff;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:24px}.ds-row::after{content:\"\";position:absolute;bottom:0;left:24px;right:24px;height:1px;background:#e5e5e5;pointer-events:none}.ds-row[data-dirty=\"true\"]{background:#fffbeb}.ds-row[data-editing=\"true\"]{background:#eff6ff;outline:1px solid #93b3d1;outline-offset:-1px}.ds-number{display:flex;flex-direction:column;line-height:16px;color:#525252;font-size:12px;font-variant-numeric:tabular-nums}.ds-row[data-current=\"true\"] .ds-number{color:#15406a;font-weight:700}.ds-original,.ds-text{min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}.ds-original{color:#404040}.ds-edit-text{display:block;width:100%;padding:0;border:0;text-align:left;background:transparent;color:#171717;border-radius:4px;font:inherit;line-height:24px;white-space:pre-wrap;cursor:pointer}.ds-edit-text:hover{background:#e5e5e5}.ds-edit-text:focus-visible,.ds-row-edit:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;}.ds-row-state{display:flex;gap:8px;align-items:center;min-height:32px;color:#15406a}.ds-row-edit{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:8px;border:1px solid transparent;border-radius:4px;background:transparent;color:#171717;cursor:pointer;transition:all .15s cubic-bezier(.4,0,.2,1)}.ds-row-edit:hover{background:var(--muted,oklch(.97 0 0))}.ds-row-edit:active{transform:translateY(1px)}.ds-mobile-label{display:none}@media(max-width:720px){.ds-row{grid-template-columns:40px minmax(0,1fr) 40px;gap:8px;padding:8px 16px}.ds-row::after{left:16px;right:16px}.ds-number{grid-row:1 / 4}.ds-original{grid-column:2;grid-row:1}.ds-text{grid-column:2;grid-row:2}.ds-row-state{grid-column:2;grid-row:3;min-height:24px;gap:16px}.ds-row-edit{grid-column:3;grid-row:1;width:40px;height:40px}.ds-mobile-label{display:inline;margin-right:8px;font-size:12px;color:#525252}}.ds-received-time{color:#525252;font-size:12px;line-height:16px;font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap}"
+      "description": "保存済みの本文を一列で読む4列。番号の下に受信時刻を添え、編集中の背景と公開中の番号を分ける。モバイルは本文から訂正を開く。",
+      "html": "<article class=\"ds-row\" data-editing=\"true\" data-current=\"true\"><div class=\"ds-number\"><span>14</span><time class=\"ds-received-time\" datetime=\"2026-10-06T02:32:54Z\" title=\"受信時刻：2026/10/06 11:32:54 JST\">11:32</time></div><div class=\"ds-text\"><button class=\"ds-edit-text\" aria-label=\"字幕 14 を編集\">ここからは、会場で起こりやすい場面を順に見ていきます。</button></div><div class=\"ds-row-state\" aria-label=\"観客に表示中\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/><path d=\"M10 9H8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/></svg><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg></div><button class=\"ds-row-edit\" aria-label=\"字幕 14 の編集欄を開く\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\"/><path d=\"m15 5 4 4\"/></svg></button></article>",
+      "css": ".ds-row{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr) 64px 32px;column-gap:16px;min-height:48px;align-items:start;padding:8px 24px;color:#171717;background:#fff;font-family:system-ui,-apple-system,sans-serif;font-size:16px;line-height:24px}.ds-row::after{content:\"\";position:absolute;bottom:0;left:24px;right:24px;height:1px;background:#e5e5e5;pointer-events:none}.ds-row[data-dirty=\"true\"]{background:#fffbeb}.ds-row[data-editing=\"true\"]{background:#eff6ff;outline:1px solid #93b3d1;outline-offset:-1px}.ds-number{display:flex;flex-direction:column;line-height:16px;color:#525252;font-size:12px;font-variant-numeric:tabular-nums}.ds-row[data-current=\"true\"] .ds-number{color:#15406a;font-weight:700}.ds-text{min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}.ds-edit-text{display:block;width:100%;padding:4px 0;border:0;text-align:left;background:transparent;color:#171717;border-radius:4px;font:inherit;line-height:24px;white-space:pre-wrap;cursor:pointer}.ds-edit-text:hover{background:#e5e5e5}.ds-edit-text:focus-visible,.ds-row-edit:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;}.ds-row-state{display:flex;gap:8px;align-items:center;min-height:32px;color:#15406a}.ds-row-edit{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:8px;border:1px solid transparent;border-radius:4px;background:transparent;color:#171717;cursor:pointer;transition:all .15s cubic-bezier(.4,0,.2,1)}.ds-row-edit:hover{background:var(--muted,oklch(.97 0 0))}.ds-row-edit:active{transform:translateY(1px)}@media(max-width:720px){.ds-row{grid-template-columns:40px minmax(0,1fr) 56px;gap:8px;padding:8px 16px}.ds-row::after{left:16px;right:16px}.ds-number{padding-top:4px}.ds-edit-text{min-height:40px;padding:8px 0}.ds-row-state{min-height:40px}.ds-row-edit{display:none}}.ds-received-time{color:#525252;font-size:12px;line-height:16px;font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap}"
     },
     {
       "name": "共通字幕プレビュー",
@@ -473,8 +477,8 @@
     }
   ],
   "narrative": {
-    "northStar": "白地の比較表",
-    "overview": "白地の比較表を軸に、入力、保存済みの表示文、訂正欄を読み分けられる密度にする。日本語の長文を並べても位置を見失わないよう、余白、行間、番号、区切り線を揃える。既存の操作画面を引き継ぎ、装飾のためのアニメーションを追加しない。\n\n操作画面は色、位置、アイコンの形で状態を分ける。観客画面は公開された字幕を読むための領域として、書体と寸法を設定から描画する。説明は変更対象と保存の結果を伝え、実装済みの動作と未接続の機能を区別する。",
+    "northStar": "白地の字幕ログ",
+    "overview": "保存済みの表示文を一列で読み、原文との照合は選択した字幕の訂正欄にまとめる。日本語の長文を並べても位置を見失わないよう、余白、行間、番号、区切り線を揃える。既存の白地と状態色を引き継ぎ、装飾のためのアニメーションを追加しない。\n\n操作画面は色、位置、アイコンの形で状態を分ける。観客画面は公開された字幕を読むための領域として、書体と寸法を設定から描画する。説明は変更対象と保存の結果を伝え、実装済みの動作と未接続の機能を区別する。",
     "keyCharacteristics": [
       "白地、淡い灰色の領域、細い区切り線で情報を揃える。",
       "8pxを基準にした余白と24pxの本文行間を使う。",

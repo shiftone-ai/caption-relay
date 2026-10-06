@@ -25,14 +25,13 @@ export function CaptionEditorView({ row }: { row: RowParameters }) {
             intent={{ type: "caption.edit.closed" }}><X size={16} /></Button>
         </header>
         <div className="caption-editor-scroll">
-          <details className="caption-editor-reference"><summary>原文と保存済みの文</summary>
-            <dl><div><dt>原文</dt><dd>{row.original}</dd></div><div><dt>保存済みの表示文</dt><dd>{row.text}</dd></div></dl>
-          </details>
+          <section className="caption-editor-reference" aria-label="訂正する字幕の原文"><h3>原文</h3><p tabIndex={0}>{row.original}</p></section>
           <label htmlFor={inputId}>字幕 {row.number} の表示文</label>
           <Textarea ref={input} id={inputId} className="caption-editor-input" value={row.draftText} readOnly={row.readOnly}
             aria-invalid={row.invalid} aria-describedby={hintId + (row.message ? " " + messageId : "")}
             change={text => ({ type: "caption.draft.changed", captionId: row.id, text })}
             keypress={key => ({ type: "caption.editor.keypressed", captionId: row.id, ...key })} />
+          {row.dirty && <details className="caption-saved-reference"><summary>保存済みの表示文を確認</summary><p>{row.text}</p></details>}
           {row.formattedText && <details className="caption-ai-reference"><summary>AI修正結果を確認</summary><p>{row.formattedText}</p></details>}
         </div>
         <footer className="caption-editor-footer">

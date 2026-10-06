@@ -24,9 +24,7 @@ export function CaptionRowView({ row }: { row: RowParameters }) {
           <div className="caption-number"><span>{row.number}</span>
             <time className="caption-received-time" dateTime={row.receivedAt} title={row.timeDescription} aria-label={row.timeDescription}>{row.timeLabel}</time>
           </div>
-          <div className="caption-original"><span className="caption-mobile-label">原文</span>{row.original}</div>
           <div className="caption-text">
-            <span className="caption-mobile-label">保存済みの表示文</span>
             <button className="caption-edit-text" disabled={row.editDisabled} aria-label={"字幕 " + row.number + " を編集"}
               aria-describedby={descriptionId} aria-expanded={row.editing}
               onClick={() => emit({ type: "caption.edit.requested", captionId: row.id })}>{row.text}</button>
@@ -77,14 +75,14 @@ export function CaptionListView({ parameters }: { parameters: OperatorParameters
       {emit => {
         notify.current = emit;
         return <section className="caption-list" aria-label="字幕一覧">
-          <div className="caption-columns" aria-hidden="true"><span>#</span><span>原文</span><span>保存済みの表示文</span><span>状態</span><span /></div>
+          <header className="caption-list-heading"><h2>保存済みの表示文</h2></header>
           <div ref={viewport} className="caption-viewport" onScroll={event => {
             const node = event.currentTarget;
             emit({ type: "timeline.scrolled", scrollHeight: node.scrollHeight, clientHeight: node.clientHeight, scrollTop: node.scrollTop });
           }}>
             <div ref={content} className="caption-history-content">
               {parameters.rows.map(row => <CaptionRowView row={row} key={row.id} />)}
-              {!parameters.rows.length && <div className="caption-empty"><h2>{parameters.loading ? "字幕を読み込んでいます" : "字幕を待っています"}</h2><p>入力を受信すると、原文と保存済みの表示文がここに並びます。「準備」から「テスト字幕を送る」を選ぶか、入力 API から字幕を送って表示を確認できます。</p></div>}
+              {!parameters.rows.length && <div className="caption-empty"><h2>{parameters.loading ? "字幕を読み込んでいます" : "字幕を待っています"}</h2><p>入力を受信すると、保存済みの表示文がここに並びます。字幕を選ぶと原文を確認して訂正できます。「準備」から「テスト字幕を送る」を選ぶか、入力 API から字幕を送って表示を確認できます。</p></div>}
             </div>
           </div>
           <footer className="caption-list-footer"><span>{parameters.rows.length} 件<span className="caption-follow-state"> · {parameters.followLabel}</span></span>
