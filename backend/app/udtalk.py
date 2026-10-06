@@ -76,7 +76,7 @@ class UdtalkDecoder:
                 if fragment.phase == "removed" and fragment.utteranceIdentifier == "":
                     # The real app also emits an empty removal control record.
                     continue
-                if fragment.phase == "image":
+                if fragment.phase == "image" or fragment.type == 1:
                     continue
                 parts = fragment.utteranceIdentifier.split(":")
                 if len(parts) > 2 or not parts[0] or (len(parts) == 2 and not parts[1].isdecimal()):
@@ -115,23 +115,29 @@ class UdtalkDecoder:
         for root in changed:
             utterance = state[root]
             active = {index: fragment for index, fragment in utterance.fragments.items()
-                      if fragment.phase != "removed" and fragment.type != 1
-                      and fragment.text and not (
+                      if fragment.phase != "removed" and not (
                           fragment.phase == "created" and fragment.type == -1 and fragment.text == "..."
                       )}
-            if not active and utterance.content is None:
+            if utterance.content is None and not any(fragment.text for fragment in active.values()):
                 # Silence creates a type=-1 placeholder, then removes it. It is
                 # bookkeeping, not recognized speech and must not create a row.
                 continue
             ordered = sorted(active)
             text = "".join(active[index].text for index in ordered)
-            # A missing prefix must not be published as a complete utterance.
-            final = bool(ordered) and ordered == list(range(ordered[-1] + 1)) and all(
+            # Cancelled positions are accounted for; only unseen positions are gaps.
+            accounted_indices = active.keys() | {
+                index for index, fragment in utterance.fragments.items() if fragment.phase == "removed"
+            }
+            complete = bool(ordered) and sum(
+                index <= ordered[-1] for index in accounted_indices
+            ) == ordered[-1] + 1
+            final = complete and all(
                 fragment.phase == "direct" or (
                     fragment.phase == "finalized" and fragment.endOfUtterance is True
                 ) for fragment in active.values()
             )
-            content = (text, final, not active)
+            removed = all(fragment.phase == "removed" for fragment in utterance.fragments.values())
+            content = (text, final, removed)
             if content == utterance.content:
                 continue
             utterance.content = content
@@ -140,7 +146,7 @@ class UdtalkDecoder:
             events.append(SourceEvent(
                 utterance_id=f"udtalk-{opaque_id}", revision=utterance.revision,
                 text=text, is_final=final,
-                removed=not active,
+                removed=removed,
                 source_event_id=f"udtalk-{opaque_id}-{utterance.revision}",
             ))
         self._utterances.update(state)
