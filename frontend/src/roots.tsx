@@ -10,6 +10,7 @@ import { OperatorView } from "./views/operator";
 import { AudienceView } from "./views/audience";
 import { createFullscreenAdapter } from "./adapters/fullscreen";
 import { protectUnsavedChanges } from "./adapters/unsaved-changes";
+import { observeOperatorKeys } from "./adapters/operator-keyboard";
 import type { AudienceApi, FullscreenAdapter, OperatorApi, ViewEvent } from "./domain";
 
 export function OperatorRoot({ api = operatorApi }: { api?: OperatorApi }) {
@@ -21,6 +22,7 @@ export function OperatorRoot({ api = operatorApi }: { api?: OperatorApi }) {
     actor.send(event);
     return true;
   }, [actor]);
+  useEffect(() => observeOperatorKeys(document, handle), [handle]);
   return <viewHierarchy.Root handle={handle}><OperatorView parameters={parameters} /></viewHierarchy.Root>;
 }
 

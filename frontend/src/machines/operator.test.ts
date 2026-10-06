@@ -310,13 +310,36 @@ it("retains the public version when an interim candidate is saved and does not a
 
 it("uses guarded settings Escape without accepting other keys or IME Escape", async () => {
   const actor = await start();
-  expect(actor.getSnapshot().can({ type: "settings.keypressed", key: "Escape", isComposing: false })).toBe(false);
+  expect(actor.getSnapshot().can({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: false })).toBe(false);
   actor.send({ type: "display.settings.toggled" });
-  expect(actor.getSnapshot().can({ type: "settings.keypressed", key: "Tab", isComposing: false })).toBe(false);
-  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: true });
+  expect(actor.getSnapshot().can({ type: "settings.keypressed", key: "Tab", isComposing: false, defaultPrevented: false })).toBe(false);
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: true, defaultPrevented: false });
   expect(actor.getSnapshot().context.settingsOpen).toBe(true);
-  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false });
+  expect(actor.getSnapshot().can({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: true })).toBe(false);
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: true });
+  expect(actor.getSnapshot().context.settingsOpen).toBe(true);
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: false });
   expect(actor.getSnapshot().context.settingsOpen).toBe(false);
+});
+
+it("dismisses a status explanation before an editor Escape and rejects its consumed workspace event", async () => {
+  const actor = await start();
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "caption.draft.changed", captionId: "one", text: "入力中" });
+  actor.send({ type: "caption.status.interaction.changed", captionId: "one", kind: "source", interaction: "pointer", active: true });
+  const focusRequest = actor.getSnapshot().context.historyFocusRequest;
+  const escape = { type: "caption.editor.keypressed" as const, captionId: "one", key: "Escape", ctrlKey: false, metaKey: false, isComposing: false };
+  expect(actor.getSnapshot().can(escape)).toBe(true);
+  actor.send(escape);
+  expect(actor.getSnapshot().context).toMatchObject({ activeCaptionId: "one", historyFocusRequest: focusRequest,
+    statusTooltip: { dismissed: { captionId: "one", kind: "source" } } });
+  const bubbled = { type: "settings.keypressed" as const, key: "Escape", isComposing: false, defaultPrevented: true };
+  expect(actor.getSnapshot().can(bubbled)).toBe(false);
+  actor.send(bubbled);
+  expect(actor.getSnapshot().context.activeCaptionId).toBe("one");
+  actor.send(escape);
+  expect(actor.getSnapshot().context.activeCaptionId).toBeNull();
+  expect(actor.getSnapshot().context.drafts.get("one")?.text).toBe("入力中");
 });
 
 it("selects the editor from an open settings panel while preserving its settings draft", async () => {
@@ -339,4 +362,73 @@ it("keeps editing paused at the end of history until latest is explicitly reques
   actor.send({ type: "timeline.latest.requested" });
   actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 600 });
   expect(actor.getSnapshot().context.followLatest).toBe(true);
+});
+
+it("keeps a focused status explanation open across pointer movement and dismisses it until interaction ends", async () => {
+  const actor = await start();
+  const source = { captionId: "one", kind: "source" as const };
+  const publication = { captionId: "one", kind: "publication" as const };
+  actor.send({ type: "caption.status.interaction.changed", ...source, interaction: "focus", active: true });
+  actor.send({ type: "caption.status.interaction.changed", ...publication, interaction: "pointer", active: true });
+  actor.send({ type: "caption.status.interaction.changed", ...source, interaction: "pointer", active: false });
+  expect(actor.getSnapshot().context.statusTooltip).toMatchObject({ focus: source, pointer: publication, dismissed: null });
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: true, defaultPrevented: false });
+  expect(actor.getSnapshot().context.statusTooltip.dismissed).toBeNull();
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: false });
+  expect(actor.getSnapshot().context.statusTooltip.dismissed).toEqual(source);
+  actor.send({ type: "caption.status.interaction.changed", ...source, interaction: "pointer", active: true });
+  actor.send({ type: "caption.status.interaction.changed", ...source, interaction: "focus", active: false });
+  expect(actor.getSnapshot().context.statusTooltip.dismissed).toEqual(source);
+  actor.send({ type: "caption.status.interaction.changed", ...source, interaction: "pointer", active: false });
+  expect(actor.getSnapshot().context.statusTooltip).toMatchObject({ focus: null, pointer: null, dismissed: null });
+  actor.send({ type: "caption.status.interaction.changed", ...source, interaction: "focus", active: true });
+  expect(actor.getSnapshot().context.statusTooltip.dismissed).toBeNull();
+  expect(actor.getSnapshot().can({ type: "caption.status.interaction.changed", captionId: "missing", kind: "source", interaction: "pointer", active: true })).toBe(false);
+});
+
+it("places status explanations inside the screen and ignores unchanged, stale, or dismissed measurements", async () => {
+  const actor = await start();
+  const geometry = { triggerTop: 260, triggerBottom: 282, triggerLeft: 290, triggerRight: 312,
+    tooltipWidth: 280, tooltipHeight: 90, viewportWidth: 320, viewportHeight: 300 };
+  const measurement = { type: "caption.status.measured" as const, captionId: "one", kind: "source" as const, geometry };
+  expect(actor.getSnapshot().can(measurement)).toBe(false);
+  actor.send({ type: "caption.status.interaction.changed", captionId: "one", kind: "source", interaction: "pointer", active: true });
+  actor.send(measurement);
+  const position = actor.getSnapshot().context.statusTooltip.measurement!.position;
+  expect(position.top + geometry.tooltipHeight).toBeLessThan(geometry.triggerTop);
+  expect(position.left).toBeGreaterThanOrEqual(8);
+  expect(position.left + Math.min(geometry.tooltipWidth, position.maxWidth)).toBeLessThanOrEqual(geometry.viewportWidth - 8);
+  expect(position.bridge.top + position.bridge.height).toBe(geometry.triggerTop);
+  expect(actor.getSnapshot().can(measurement)).toBe(false);
+  expect(actor.getSnapshot().can({ ...measurement, kind: "publication" })).toBe(false);
+  actor.send({ ...measurement, geometry: { ...geometry, tooltipHeight: 800, viewportHeight: 180 } });
+  const constrained = actor.getSnapshot().context.statusTooltip.measurement!.position;
+  expect(constrained.top).toBeGreaterThanOrEqual(8);
+  expect(constrained.top + constrained.maxHeight).toBeLessThanOrEqual(172);
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: false });
+  expect(actor.getSnapshot().can(measurement)).toBe(false);
+});
+
+it("uses current caption data after save, conflict, refresh, and removal", async () => {
+  const adapter = api();
+  const actor = await start(adapter);
+  actor.send({ type: "caption.save.requested", captionId: "one" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  expect(actor.getSnapshot().context.drafts.get("one")).toMatchObject({ text: "修正", baseRevision: 2 });
+  vi.mocked(adapter.save).mockRejectedValueOnce(new CaptionConflict({ ...caption, text: "他の修正", revision: 4 }));
+  actor.send({ type: "caption.save.requested", captionId: "one" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  actor.send({ type: "caption.draft.discarded", captionId: "one" });
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  expect(actor.getSnapshot().context.drafts.get("one")).toMatchObject({ text: "他の修正", baseRevision: 4 });
+  actor.send({ type: "caption.draft.discarded", captionId: "one" });
+  const newest = { ...caption, id: "two", utterance_id: "two", text: "新着", revision: 7 };
+  vi.mocked(adapter.load).mockResolvedValueOnce({ visible: true, captions: [newest] });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().can({ type: "caption.edit.requested", captionId: "one" })).toBe(false);
+  expect(actor.getSnapshot().can({ type: "caption.draft.changed", captionId: "one", text: "古い字幕" })).toBe(false);
+  actor.send({ type: "caption.edit.requested", captionId: "two" });
+  expect(actor.getSnapshot().context.drafts.get("two")).toMatchObject({ text: "新着", baseRevision: 7 });
 });
