@@ -1,0 +1,527 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-06T02:09:25.662Z",
+  "title": "Design System: Caption Relay",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "保存の黒",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "primary-foreground": {
+        "role": "primary",
+        "displayName": "保存ボタンの白文字",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "button-muted": {
+        "role": "neutral",
+        "displayName": "共有ボタンの中間色",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "button-border": {
+        "role": "neutral",
+        "displayName": "共有ボタンの輪郭",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "白い作業面",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "surface-muted": {
+        "role": "neutral",
+        "displayName": "薄い灰色の補助面",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "surface-monitor": {
+        "role": "neutral",
+        "displayName": "監視欄の灰色",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "本文",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "原文",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "補助文",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "divider": {
+        "role": "neutral",
+        "displayName": "領域の境界",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "row-divider": {
+        "role": "neutral",
+        "displayName": "行の区切り",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "選択欄の輪郭",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "editor-border": {
+        "role": "neutral",
+        "displayName": "訂正欄の輪郭",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      },
+      "live": {
+        "role": "primary",
+        "displayName": "公開の青",
+        "tonalRamp": [
+          "oklch(0.1500 0.0865 251.05)",
+          "oklch(0.2643 0.0865 251.05)",
+          "oklch(0.3786 0.0865 251.05)",
+          "oklch(0.4929 0.0865 251.05)",
+          "oklch(0.6071 0.0865 251.05)",
+          "oklch(0.7214 0.0865 251.05)",
+          "oklch(0.8357 0.0865 251.05)",
+          "oklch(0.9500 0.0865 251.05)"
+        ]
+      },
+      "editing": {
+        "role": "primary",
+        "displayName": "編集中の淡い青",
+        "tonalRamp": [
+          "oklch(0.1500 0.0142 254.60)",
+          "oklch(0.2643 0.0142 254.60)",
+          "oklch(0.3786 0.0142 254.60)",
+          "oklch(0.4929 0.0142 254.60)",
+          "oklch(0.6071 0.0142 254.60)",
+          "oklch(0.7214 0.0142 254.60)",
+          "oklch(0.8357 0.0142 254.60)",
+          "oklch(0.9500 0.0142 254.60)"
+        ]
+      },
+      "editing-border": {
+        "role": "primary",
+        "displayName": "編集中の輪郭",
+        "tonalRamp": [
+          "oklch(0.1500 0.0557 246.88)",
+          "oklch(0.2643 0.0557 246.88)",
+          "oklch(0.3786 0.0557 246.88)",
+          "oklch(0.4929 0.0557 246.88)",
+          "oklch(0.6071 0.0557 246.88)",
+          "oklch(0.7214 0.0557 246.88)",
+          "oklch(0.8357 0.0557 246.88)",
+          "oklch(0.9500 0.0557 246.88)"
+        ]
+      },
+      "unsaved": {
+        "role": "primary",
+        "displayName": "未保存の淡い黄色",
+        "tonalRamp": [
+          "oklch(0.1500 0.0214 95.28)",
+          "oklch(0.2643 0.0214 95.28)",
+          "oklch(0.3786 0.0214 95.28)",
+          "oklch(0.4929 0.0214 95.28)",
+          "oklch(0.6071 0.0214 95.28)",
+          "oklch(0.7214 0.0214 95.28)",
+          "oklch(0.8357 0.0214 95.28)",
+          "oklch(0.9500 0.0214 95.28)"
+        ]
+      },
+      "unsaved-text": {
+        "role": "primary",
+        "displayName": "未保存の文字",
+        "tonalRamp": [
+          "oklch(0.1500 0.1247 46.20)",
+          "oklch(0.2643 0.1247 46.20)",
+          "oklch(0.3786 0.1247 46.20)",
+          "oklch(0.4929 0.1247 46.20)",
+          "oklch(0.6071 0.1247 46.20)",
+          "oklch(0.7214 0.1247 46.20)",
+          "oklch(0.8357 0.1247 46.20)",
+          "oklch(0.9500 0.1247 46.20)"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "操作位置の青",
+        "tonalRamp": [
+          "oklch(0.1500 0.2172 264.38)",
+          "oklch(0.2643 0.2172 264.38)",
+          "oklch(0.3786 0.2172 264.38)",
+          "oklch(0.4929 0.2172 264.38)",
+          "oklch(0.6071 0.2172 264.38)",
+          "oklch(0.7214 0.2172 264.38)",
+          "oklch(0.8357 0.2172 264.38)",
+          "oklch(0.9500 0.2172 264.38)"
+        ]
+      },
+      "selection": {
+        "role": "primary",
+        "displayName": "文字選択の背景",
+        "tonalRamp": [
+          "oklch(0.1500 0.0316 255.59)",
+          "oklch(0.2643 0.0316 255.59)",
+          "oklch(0.3786 0.0316 255.59)",
+          "oklch(0.4929 0.0316 255.59)",
+          "oklch(0.6071 0.0316 255.59)",
+          "oklch(0.7214 0.0316 255.59)",
+          "oklch(0.8357 0.0316 255.59)",
+          "oklch(0.9500 0.0316 255.59)"
+        ]
+      },
+      "selection-text": {
+        "role": "primary",
+        "displayName": "文字選択の文字",
+        "tonalRamp": [
+          "oklch(0.1500 0.0874 267.94)",
+          "oklch(0.2643 0.0874 267.94)",
+          "oklch(0.3786 0.0874 267.94)",
+          "oklch(0.4929 0.0874 267.94)",
+          "oklch(0.6071 0.0874 267.94)",
+          "oklch(0.7214 0.0874 267.94)",
+          "oklch(0.8357 0.0874 267.94)",
+          "oklch(0.9500 0.0874 267.94)"
+        ]
+      },
+      "error": {
+        "role": "primary",
+        "displayName": "失敗の赤",
+        "tonalRamp": [
+          "oklch(0.1500 0.1613 26.90)",
+          "oklch(0.2643 0.1613 26.90)",
+          "oklch(0.3786 0.1613 26.90)",
+          "oklch(0.4929 0.1613 26.90)",
+          "oklch(0.6071 0.1613 26.90)",
+          "oklch(0.7214 0.1613 26.90)",
+          "oklch(0.8357 0.1613 26.90)",
+          "oklch(0.9500 0.1613 26.90)"
+        ]
+      },
+      "audience-dark": {
+        "role": "neutral",
+        "displayName": "観客画面の黒",
+        "tonalRamp": [
+          "oklch(0.1500 0.0000 0.00)",
+          "oklch(0.2643 0.0000 0.00)",
+          "oklch(0.3786 0.0000 0.00)",
+          "oklch(0.4929 0.0000 0.00)",
+          "oklch(0.6071 0.0000 0.00)",
+          "oklch(0.7214 0.0000 0.00)",
+          "oklch(0.8357 0.0000 0.00)",
+          "oklch(0.9500 0.0000 0.00)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "画面名",
+        "purpose": "操作画面のCaption Relay。モバイルは18px／24px。"
+      },
+      "title": {
+        "displayName": "欄の見出し",
+        "purpose": "訂正・設定の見出し。"
+      },
+      "body": {
+        "displayName": "比較と訂正の本文",
+        "purpose": "原文、保存済み文、訂正文。"
+      },
+      "label": {
+        "displayName": "状態と補助説明",
+        "purpose": "列名、番号、保存の結果。"
+      },
+      "compact-label": {
+        "displayName": "短い補足",
+        "purpose": "料金比較、モデル名の補足、プレビューの説明。"
+      },
+      "audience-default": {
+        "displayName": "観客字幕の初期値",
+        "purpose": "書体、サイズ、太さ、行間は設定から変更する。"
+      },
+      "button": {
+        "displayName": "操作ボタン",
+        "purpose": "本文と同じ大きさと行間で、太さを一段上げる。"
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "existing-button-transition",
+        "value": "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "共有Buttonの既存状態遷移。新しい装飾アニメーションは追加しない。"
+      },
+      {
+        "name": "existing-button-press",
+        "value": "translateY(1px)",
+        "purpose": "共有Buttonの既存押下状態。履歴位置の変更は即時に行う。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "operator-mobile",
+        "value": "720px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "保存ボタン",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "明示的な保存・反映。結果は操作の近くに文章で示す。",
+      "html": "<button class=\"ds-button ds-save\">保存</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:32px;padding:0 16px;border:1px solid transparent;border-radius:4px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;font-weight:500;line-height:24px;white-space:nowrap;cursor:pointer;transition:all .15s cubic-bezier(.4,0,.2,1);} .ds-save{background:var(--primary,oklch(.205 0 0));color:var(--primary-foreground,oklch(.985 0 0))} .ds-save:hover{background:color-mix(in oklch,var(--primary,oklch(.205 0 0)) 80%,transparent)} .ds-button:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;border-color:var(--ring,oklch(.708 0 0));box-shadow:0 0 0 3px oklch(.708 0 0 / 50%)} .ds-button:active{transform:translateY(1px)} .ds-button:disabled{opacity:.5;pointer-events:none} @media(max-width:720px){.ds-button{height:40px;min-height:40px}}"
+    },
+    {
+      "name": "輪郭の操作ボタン",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "観客への表示切り替えなど、文字で結果を伝える操作。",
+      "html": "<button class=\"ds-button ds-outline\">字幕を隠す</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:32px;padding:0 16px;border:1px solid transparent;border-radius:4px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;font-weight:500;line-height:24px;white-space:nowrap;cursor:pointer;transition:all .15s cubic-bezier(.4,0,.2,1);} .ds-outline{background:var(--background,oklch(1 0 0));border-color:var(--border,oklch(.922 0 0));color:#171717} .ds-outline:hover,.ds-outline[aria-expanded=\"true\"]{background:var(--muted,oklch(.97 0 0));color:var(--foreground,oklch(.145 0 0))} .ds-button:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;border-color:var(--ring,oklch(.708 0 0));box-shadow:0 0 0 3px oklch(.708 0 0 / 50%)} .ds-button:active{transform:translateY(1px)} .ds-button:disabled{opacity:.5;pointer-events:none} @media(max-width:720px){.ds-button{height:40px;min-height:40px}}"
+    },
+    {
+      "name": "ghostの編集ボタン",
+      "kind": "button",
+      "refersTo": "icon-button",
+      "description": "行内の編集を開く。アイコンに操作名を付ける。",
+      "html": "<button class=\"ds-button ds-edit\" aria-label=\"字幕の編集欄を開く\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\"/><path d=\"m15 5 4 4\"/></svg></button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:32px;padding:0 16px;border:1px solid transparent;border-radius:4px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;font-weight:500;line-height:24px;white-space:nowrap;cursor:pointer;transition:all .15s cubic-bezier(.4,0,.2,1);} .ds-edit{width:32px;padding:8px;background:transparent;color:#171717} .ds-edit:hover,.ds-edit[aria-expanded=\"true\"]{background:var(--muted,oklch(.97 0 0));color:var(--foreground,oklch(.145 0 0))} .ds-edit svg{flex-shrink:0} .ds-button:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;border-color:var(--ring,oklch(.708 0 0));box-shadow:0 0 0 3px oklch(.708 0 0 / 50%)} .ds-button:active{transform:translateY(1px)} .ds-button:disabled{opacity:.5;pointer-events:none} @media(max-width:720px){.ds-button{height:40px;min-height:40px}} @media(max-width:720px){.ds-edit{width:40px}}"
+    },
+    {
+      "name": "ネイティブselect",
+      "kind": "input",
+      "refersTo": "select",
+      "description": "ネイティブ選択操作と、右8pxに置く16pxの矢印を両立する。",
+      "html": "<label class=\"ds-field\">新着の公開<select class=\"ds-select\"><option>自動公開</option><option>確認して公開</option></select></label>",
+      "css": ".ds-field{display:flex;align-items:center;gap:8px;color:#171717;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:24px} .ds-select{appearance:none;height:32px;min-width:0;padding:0 32px 0 8px;font:inherit;color:#171717;border:1px solid #a3a3a3;border-radius:4px;background-color:#fff;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23525252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 8px center;background-size:16px 16px} .ds-select:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;} .ds-select:disabled{opacity:.6} @media(max-width:720px){.ds-select{height:40px;font-size:16px}} @media(forced-colors:active){.ds-select{appearance:auto;background-image:none}}"
+    },
+    {
+      "name": "訂正欄",
+      "kind": "input",
+      "refersTo": "textarea",
+      "description": "下書きを編集する白い欄。保存するまで観客へ送らない。",
+      "html": "<label class=\"ds-editor-label\" for=\"ds-caption-edit\">字幕 14 の表示文</label><textarea id=\"ds-caption-edit\" class=\"ds-textarea\">ここからは、会場で起こりやすい場面を順に見ていきます。</textarea>",
+      "css": ".ds-editor-label{display:block;color:#525252;font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:24px} .ds-textarea{min-height:160px;width:100%;padding:8px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:24px;color:#171717;border:1px solid #737373;border-radius:4px;background:#fff;box-shadow:none;resize:vertical;caret-color:#1d4ed8} .ds-textarea:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;} .ds-textarea[aria-invalid=\"true\"]{border-color:#991b1b} .ds-textarea:disabled{cursor:not-allowed;opacity:.5} .ds-textarea::selection{background:#dbeafe;color:#172554} @media(max-width:720px){.ds-textarea{min-height:96px;font-size:16px}}"
+    },
+    {
+      "name": "観客画面への導線",
+      "kind": "nav",
+      "refersTo": "output-link",
+      "description": "ヘッダーに置く下線と外部リンクアイコン。モバイルでも操作名を保つ。",
+      "html": "<nav class=\"ds-nav\" aria-label=\"表示先\"><a class=\"ds-output\" aria-label=\"観客画面\" title=\"観客画面を開く\" href=\"#audience\"><span>観客画面</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 3h6v6\"/><path d=\"M10 14 21 3\"/><path d=\"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6\"/></svg></a></nav>",
+      "css": ".ds-nav{font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:24px} .ds-output{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 8px;color:#171717;text-decoration:underline;text-underline-offset:4px;white-space:nowrap} .ds-output:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;} @media(max-width:720px){.ds-output{height:40px;width:40px;padding:8px;justify-content:center}.ds-output span{display:none}}"
+    },
+    {
+      "name": "設定の補助欄",
+      "kind": "card",
+      "refersTo": "settings-pane",
+      "description": "説明と項目を先頭に、反映操作を末尾に置く平らな補助領域。",
+      "html": "<aside class=\"ds-pane\" aria-label=\"表示設定\"><div class=\"ds-pane-heading\"><h2>表示設定</h2><button class=\"ds-pane-close\" aria-label=\"表示設定を閉じる\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button></div><p>変更はプレビューで確認できます。「表示設定を反映」で観客画面へ送ります。</p></aside>",
+      "css": ".ds-pane{width:384px;max-width:100%;padding:16px;background:#fafafa;color:#171717;border-left:1px solid #d4d4d4;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:24px} .ds-pane-heading{display:flex;align-items:center;justify-content:space-between;gap:8px} .ds-pane h2{margin:0;font-size:16px;font-weight:600;line-height:24px} .ds-pane p{margin:8px 0 0;color:#525252;font-size:12px;line-height:24px} .ds-pane-close{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:8px;border:1px solid transparent;border-radius:4px;background:transparent;color:#171717;cursor:pointer;transition:all .15s cubic-bezier(.4,0,.2,1)} .ds-pane-close:hover{background:var(--muted,oklch(.97 0 0))}.ds-pane-close:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;} .ds-pane-close:active{transform:translateY(1px)} @media(max-width:720px){.ds-pane{width:100%;border-left:0;border-top:1px solid #d4d4d4}.ds-pane-close{width:40px;height:40px}}"
+    },
+    {
+      "name": "出所と公開状態",
+      "kind": "custom",
+      "description": "2つのアイコンを別々に読み、ホバーとフォーカスで説明を出す。",
+      "html": "<div class=\"ds-states\"><span class=\"ds-state\" tabindex=\"0\" role=\"img\" aria-label=\"原文\" aria-describedby=\"ds-source-tip\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/><path d=\"M10 9H8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/></svg><span id=\"ds-source-tip\" class=\"ds-tip\">原文</span></span><span class=\"ds-state ds-live\" tabindex=\"0\" role=\"img\" aria-label=\"観客に表示中\" aria-describedby=\"ds-publication-tip\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg><span id=\"ds-publication-tip\" class=\"ds-tip\">観客に表示中</span></span></div>",
+      "css": ".ds-states{display:flex;align-items:center;gap:8px;min-height:32px;color:#525252;font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:24px} .ds-state{position:relative;display:inline-grid;place-items:center;flex-shrink:0;width:24px;height:24px;cursor:help}.ds-live{color:#15406a;font-weight:700}.ds-tip{display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:6;width:max-content;max-width:280px;padding:8px;background:#171717;color:#fff;white-space:normal;pointer-events:none}.ds-state:hover .ds-tip,.ds-state:focus .ds-tip{display:block}.ds-state:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;} @media(max-width:720px){.ds-states{min-height:24px;gap:16px;flex-wrap:wrap}.ds-tip{max-width:224px;right:auto;left:0}}"
+    },
+    {
+      "name": "字幕の比較行",
+      "kind": "custom",
+      "refersTo": "caption-row",
+      "description": "長文を折り返す5列。編集中の背景と公開中の番号を分ける。",
+      "html": "<article class=\"ds-row\" data-editing=\"true\" data-current=\"true\"><span class=\"ds-number\">14</span><div class=\"ds-original\"><span class=\"ds-mobile-label\">原文</span>ここからは、会場で起こりやすい場面を順に見ていきます。</div><div class=\"ds-text\"><span class=\"ds-mobile-label\">保存済みの表示文</span><button class=\"ds-edit-text\" aria-label=\"字幕 14 を編集\">ここからは、会場で起こりやすい場面を順に見ていきます。</button></div><div class=\"ds-row-state\" aria-label=\"観客に表示中\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/><path d=\"M10 9H8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/></svg><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg></div><button class=\"ds-row-edit\" aria-label=\"字幕 14 の編集欄を開く\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\"/><path d=\"m15 5 4 4\"/></svg></button></article>",
+      "css": ".ds-row{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr) minmax(0,1.2fr) 64px 32px;column-gap:16px;min-height:48px;align-items:start;padding:8px 24px;color:#171717;background:#fff;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:24px}.ds-row::after{content:\"\";position:absolute;bottom:0;left:24px;right:24px;height:1px;background:#e5e5e5;pointer-events:none}.ds-row[data-dirty=\"true\"]{background:#fffbeb}.ds-row[data-editing=\"true\"]{background:#eff6ff;outline:1px solid #93b3d1;outline-offset:-1px}.ds-number{color:#525252;font-size:12px;font-variant-numeric:tabular-nums}.ds-row[data-current=\"true\"] .ds-number{color:#15406a;font-weight:700}.ds-original,.ds-text{min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}.ds-original{color:#404040}.ds-edit-text{display:block;width:100%;padding:0;border:0;text-align:left;background:transparent;color:#171717;border-radius:4px;font:inherit;line-height:24px;white-space:pre-wrap;cursor:pointer}.ds-edit-text:hover{background:#e5e5e5}.ds-edit-text:focus-visible,.ds-row-edit:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;}.ds-row-state{display:flex;gap:8px;align-items:center;min-height:32px;color:#15406a}.ds-row-edit{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:8px;border:1px solid transparent;border-radius:4px;background:transparent;color:#171717;cursor:pointer;transition:all .15s cubic-bezier(.4,0,.2,1)}.ds-row-edit:hover{background:var(--muted,oklch(.97 0 0))}.ds-row-edit:active{transform:translateY(1px)}.ds-mobile-label{display:none}@media(max-width:720px){.ds-row{grid-template-columns:24px minmax(0,1fr) 40px;gap:8px;padding:8px 16px}.ds-row::after{left:16px;right:16px}.ds-number{grid-row:1 / 4}.ds-original{grid-column:2;grid-row:1}.ds-text{grid-column:2;grid-row:2}.ds-row-state{grid-column:2;grid-row:3;min-height:24px;gap:16px}.ds-row-edit{grid-column:3;grid-row:1;width:40px;height:40px}.ds-mobile-label{display:inline;margin-right:8px;font-size:12px;color:#525252}}"
+    },
+    {
+      "name": "共通字幕プレビュー",
+      "kind": "custom",
+      "refersTo": "caption-default",
+      "description": "1280×800の基準画面を縮小する。初期値の文字64pxと余白48pxを同比率で描画する。",
+      "html": "<div class=\"ds-sample\"><div class=\"ds-display\"><div class=\"ds-frame\"><div class=\"ds-captions\"><p>本日はご参加いただき、ありがとうございます。会場では講演の内容を字幕でお伝えします。</p></div></div></div></div><p class=\"ds-preview-label\">基準画面 1280 × 800 px（16:10）<br>長文の表示例で確認（配信されません）</p>",
+      "css": ".ds-sample{width:min(100%,256px);aspect-ratio:16 / 10;margin-inline:auto;overflow:hidden}.ds-display{width:100%;height:100%;display:grid;place-items:center;overflow:hidden;container-type:size;background:#0a0a0a;color:#fff}.ds-frame{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:0;overflow:hidden}.ds-captions{display:flex;flex-direction:column;gap:1.25cqw;flex:0 1 auto;max-height:100%;min-height:0;padding:3.75cqw;font-family:system-ui,\"Hiragino Sans\",\"Yu Gothic\",sans-serif;font-size:5cqw;font-weight:700;line-height:1.5;text-align:left;white-space:pre-wrap;overflow:auto;overflow-wrap:anywhere;scrollbar-width:none}.ds-captions p{margin:0;flex-shrink:0}.ds-preview-label{padding-top:8px;margin:0;color:#525252;font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:16px}@media(max-width:720px){.ds-sample{width:160px}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "白地の比較表",
+    "overview": "白地の比較表を軸に、入力、保存済みの表示文、訂正欄を読み分けられる密度にする。日本語の長文を並べても位置を見失わないよう、余白、行間、番号、区切り線を揃える。既存の操作画面を引き継ぎ、装飾のためのアニメーションを追加しない。\n\n操作画面は色、位置、アイコンの形で状態を分ける。観客画面は公開された字幕を読むための領域として、書体と寸法を設定から描画する。説明は変更対象と保存の結果を伝え、実装済みの動作と未接続の機能を区別する。",
+    "keyCharacteristics": [
+      "白地、淡い灰色の領域、細い区切り線で情報を揃える。",
+      "8pxを基準にした余白と24pxの本文行間を使う。",
+      "アイコンを優先し、操作名と状態の説明を残す。",
+      "下書き、保存済み文、観客への表示を読み分けられる。",
+      "観客画面とプレビューで同じ描画規則を使う。"
+    ],
+    "rules": [
+      {
+        "name": "The State Separation Rule",
+        "body": "編集位置、未保存、公開状態は別の情報として示す。背景色だけに判断を任せず、番号、アイコン、操作名、フォーカス時の説明を併用する。",
+        "section": "colors"
+      },
+      {
+        "name": "The Reading Rhythm Rule",
+        "body": "操作画面の本文と通常の補助文は24pxの行間に揃える。モバイルのtextareaとselectは16pxにし、観客字幕の可変サイズとは分ける。",
+        "section": "typography"
+      },
+      {
+        "name": "The Eight Pixel Rule",
+        "body": "余白と部品寸法を8pxの倍数に揃える。状態説明や長文が増えたときは内容を切り詰めず、領域を伸ばすかスクロールさせる。",
+        "section": "layout"
+      },
+      {
+        "name": "The Stable Position Rule",
+        "body": "新着位置と訂正位置を別に保つ。「最新へ」と「訂正位置へ」で往復でき、表示位置の更新は即時に行う。",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Workspace Rule",
+        "body": "作業面は背景と境界で分ける。装飾の影や登場アニメーションを加えず、保存、編集、公開の状態を直接伝える。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do 8pxの余白と24pxの本文行間を基準にし、長文の折り返しとスクロールを確認する。",
+      "Do 状態を色、位置、アイコンの形、説明で分ける。",
+      "Do アイコンのみの操作にアクセシブルな名前を付け、保存の結果と変更対象を文章で伝える。",
+      "Do 保存済み文と下書きを区別し、明示的な保存・反映操作を保つ。",
+      "Do 観客画面とプレビューに同じ描画規則を適用し、端末と実際の表示先で読みやすさを確認する。"
+    ],
+    "donts": [
+      "Don't 作業面に装飾の影や登場アニメーションを追加する。",
+      "Don't 未保存、編集中、公開中を一つの状態にまとめる。",
+      "Don't アイコンだけで結果や状態を説明し、操作名や補助説明を省く。",
+      "Don't 観客画面へ管理情報を表示する。",
+      "Don't 未接続のAIや会場の可読性を検証済みとして説明する。"
+    ]
+  }
+}

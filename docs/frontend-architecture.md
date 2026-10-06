@@ -17,23 +17,28 @@ OperatorRoot
 └─ OperatorView
    ├─ ToolbarView
    │  └─ Button
+   ├─ CaptionMonitorView
+   ├─ CaptionEditorView
+   │  ├─ Textarea
+   │  └─ Button
    ├─ DisplaySettingsView
+   │  ├─ CaptionDisplayView
    │  ├─ DisplayFieldView（設定項目ごと）
    │  └─ Button
    ├─ AiSettingsView
    │  └─ Button
    └─ CaptionListView
       ├─ CaptionRowView（字幕 ID ごと）
-      │  ├─ Textarea
       │  └─ Button
       └─ Button
 
 AudienceRoot
 └─ AudienceView
+   ├─ CaptionDisplayView
    └─ Button
 ```
 
-Root は XState actor を起動して Presenter を接続する。actor は React のマウント期間に合わせて動作し、終了時に取得の AbortSignal、SSE 接続、全画面変更の DOM リスナーを解放する。
+Root は XState actor を起動して Presenter を接続する。actor は React のマウント期間に合わせて動作し、終了時に取得の AbortSignal、SSE 接続、全画面変更の DOM リスナーを解放する。OperatorRoot は Presenter が未保存と示す間だけ、離脱確認 Adapter を接続する。
 
 ## 責務と流れ
 
@@ -41,9 +46,9 @@ Root は XState actor を起動して Presenter を接続する。actor は Reac
 2. `src/events/chain.ts` の Chain of Responsibility がイベントを発生元から親へ伝播させる。ハンドラーが `true` を返したら停止する。
 3. Root が `snapshot.can(event)` を確認し、受理可能なイベントを XState actor へ渡す。受理した場合だけ伝播を止める。`src/machines/` の Mediator が操作の可否、次の状態、副作用を裁定する。
 4. `src/presenters/` が actor の状態を描画パラメータへ変換する。
-5. `src/api.ts` の Adapter が HTTP と SSE、`src/adapters/fullscreen.ts` が全画面のブラウザ API と変更通知を扱う。XState の invoke が結果・失敗を受け取り、状態遷移へ戻す。
+5. `src/api.ts` の Adapter が HTTP と SSE、`src/adapters/fullscreen.ts` が全画面のブラウザ API と変更通知、`src/adapters/unsaved-changes.ts` が離脱確認を扱う。XState の invoke が結果・失敗を受け取り、状態遷移へ戻す。
 
-View は actor や API を直接呼び出さず、業務状態を保持しない。入力値、キー情報、スクロール寸法の読み取りと、指示されたフォーカス・スクロールは表示側の責務とする。キーから保存・編集終了を選ぶ判断、追従位置の判定、配色の適用、AI候補の追加・除外は Mediator が行う。View は下書きを組み立てず、Presenter が渡した項目・選択肢・CSS・有効状態を描画する。下書きと編集開始時の改版は Mediator が保持する。
+View は actor や API を直接呼び出さず、業務状態を保持しない。入力値、キー情報、スクロール寸法の読み取りと、指示されたフォーカス・スクロールは表示側の責務とする。キーから保存・編集終了を選ぶ判断、追従位置の判定、配色の適用、AI候補の追加・除外は Mediator が行う。View は下書きを組み立てず、Presenter が渡した項目・選択肢・CSS・有効状態を描画する。下書きと編集開始時の改版は Mediator が保持する。編集へのフォーカス要求、履歴の移動先、新着IDもMediatorが管理し、Viewは指示された位置へ移る。
 
 Presenter は操作ごとに `snapshot.can(event)` を参照し、ボタンの無効化や入力の読み取り専用指定へ変換する。状態名から操作の可否を再判定せず、Mediator の遷移と guard を使う。空欄の反映も検証メッセージを出すイベントとして受理し、通信するかどうかは Mediator が決める。
 
@@ -79,6 +84,10 @@ Presenter は操作ごとに `snapshot.can(event)` を参照し、ボタンの�
 
 ## 操作画面の余白
 
-余白と部品寸法は8pxを基準にし、8・16・24・32pxを用いる。本文の行間は24px、短文の比較行は48px。長文と編集中の行は内容に応じて伸ばす。フォントサイズと1pxの区切り線は余白の規則から分ける。共有部品を一括で変更せず、操作画面のCSSに限定して適用する。
+余白と部品寸法は8pxを基準にし、8・16・24・32pxを用いる。本文の行間は24px、短文の比較行は48px。長文の行は内容に応じて伸ばし、訂正欄を別の領域に置く。フォントサイズと1pxの区切り線は余白の規則から分ける。共有部品を一括で変更せず、操作画面のCSSに限定して適用する。
 
 セレクトはネイティブの選択操作を保ち、16pxの矢印を右端から8px内側に置く。右の内余白32pxで文字と矢印の重なりを防ぐ。強制配色ではブラウザの矢印を使う。デスクトップの字幕行は状態アイコンを32pxの高さの中央に置き、編集ボタンのアイコンと揃える。
+
+## 観客画面とプレビューの描画
+
+`presenters/display.ts` は共通の描画パラメータを作る。実寸の観客画面ではpx、基準画面のプレビューではコンテナー幅の単位で同じ寸法比を使う。`CaptionDisplayView` は背景・表示枠・発話の描画を担当する。内容や寸法の変更を示す安定した `scrollVersion` が変わった場合とリサイズ時に末尾へ移り、操作画面の定期取得だけではプレビューの手動スクロールを戻さない。
