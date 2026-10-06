@@ -23,12 +23,12 @@ export const displayChoices = {
   font: [{ value: "sans", label: "ゴシック（端末標準）" }, { value: "serif", label: "明朝" }, { value: "mono", label: "等幅" }],
   font_size: [24,32,40,48,56,64,72,80,88,96].map(value => ({ value, label: value + " px" })),
   font_weight: [{ value: "normal", label: "標準" }, { value: "bold", label: "太字" }],
-  line_height: [{ value: 1.25, label: "狭め" }, { value: 1.5, label: "標準" }, { value: 1.75, label: "広め" }, { value: 2, label: "2倍" }],
+  line_height: [{ value: 1.25, label: "1.25 倍" }, { value: 1.5, label: "1.5 倍（標準）" }, { value: 1.75, label: "1.75 倍" }, { value: 2, label: "2 倍" }],
   padding: [0,8,16,24,32,40,48,64,80,96].map(value => ({ value, label: value + " px" })),
   position: [{ value: "top", label: "上" }, { value: "center", label: "中央" }, { value: "bottom", label: "下" }],
   align: [{ value: "left", label: "左" }, { value: "center", label: "中央" }],
   history_count: [1,2,3,5,10].map(value => ({ value, label: "直近 " + value + " 件" })),
-  aspect: [{ value: "window", label: "画面に合わせる" }, { value: "16:9", label: "16:9" }],
+  aspect: [{ value: "window", label: "画面全体" }, { value: "16:9", label: "16:9" }],
 } satisfies { [Field in ChoiceField]: { value: DisplaySettings[Field]; label: string }[] };
 
 export function changeDisplayField(settings: DisplaySettings, field: keyof DisplaySettings, value: string): DisplaySettings {

@@ -241,3 +241,102 @@ it("interprets scroll measurements and editor keys in the Mediator", async () =>
   actor.send({ type: "caption.editor.keypressed", captionId: "one", key: "Enter", ctrlKey: true, metaKey: false, isComposing: false });
   expect(adapter.save).not.toHaveBeenCalled();
 });
+
+it("counts new IDs while browsing, ignores revisions, and acknowledges latest without closing the editor", async () => {
+  const adapter = api();
+  const actor = await start(adapter);
+  expect(actor.getSnapshot().context.unreadIds).toEqual([]);
+  actor.send({ type: "caption.edit.requested", captionId: caption.id });
+  actor.send({ type: "caption.draft.changed", captionId: caption.id, text: "訂正中" });
+  const newer = { ...caption, id: "two", utterance_id: "two", text: "次の発話" };
+  vi.mocked(adapter.load).mockResolvedValueOnce({ visible: true, captions: [{ ...caption, source_revision: 2 }, newer] });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.unreadIds).toEqual(["two"]);
+  vi.mocked(adapter.load).mockResolvedValueOnce({ visible: true, captions: [caption, { ...newer, text: "次の発話の更新", source_revision: 2 }] });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.unreadIds).toEqual(["two"]);
+  actor.send({ type: "timeline.latest.requested" });
+  expect(actor.getSnapshot().context).toMatchObject({ activeCaptionId: "one", followLatest: true, unreadIds: [], scrollTarget: "latest" });
+  expect(actor.getSnapshot().context.drafts.get("one")?.text).toBe("訂正中");
+  actor.send({ type: "timeline.editing.requested" });
+  expect(actor.getSnapshot().context).toMatchObject({ activeCaptionId: "one", followLatest: false, scrollTarget: "caption" });
+});
+
+it("acknowledges arrivals when reaching the bottom and reflows only while following", async () => {
+  const adapter = api();
+  const actor = await start(adapter);
+  actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 100 });
+  const second = { ...caption, id: "two", utterance_id: "two" };
+  vi.mocked(adapter.load).mockResolvedValueOnce({ visible: true, captions: [caption, second] });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  const before = actor.getSnapshot().context.latestRequest;
+  actor.send({ type: "timeline.resized", scrollHeight: 1200, clientHeight: 300, scrollTop: 100 });
+  expect(actor.getSnapshot().context.latestRequest).toBe(before);
+  actor.send({ type: "timeline.scrolled", scrollHeight: 1200, clientHeight: 300, scrollTop: 900 });
+  expect(actor.getSnapshot().context.unreadIds).toEqual([]);
+  actor.send({ type: "timeline.resized", scrollHeight: 1500, clientHeight: 300, scrollTop: 900 });
+  expect(actor.getSnapshot().context.latestRequest).toBe(before + 1);
+  expect(actor.getSnapshot().context.scrollTarget).toBe("latest");
+});
+
+it("reports a successful save locally and preserves the result across polling until editing resumes", async () => {
+  const adapter = api();
+  const actor = await start(adapter);
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "caption.draft.changed", captionId: "one", text: "修正" });
+  actor.send({ type: "caption.save.requested", captionId: "one" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.saveStatus).toEqual({ captionId: "one", message: "保存して公開しました。" });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.saveStatus?.message).toBe("保存して公開しました。");
+  actor.send({ type: "caption.draft.changed", captionId: "one", text: "次の修正" });
+  expect(actor.getSnapshot().context.saveStatus).toBeNull();
+});
+
+it("retains the public version when an interim candidate is saved and does not announce publication", async () => {
+  const adapter = api();
+  vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [{ ...caption, source_final: false, public_text: "公開済み" }] });
+  vi.mocked(adapter.save).mockResolvedValue({ ...caption, text: "途中の修正", source_final: false, public_text: "公開済み" });
+  const actor = await start(adapter);
+  actor.send({ type: "caption.save.requested", captionId: "one" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.saveStatus?.message).toBe("保存しました。観客の表示は変わりません。");
+  expect(actor.getSnapshot().context.captions[0].public_text).toBe("公開済み");
+});
+
+it("uses guarded settings Escape without accepting other keys or IME Escape", async () => {
+  const actor = await start();
+  expect(actor.getSnapshot().can({ type: "settings.keypressed", key: "Escape", isComposing: false })).toBe(false);
+  actor.send({ type: "display.settings.toggled" });
+  expect(actor.getSnapshot().can({ type: "settings.keypressed", key: "Tab", isComposing: false })).toBe(false);
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: true });
+  expect(actor.getSnapshot().context.settingsOpen).toBe(true);
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false });
+  expect(actor.getSnapshot().context.settingsOpen).toBe(false);
+});
+
+it("selects the editor from an open settings panel while preserving its settings draft", async () => {
+  const actor = await start();
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "display.settings.toggled" });
+  actor.send({ type: "display.field.changed", field: "font_size", value: "48" });
+  const before = actor.getSnapshot().context.editorFocusRequest;
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  expect(actor.getSnapshot().context).toMatchObject({ activeCaptionId: "one", settingsOpen: false, aiSettingsOpen: false });
+  expect(actor.getSnapshot().context.displayDraft?.font_size).toBe(48);
+  expect(actor.getSnapshot().context.editorFocusRequest).toBe(before + 1);
+});
+
+it("keeps editing paused at the end of history until latest is explicitly requested", async () => {
+  const actor = await start();
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 600 });
+  expect(actor.getSnapshot().context.followLatest).toBe(false);
+  actor.send({ type: "timeline.latest.requested" });
+  actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 600 });
+  expect(actor.getSnapshot().context.followLatest).toBe(true);
+});
