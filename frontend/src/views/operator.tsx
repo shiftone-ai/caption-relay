@@ -26,17 +26,17 @@ export function OperatorView({ parameters }: { parameters: OperatorParameters })
 
   return (
     <viewHierarchy.Scope name="operator-screen">
-      {emit => <main ref={screen} className="operator-shell">
+      <main ref={screen} className="operator-shell">
         <header className="operator-header"><h1>Caption Relay</h1><ToolbarView parameters={parameters.toolbar} /></header>
         {parameters.message && <p role="status" className="operator-global-error">{parameters.message}</p>}
         <CaptionMonitorView parameters={parameters.monitor} />
-        <div className="operator-workspace" onKeyDown={event => emit({ type: "settings.keypressed", key: event.key, isComposing: event.nativeEvent.isComposing })}>
+        <div className="operator-workspace">
           <CaptionListView parameters={parameters} />
           {parameters.toolbar.settingsOpen && <DisplaySettingsView parameters={parameters.displaySettings} />}
           {parameters.toolbar.aiSettingsOpen && <AiSettingsView parameters={parameters.ai} />}
           {!activePanel && parameters.editor && <div className="operator-inspector"><CaptionEditorView row={parameters.editor} /></div>}
         </div>
-      </main>}
+      </main>
     </viewHierarchy.Scope>
   );
 }
