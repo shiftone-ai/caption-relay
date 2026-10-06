@@ -31,10 +31,10 @@ export function OperatorView({ parameters }: { parameters: OperatorParameters })
         {parameters.message && <p role="status" className="operator-global-error">{parameters.message}</p>}
         <CaptionMonitorView parameters={parameters.monitor} />
         <div className="operator-workspace" onKeyDown={event => emit({ type: "settings.keypressed", key: event.key, isComposing: event.nativeEvent.isComposing })}>
+          <CaptionListView parameters={parameters} />
           {parameters.toolbar.settingsOpen && <DisplaySettingsView parameters={parameters.displaySettings} />}
           {parameters.toolbar.aiSettingsOpen && <AiSettingsView parameters={parameters.ai} />}
           {!activePanel && parameters.editor && <div className="operator-inspector"><CaptionEditorView row={parameters.editor} /></div>}
-          <CaptionListView parameters={parameters} />
         </div>
       </main>}
     </viewHierarchy.Scope>
