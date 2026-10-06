@@ -2,13 +2,7 @@ import { X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { viewHierarchy } from "../../events/hierarchy";
 import type { DisplayFieldParameters, DisplayParameters } from "../../presenters/operator";
-import type { DisplayPreviewParameters } from "../../presenters/display";
 import { CaptionDisplayView } from "../caption-display";
-
-interface DisplaySettingsParameters extends DisplayParameters {
-  preview: DisplayPreviewParameters;
-  sections: { id: string; label: string; open: boolean; palette: boolean; groups: DisplayFieldParameters[][] }[];
-}
 
 export function DisplayFieldView({ parameters }: { parameters: DisplayFieldParameters }) {
   return <viewHierarchy.Scope name={"display-field:" + parameters.field}>
@@ -24,7 +18,7 @@ export function DisplayFieldView({ parameters }: { parameters: DisplayFieldParam
   </viewHierarchy.Scope>;
 }
 
-export function DisplaySettingsView({ parameters }: { parameters: DisplaySettingsParameters }) {
+export function DisplaySettingsView({ parameters }: { parameters: DisplayParameters }) {
   return <viewHierarchy.Scope name="display-settings">
     {emit => <aside id="display-settings" className="display-settings" aria-label="観客画面の表示設定">
       <div className="display-settings-heading"><h2>表示設定</h2><Button variant="ghost" className="operator-icon-button" aria-label="表示設定を閉じる" intent={{ type: "display.settings.toggled" }}><X size={16} /></Button></div>

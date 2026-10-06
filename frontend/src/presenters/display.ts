@@ -4,6 +4,7 @@ import type { DisplaySettings } from "../domain";
 
 export interface CaptionDisplayParameters {
   texts: string[];
+  scrollVersion: string;
   screenStyle: CSSProperties;
   frameStyle: CSSProperties;
   captionStyle: CSSProperties;
@@ -38,8 +39,11 @@ const verticalPosition = { top: "flex-start", center: "center", bottom: "flex-en
 /** Project the same display rules for full-size output and a scaled reference viewport. */
 export function presentCaptionDisplay(settings: DisplaySettings, texts: readonly string[], referenceWidth?: number): CaptionDisplayParameters {
   const pixels = (value: number) => referenceWidth ? `${value / referenceWidth * 100}cqw` : value;
+  const visibleTexts = texts.slice(-settings.history_count);
   return {
-    texts: texts.slice(-settings.history_count),
+    texts: visibleTexts,
+    scrollVersion: JSON.stringify([visibleTexts, settings.font, settings.font_size, settings.font_weight, settings.line_height,
+      settings.padding, settings.align, settings.aspect, settings.position, referenceWidth]),
     screenStyle: { background: settings.background, color: settings.foreground },
     frameStyle: {
       width: settings.aspect === "16:9" ? "min(100cqw, 177.7777777778cqh)" : "100%",

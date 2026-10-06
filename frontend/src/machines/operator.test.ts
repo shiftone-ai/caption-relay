@@ -330,3 +330,13 @@ it("selects the editor from an open settings panel while preserving its settings
   expect(actor.getSnapshot().context.displayDraft?.font_size).toBe(48);
   expect(actor.getSnapshot().context.editorFocusRequest).toBe(before + 1);
 });
+
+it("keeps editing paused at the end of history until latest is explicitly requested", async () => {
+  const actor = await start();
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 600 });
+  expect(actor.getSnapshot().context.followLatest).toBe(false);
+  actor.send({ type: "timeline.latest.requested" });
+  actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 600 });
+  expect(actor.getSnapshot().context.followLatest).toBe(true);
+});

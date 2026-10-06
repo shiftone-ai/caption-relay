@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useActorRef, useSelector } from "@xstate/react";
 import { operatorApi, audienceApi } from "./api";
 import { operatorMachine } from "./machines/operator";
@@ -9,11 +9,13 @@ import { presentAudience } from "./presenters/audience";
 import { OperatorView } from "./views/operator";
 import { AudienceView } from "./views/audience";
 import { createFullscreenAdapter } from "./adapters/fullscreen";
+import { protectUnsavedChanges } from "./adapters/unsaved-changes";
 import type { AudienceApi, FullscreenAdapter, OperatorApi, ViewEvent } from "./domain";
 
 export function OperatorRoot({ api = operatorApi }: { api?: OperatorApi }) {
   const actor = useActorRef(operatorMachine, { input: { api } });
   const parameters = useSelector(actor, presentOperator);
+  useEffect(() => parameters.hasUnsavedChanges ? protectUnsavedChanges(window) : undefined, [parameters.hasUnsavedChanges]);
   const handle = useCallback((event: ViewEvent) => {
     if (event.type === "display.fullscreen.requested" || !actor.getSnapshot().can(event)) return false;
     actor.send(event);

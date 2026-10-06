@@ -1,8 +1,8 @@
 import type { AiSettings, DisplaySettings } from "../domain";
-import type { CSSProperties } from "react";
 import { aiProviderNames, aiStrategies } from "../ai";
-import { displayChoices, displayFonts, displayPalettes } from "../display";
+import { displayChoices, displayPalettes } from "../display";
 import type { OperatorSnapshot } from "../machines/operator";
+import { presentDisplayPreview, type DisplayPreviewParameters } from "./display";
 
 export interface RowParameters {
   id: string;
@@ -47,6 +47,7 @@ export interface CaptionMonitorParameters {
 }
 
 export interface ToolbarParameters {
+  preparationHint: string;
   testDisabled: boolean;
   toggleDisabled: boolean;
   toggleLabel: string;
@@ -58,6 +59,10 @@ export interface ToolbarParameters {
 }
 
 export interface AiParameters {
+  preferredLabel: string;
+  preferredHint: string;
+  selectionHeading: string;
+  strategyHint: string;
   strategy: string;
   strategies: { value: string; label: string }[];
   preferredModel: string;
@@ -79,16 +84,16 @@ export interface DisplayFieldParameters {
 }
 
 export interface DisplayParameters {
-  previewStyle: CSSProperties;
+  preview: DisplayPreviewParameters;
   palette: string;
   palettes: { value: string; label: string }[];
-  groups: DisplayFieldParameters[][];
+  sections: { id: string; label: string; open: boolean; palette: boolean; groups: DisplayFieldParameters[][] }[];
   disabled: boolean;
   saveDisabled: boolean;
   saveHint: string;
 }
 
-function presentDisplay(settings: DisplaySettings, saved: DisplaySettings, disabled: boolean): DisplayParameters {
+function presentDisplay(settings: DisplaySettings, saved: DisplaySettings, disabled: boolean, texts: string[]): DisplayParameters {
   const dirty = JSON.stringify(settings) !== JSON.stringify(saved);
   const field = (key: keyof DisplaySettings, label: string): DisplayFieldParameters => ({
     field: key, label, value: String(settings[key]),
@@ -96,12 +101,19 @@ function presentDisplay(settings: DisplaySettings, saved: DisplaySettings, disab
     options: key === "background" || key === "foreground" ? [] : displayChoices[key].map(choice => ({ ...choice, value: String(choice.value) })),
   });
   return {
-    previewStyle: { background: settings.background, color: settings.foreground, fontFamily: displayFonts[settings.font], fontWeight: settings.font_weight, textAlign: settings.align },
+    preview: presentDisplayPreview(settings, texts),
     palette: Object.entries(displayPalettes).find(([, palette]) => palette.background === settings.background && palette.foreground === settings.foreground)?.[0] ?? "custom",
     palettes: [...Object.entries(displayPalettes).map(([value, palette]) => ({ value, label: palette.label })), { value: "custom", label: "カスタム" }],
-    groups: [[field("background", "背景"), field("foreground", "文字")], [field("font", "フォント")],
-      [field("font_size", "文字サイズ"), field("font_weight", "太さ")], [field("line_height", "行間"), field("padding", "余白")],
-      [field("position", "縦位置"), field("align", "文字揃え")], [field("history_count", "表示する発話"), field("aspect", "表示領域")]],
+    sections: [
+      { id: "appearance", label: "文字と配色", open: true, palette: true, groups: [
+        [field("background", "背景"), field("foreground", "文字")], [field("font", "フォント")],
+        [field("font_size", "文字サイズ"), field("font_weight", "太さ")],
+      ] },
+      { id: "layout", label: "配置と表示量", open: false, palette: false, groups: [
+        [field("line_height", "行間"), field("padding", "余白")], [field("position", "縦位置"), field("align", "文字揃え")],
+        [field("history_count", "表示する発話"), field("aspect", "表示領域")],
+      ] },
+    ],
     disabled, saveDisabled: disabled || !dirty, saveHint: dirty ? "未反映の設定があります" : "現在の表示設定",
   };
 }
@@ -161,7 +173,7 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     return {
       id: caption.id, number: index + 1, original: caption.original, text: caption.text,
       draftText: draft?.text ?? caption.text,
-      contentDescription: `原文：${caption.original}。保存済みの表示文：${caption.text}`,
+      contentDescription: `原文：${caption.original}\n保存済みの表示文：${caption.text}`,
       formattedText: caption.formatted_text ?? null,
       editing: context.activeCaptionId === caption.id, dirty,
       saveLabel: saving ? "保存中…" : (draft?.conflict ? "再保存" : "保存") + (publishes ? "して公開" : ""),
@@ -183,6 +195,9 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
   });
   return {
     toolbar: {
+      preparationHint: !context.visible ? "非表示中のため、テスト字幕は一覧に追加され、観客には表示されません。"
+        : context.autoPublish ? "自動公開中のため、テスト字幕は観客画面にも表示されます。"
+        : "テスト字幕は一覧に追加されます。保存して公開するまで観客の表示は変わりません。",
       testDisabled: !snapshot.can({ type: "test.requested" }),
       toggleDisabled: !snapshot.can({ type: "visibility.toggle.requested" }),
       toggleLabel: context.visible ? "字幕を隠す" : "字幕を表示",
@@ -204,8 +219,14 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     scrollVersion: String(context.latestRequest), scrollTarget: context.scrollTarget, scrollCaptionId: context.activeCaptionId,
     followLabel: context.followLatest ? "最新に追従中" : "履歴を確認中",
     loading: snapshot.matches("loading"),
-    displaySettings: presentDisplay(displayDraft, context.display, !snapshot.can({ type: "display.save.requested" })),
+    displaySettings: presentDisplay(displayDraft, context.display, !snapshot.can({ type: "display.save.requested" }), context.captions.map(caption => caption.public_text ?? caption.text)),
     ai: {
+      selectionHeading: "保存済み設定の選択先",
+      preferredLabel: { manual: "指定AI", speed: "未計測時のAI", cost: "候補に残すAI", off: "初期候補のAI" }[aiDraft.strategy],
+      preferredHint: { manual: "指定したAIを使います。候補からは外せません。", speed: "すべての候補が未計測の場合に使います。候補からは外せません。",
+        cost: "このAIを候補に含めます。選択先は候補の料金で決まり、ここでの指定とは一致しない場合があります。", off: "AIを使う設定に切り替えたときの候補です。現在は原文を採用します。" }[aiDraft.strategy],
+      strategyHint: { off: "原文を採用します。AIへの接続はまだ行いません。", manual: "下で指定したAIを選びます。",
+        cost: "入力200・出力100トークンの参考条件で、候補の料金を比較します。", speed: "直近20件の実測中央値で比較します。未計測の候補は比較から除き、すべて未計測なら下のAIを選びます。" }[aiDraft.strategy],
       strategy: aiDraft.strategy, preferredModel: aiDraft.preferred_model,
       strategies: Object.entries(aiStrategies).map(([value, label]) => ({ value, label })),
       saveDisabled: aiDisabled || !aiDirty, saveHint: aiDirty ? "未保存の設定があります" : "設定は次の確定字幕から使います",

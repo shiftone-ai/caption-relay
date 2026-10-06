@@ -163,6 +163,32 @@ it("does not reset setting focus after a background refresh", async () => {
   expect(document.activeElement).toBe(focusedField);
 });
 
+it("returns from settings to the draft editor and focuses it through both return and row selection", async () => {
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "字幕 1 を編集" }));
+  await user.type(screen.getByRole("textbox"), "未保存の修正");
+  for (const returnByRow of [false, true]) {
+    await user.click(screen.getByRole("button", { name: "表示設定" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "文字サイズ" }), "96");
+    await user.click(screen.getByRole("button", { name: returnByRow ? "字幕 1 を編集" : "訂正位置へ" }));
+    const input = screen.getByRole<HTMLTextAreaElement>("textbox");
+    expect(screen.queryByRole("complementary", { name: "観客画面の表示設定" })).toBeNull();
+    expect(input.value).toBe("字幕未保存の修正");
+    expect(document.activeElement).toBe(input);
+    await user.click(screen.getByRole("button", { name: "表示設定" }));
+    expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "文字サイズ" }).value).toBe("96");
+    await user.click(screen.getByRole("button", { name: "表示設定を閉じる" }));
+  }
+  expect(api.save).not.toHaveBeenCalled();
+  expect(api.setDisplay).not.toHaveBeenCalled();
+});
+
 it("keeps the monitor and correction draft available while viewing latest input or settings", async () => {
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, autoPublish: false, captions: [caption] }),
