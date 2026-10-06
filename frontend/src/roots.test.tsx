@@ -94,8 +94,182 @@ it("keeps only the selected editor open and retains drafts when switching rows",
   expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe("一行目の下書き");
   await user.click(screen.getByRole("button", { name: "変更を破棄" }));
   expect(screen.queryByRole("textbox")).toBeNull();
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "編集：字幕" }));
   await user.click(screen.getByRole("button", { name: "編集：字幕" }));
   expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe("字幕");
+});
+
+it("keeps status explanations available to pointer and keyboard and dismisses Escape through the Root", async () => {
+  let resolve!: (snapshot: Snapshot) => void;
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValueOnce({ visible: true, captions: [caption] })
+      .mockReturnValue(new Promise<Snapshot>(done => { resolve = done; })),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  const row = await screen.findByRole("article", { name: "保存済みの表示文：字幕" });
+  const source = within(row).getByRole("img", { name: "原文採用" });
+  const publication = within(row).getByRole("img", { name: "観客に表示中" });
+  expect(source.hasAttribute("title")).toBe(false);
+  expect(screen.queryByRole("tooltip")).toBeNull();
+  await user.hover(source);
+  const explanation = screen.getByRole("tooltip");
+  expect(explanation.textContent).toBe("原文採用");
+  expect(source.getAttribute("aria-describedby")).toBe(explanation.id);
+  await user.hover(explanation);
+  expect(screen.getByRole("tooltip")).toBe(explanation);
+  act(() => source.focus());
+  await user.unhover(source);
+  await user.hover(publication);
+  expect(screen.getByRole("tooltip")).toBe(explanation);
+  fireEvent.keyDown(source, { key: "Escape", isComposing: true });
+  expect(screen.getByRole("tooltip")).toBe(explanation);
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("tooltip")).toBeNull();
+  expect(document.activeElement).toBe(source);
+  expect(source.hasAttribute("aria-describedby")).toBe(false);
+  await waitFor(() => expect(api.load).toHaveBeenCalledTimes(2), { timeout: 3000 });
+  await act(async () => { resolve({ visible: true, captions: [{ ...caption, source_revision: 2 }] }); });
+  expect(screen.queryByRole("tooltip")).toBeNull();
+  expect(document.activeElement).toBe(source);
+  act(() => source.blur());
+  expect(screen.getByRole("tooltip").textContent).toBe("観客に表示中");
+  await user.unhover(publication);
+  await user.hover(source);
+  expect(screen.getByRole("tooltip").textContent).toBe("原文採用");
+});
+
+it("dismisses a hovered explanation with Escape before closing the focused caption editor", async () => {
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  const trigger = await screen.findByRole("button", { name: "編集：字幕" });
+  await user.click(trigger);
+  const input = screen.getByRole<HTMLTextAreaElement>("textbox");
+  await user.type(input, "訂正中");
+  const source = within(screen.getByRole("article", { name: "保存済みの表示文：字幕" })).getByRole("img", { name: /未保存の下書き/ });
+  await user.hover(source);
+  expect(screen.getByRole("tooltip")).toBeTruthy();
+  expect(document.activeElement).toBe(input);
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("tooltip")).toBeNull();
+  expect(screen.getByRole("textbox")).toBe(input);
+  expect(document.activeElement).toBe(input);
+  expect(input.value).toBe("字幕訂正中");
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("textbox")).toBeNull();
+  expect(document.activeElement).toBe(trigger);
+  expect(api.save).not.toHaveBeenCalled();
+});
+
+it("dismisses a hovered explanation before closing the focused settings panel", async () => {
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  await screen.findByRole("button", { name: "編集：字幕" });
+  const trigger = screen.getByRole("button", { name: "表示設定" });
+  await user.click(trigger);
+  const palette = screen.getByRole("combobox", { name: "配色" });
+  await user.hover(screen.getByRole("img", { name: "原文採用" }));
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("tooltip")).toBeNull();
+  expect(screen.getByRole("complementary", { name: "観客画面の表示設定" })).toBeTruthy();
+  expect(document.activeElement).toBe(palette);
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("complementary", { name: "観客画面の表示設定" })).toBeNull();
+  expect(document.activeElement).toBe(trigger);
+});
+
+it("measures status explanations through the Root and repositions them after scrolling or resizing", async () => {
+  const viewport = document.documentElement;
+  const originalWidth = Object.getOwnPropertyDescriptor(viewport, "clientWidth");
+  const originalHeight = Object.getOwnPropertyDescriptor(viewport, "clientHeight");
+  Object.defineProperty(viewport, "clientWidth", { configurable: true, value: 320 });
+  Object.defineProperty(viewport, "clientHeight", { configurable: true, value: 300 });
+  let triggerTop = 260;
+  const bounds = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    if (this.classList.contains("caption-state-icon")) return new DOMRect(290, triggerTop, 22, 22);
+    if (this.classList.contains("caption-state-tooltip")) return new DOMRect(0, 0, 280, 90);
+    return new DOMRect();
+  });
+  try {
+    const api: OperatorApi = {
+      load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
+      save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
+      setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(),
+    };
+    const { container } = render(<OperatorRoot api={api} />);
+    const user = userEvent.setup();
+    await screen.findByRole("button", { name: "編集：字幕" });
+    const source = screen.getByRole("img", { name: "原文採用" });
+    await user.hover(source);
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip.getAttribute("data-positioned")).toBe("true");
+    expect(tooltip.style.top).toBe("162px");
+    expect(tooltip.style.left).toBe("32px");
+    expect(tooltip.style.maxWidth).toBe("min(var(--caption-tooltip-max-width), 304px)");
+    const bridge = source.querySelector<HTMLElement>(".caption-state-bridge")!;
+    expect(bridge.style.top).toBe("252px");
+    expect(bridge.style.height).toBe("8px");
+    expect(bridge.getAttribute("aria-hidden")).toBe("true");
+    triggerTop = 120;
+    fireEvent.scroll(container.querySelector(".caption-viewport")!);
+    expect(tooltip.style.top).toBe("150px");
+    triggerTop = 80;
+    fireEvent.scroll(window);
+    expect(tooltip.style.top).toBe("110px");
+    triggerTop = 120;
+    Object.defineProperty(viewport, "clientHeight", { configurable: true, value: 200 });
+    fireEvent(window, new Event("resize"));
+    expect(tooltip.style.top).toBe("22px");
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  } finally {
+    bounds.mockRestore();
+    if (originalWidth) Object.defineProperty(viewport, "clientWidth", originalWidth);
+    else Reflect.deleteProperty(viewport, "clientWidth");
+    if (originalHeight) Object.defineProperty(viewport, "clientHeight", originalHeight);
+    else Reflect.deleteProperty(viewport, "clientHeight");
+  }
+});
+
+it("handles Escape from the toolbar and removes the Root keyboard subscription on unmount", async () => {
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(),
+  };
+  const user = userEvent.setup();
+  const firstRoot = render(<OperatorRoot api={api} />);
+  await screen.findByRole("button", { name: "編集：字幕" });
+  await user.click(screen.getByRole("button", { name: "表示設定" }));
+  firstRoot.unmount();
+  const unhandled = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  document.dispatchEvent(unhandled);
+  expect(unhandled.defaultPrevented).toBe(false);
+  render(<OperatorRoot api={api} />);
+  await screen.findByRole("button", { name: "編集：字幕" });
+  const trigger = screen.getByRole("button", { name: "AI設定" });
+  await user.click(trigger);
+  act(() => trigger.focus());
+  await user.hover(screen.getByRole("img", { name: "原文採用" }));
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("tooltip")).toBeNull();
+  expect(screen.getByRole("complementary", { name: "字幕修正のAI設定" })).toBeTruthy();
+  expect(document.activeElement).toBe(trigger);
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("complementary", { name: "字幕修正のAI設定" })).toBeNull();
+  expect(document.activeElement).toBe(trigger);
 });
 
 it("shows blank-caption validation beside the input and requires explicit saving", async () => {

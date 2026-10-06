@@ -1,4 +1,5 @@
 import asyncio
+from bisect import insort
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 
@@ -24,6 +25,8 @@ class CaptionRelay:
 
     def __init__(self) -> None:
         self._captions: dict[str, Caption] = {}
+        self._caption_positions: dict[str, int] = {}
+        self._published_ids: list[str] = []
         self._seen_events: set[str] = set()
         self._subscribers: set[asyncio.Queue[PublicSnapshot]] = set()
         self._visible = True
@@ -31,6 +34,9 @@ class CaptionRelay:
         self._auto_publish = True
         self._display = DisplaySettings()
         self._ai = AiRouter()
+        self._public_signature: tuple[bool, str, tuple[tuple[str, str], ...]] = (
+            self._visible, self._display.model_dump_json(), (),
+        )
 
     def session(self) -> Session:
         return Session(visible=self._visible, count=len(self._captions),
@@ -41,18 +47,26 @@ class CaptionRelay:
         return [caption.model_copy(deep=True) for caption in self._captions.values()]
 
     def public_snapshot(self) -> PublicSnapshot:
+        captions: list[PublicCaption] = []
+        for caption_id in self._published_ids[-self._display.history_count:]:
+            caption = self._captions[caption_id]
+            if caption.public_revision is not None and caption.public_text is not None:
+                captions.append(PublicCaption(id=caption.id, revision=caption.public_revision, text=caption.public_text))
         return PublicSnapshot(
             visible=self._visible,
             display=self._display.model_copy(deep=True),
-            captions=[
-                PublicCaption(id=caption.id, revision=caption.public_revision, text=caption.public_text)
-                for caption in self._captions.values()
-                if caption.published and caption.public_revision is not None and caption.public_text is not None
-            ],
+            captions=captions,
         )
 
     def _publish(self) -> None:
         snapshot = self.public_snapshot()
+        signature = (
+            snapshot.visible, snapshot.display.model_dump_json(),
+            tuple((caption.id, caption.text) for caption in snapshot.captions),
+        )
+        if signature == self._public_signature:
+            return
+        self._public_signature = signature
         for queue in self._subscribers:
             if queue.full():
                 # Every event is a complete snapshot; discard old snapshots.
@@ -86,11 +100,12 @@ class CaptionRelay:
                 source_revision=event.revision, revision=self._revision,
                 original=event.text, text=event.formatted_text or event.text,
                 formatted_text=event.formatted_text, source_final=event.is_final,
-                published=self._visible and event.is_final and self._auto_publish,
+                published=False,
                 publish_eligible=self._visible,
             )
+            self._caption_positions[event.utterance_id] = len(self._captions)
             self._captions[event.utterance_id] = existing
-            if existing.published:
+            if self._visible and event.is_final and self._auto_publish:
                 self._publish_caption(existing)
         existing.ai_result = None
         existing.ai_request = self._ai.plan(event.revision) if event.is_final and event.formatted_text is None and not existing.human_edited else None
@@ -112,8 +127,10 @@ class CaptionRelay:
         self._publish()
         return caption.model_copy(deep=True)
 
-    @staticmethod
-    def _publish_caption(caption: Caption) -> None:
+    def _publish_caption(self, caption: Caption) -> None:
+        if not caption.published:
+            # A late final result or manual save keeps the original input order.
+            insort(self._published_ids, caption.id, key=self._caption_positions.__getitem__)
         caption.published = True
         caption.public_text = caption.text
         caption.public_revision = caption.revision
@@ -150,6 +167,7 @@ class CaptionRelay:
             for caption in self._captions.values():
                 caption.published = False
                 caption.publish_eligible = False
+            self._published_ids.clear()
         self._publish()
         return Visibility(visible=self._visible)
 

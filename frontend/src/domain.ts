@@ -26,6 +26,17 @@ export interface SaveRequest extends Draft {
   captionId: string;
 }
 
+export interface StatusTooltipGeometry {
+  triggerTop: number;
+  triggerBottom: number;
+  triggerLeft: number;
+  triggerRight: number;
+  tooltipWidth: number;
+  tooltipHeight: number;
+  viewportWidth: number;
+  viewportHeight: number;
+}
+
 export type OperatorEvent =
   | { type: "caption.draft.changed"; captionId: string; text: string }
   | { type: "caption.save.requested"; captionId: string }
@@ -33,11 +44,13 @@ export type OperatorEvent =
   | { type: "caption.edit.closed" }
   | { type: "caption.editor.keypressed"; captionId: string; key: string; ctrlKey: boolean; metaKey: boolean; isComposing: boolean }
   | { type: "caption.draft.discarded"; captionId: string }
+  | { type: "caption.status.interaction.changed"; captionId: string; kind: "source" | "publication"; interaction: "pointer" | "focus"; active: boolean }
+  | { type: "caption.status.measured"; captionId: string; kind: "source" | "publication"; geometry: StatusTooltipGeometry }
   | { type: "timeline.latest.requested" }
   | { type: "timeline.editing.requested" }
   | { type: "timeline.scrolled"; scrollHeight: number; clientHeight: number; scrollTop: number }
   | { type: "timeline.resized"; scrollHeight: number; clientHeight: number; scrollTop: number }
-  | { type: "settings.keypressed"; key: string; isComposing: boolean }
+  | { type: "settings.keypressed"; key: string; isComposing: boolean; defaultPrevented: boolean }
   | { type: "publication.mode.requested"; mode: string }
   | { type: "display.settings.toggled" }
   | { type: "display.field.changed"; field: keyof DisplaySettings; value: string }
