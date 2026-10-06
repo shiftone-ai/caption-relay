@@ -1,6 +1,9 @@
 import asyncio
+from datetime import UTC, datetime
 
-from app.models import Caption, CaptionPatch, PublicSnapshot, SourceEvent
+from pytest import MonkeyPatch
+
+from app.models import Caption, CaptionPatch, FormattedResult, PublicSnapshot, SourceEvent
 from app.relay import CaptionRelay
 
 
@@ -15,6 +18,38 @@ def test_returned_captions_cannot_mutate_session_state() -> None:
     result.text = "外部の変更"
     relay.captions()[0].text = "一覧の変更"
     assert relay.captions()[0].text == "字幕1"
+
+
+def test_received_time_stays_at_first_input_through_revisions_and_edits(monkeypatch: MonkeyPatch) -> None:
+    first_time = datetime(2026, 10, 6, 1, 2, 3, tzinfo=UTC)
+    later_time = datetime(2026, 10, 6, 1, 4, 5, tzinfo=UTC)
+    times = iter([first_time, later_time])
+
+    class Clock:
+        @staticmethod
+        def now(tz: object) -> datetime:
+            assert tz is UTC
+            return next(times)
+
+    monkeypatch.setattr("app.relay.datetime", Clock)
+    relay = CaptionRelay()
+    first = relay.source_event(event())
+    assert isinstance(first, Caption)
+    assert first.received_at == first_time
+    assert first.model_dump(mode="json")["received_at"] == "2026-10-06T01:02:03Z"
+    relay.source_event(event(2))
+    formatted = relay.formatted_result("one", FormattedResult(source_revision=2, text="AI修正"))
+    assert isinstance(formatted, Caption)
+    saved = relay.patch_caption("one", CaptionPatch(text="手修正", base_revision=formatted.revision))
+    assert saved.received_at == first_time
+    relay.source_event(event(3))
+    relay.source_event(event(3))
+    assert relay.captions()[0].received_at == first_time
+    second = relay.source_event(SourceEvent(
+        utterance_id="two", revision=1, text="次の発話", source_event_id="next-event",
+    ))
+    assert isinstance(second, Caption)
+    assert second.received_at == later_time
 
 
 def test_snapshots_are_typed_immutable_history_and_unregister() -> None:

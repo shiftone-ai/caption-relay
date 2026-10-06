@@ -18,7 +18,9 @@ export function CaptionEditorView({ row }: { row: RowParameters }) {
     <Scope name={"caption-editor:" + row.id}>
       <aside className="caption-editor" aria-labelledby={titleId}>
         <header className="caption-editor-header">
-          <h2 id={titleId}>字幕 {row.number} の訂正</h2>
+          <div className="caption-editor-title"><h2 id={titleId}>字幕 {row.number} の訂正</h2>
+            <time className="caption-received-time" dateTime={row.receivedAt} title={row.timeDescription} aria-label={row.timeDescription}>{row.timeLabel}</time>
+          </div>
           <Button variant="ghost" className="operator-icon-button" aria-label={"字幕 " + row.number + " の編集を閉じる"}
             intent={{ type: "caption.edit.closed" }}><X size={16} /></Button>
         </header>

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Model(BaseModel):
@@ -108,6 +108,7 @@ class Command(Model):
 class Caption(Model):
     id: str
     utterance_id: str
+    received_at: AwareDatetime
     source_revision: int
     revision: int
     original: str

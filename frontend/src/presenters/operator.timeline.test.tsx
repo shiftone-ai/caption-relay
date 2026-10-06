@@ -13,7 +13,7 @@ import { CaptionEditorView } from "../views/operator/editor";
 import { CaptionMonitorView } from "../views/operator/monitor";
 import { presentOperator } from "./operator";
 
-const caption: Caption = { id: "one", utterance_id: "one", source_revision: 1, original: "原文", text: "保存済み", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true };
+const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "保存済み", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true };
 const actors: ReturnType<typeof createActor<typeof operatorMachine>>[] = [];
 afterEach(() => { cleanup(); actors.splice(0).forEach(actor => actor.stop()); vi.unstubAllGlobals(); });
 
@@ -124,9 +124,16 @@ it("observes viewport and row reflow, follows after resize, and leaves browsing 
 
 it("announces save success once while ordinary refreshes keep the same editor status text", async () => {
   const { actor, api } = await start();
-  render(<TimelineTestRoot actor={actor} />);
+  const { container } = render(<TimelineTestRoot actor={actor} />);
+  const receivedTime = container.querySelector<HTMLTimeElement>(".caption-row time")!;
+  expect(receivedTime.dateTime).toBe(caption.received_at);
+  expect(receivedTime.textContent).toMatch(/^\d{2}:\d{2}$/);
+  expect(receivedTime.title).toMatch(/^受信時刻：2026\/10\/\d{2} .*03/);
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "字幕 1 を編集" }));
+  const editorTime = container.querySelector<HTMLTimeElement>(".caption-editor time")!;
+  expect(editorTime.dateTime).toBe(receivedTime.dateTime);
+  expect(editorTime.textContent).toBe(receivedTime.textContent);
   await user.click(screen.getByRole("button", { name: "保存して公開" }));
   const success = await screen.findByText("保存して公開しました。");
   expect(success.getAttribute("role")).toBe("status");
@@ -136,6 +143,8 @@ it("announces save success once while ordinary refreshes keep the same editor st
     await waitFor(actor, state => state.matches({ ready: "idle" }));
   });
   expect(screen.getByText("保存して公開しました。")).toBe(success);
+  expect(container.querySelector(".caption-row time")).toBe(receivedTime);
+  expect(editorTime.dateTime).toBe(caption.received_at);
   await user.type(screen.getByRole("textbox"), "続き");
   expect(success.textContent).toBe("");
 });
