@@ -203,9 +203,11 @@ export const operatorMachine = setup({
         "timeline.latest.requested": { actions: assign(({ context }) => ({ followLatest: true, unreadIds: [], scrollTarget: "latest" as const,
           latestRequest: context.latestRequest + 1, editorFocusRequest: context.activeCaptionId ? context.editorFocusRequest + 1 : context.editorFocusRequest })) },
         "timeline.editing.requested": { guard: "hasEditor", actions: assign(({ context }) => ({ followLatest: false,
+          settingsOpen: false, aiSettingsOpen: false,
           scrollTarget: "caption" as const, latestRequest: context.latestRequest + 1, editorFocusRequest: context.editorFocusRequest + 1 })) },
         "timeline.scrolled": { actions: assign(({ context, event }) => {
-          const followLatest = event.scrollHeight - event.clientHeight - event.scrollTop < 8;
+          const followLatest = !(context.activeCaptionId && context.scrollTarget === "caption")
+            && event.scrollHeight - event.clientHeight - event.scrollTop < 8;
           return { followLatest, unreadIds: followLatest ? [] : context.unreadIds };
         }) },
         "timeline.resized": { actions: assign(({ context }) => context.followLatest

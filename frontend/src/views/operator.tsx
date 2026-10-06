@@ -11,16 +11,18 @@ import { CaptionMonitorView } from "./operator/monitor";
 export function OperatorView({ parameters }: { parameters: OperatorParameters }) {
   const screen = useRef<HTMLElement>(null);
   const previousPanel = useRef<"display" | "ai" | null>(null);
+  const previousEditorFocus = useRef(parameters.editor?.focusVersion);
   const activePanel = parameters.toolbar.settingsOpen ? "display" : parameters.toolbar.aiSettingsOpen ? "ai" : null;
 
   useEffect(() => {
     if (activePanel) {
       screen.current?.querySelector<HTMLElement>(`#${activePanel}-settings [data-setting-autofocus], #${activePanel}-settings select:not(:disabled)`)?.focus();
-    } else if (previousPanel.current) {
+    } else if (previousPanel.current && previousEditorFocus.current === parameters.editor?.focusVersion) {
       screen.current?.querySelector<HTMLElement>(`[data-settings-trigger="${previousPanel.current}"]`)?.focus();
     }
     previousPanel.current = activePanel;
-  }, [activePanel]);
+    previousEditorFocus.current = parameters.editor?.focusVersion;
+  }, [activePanel, parameters.editor?.focusVersion]);
 
   return (
     <viewHierarchy.Scope name="operator-screen">

@@ -13,7 +13,7 @@ export function CaptionDisplayView({ parameters, captionId }: { parameters: Capt
     const observer = new ResizeObserver(scrollToLatest);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [parameters.texts, parameters.captionStyle, parameters.frameStyle]);
+  }, [parameters.scrollVersion]);
   return <viewHierarchy.Scope name="caption-display">
     <div className="caption-display" style={parameters.screenStyle}>
       <div className="caption-display-frame" data-aspect={parameters.aspect} data-position={parameters.position} style={parameters.frameStyle}>
