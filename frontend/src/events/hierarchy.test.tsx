@@ -1,11 +1,41 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { operatorHierarchy } from "./hierarchy";
-import type { OperatorEvent } from "../domain";
+import { viewHierarchy } from "./hierarchy";
+import type { ViewEvent } from "../domain";
+import { Button } from "../components/ui/button";
+import { Textarea } from "../components/ui/textarea";
+import type { ComponentProps } from "react";
 
-const { Root, Scope, useBubble } = operatorHierarchy;
+const { Root, Scope, useBubble } = viewHierarchy;
 afterEach(cleanup);
+
+it("requires Root for shared controls and rejects nested roots", () => {
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    expect(() => render(<Button intent={{ type: "test.requested" }}>テスト</Button>)).toThrow("under Root");
+    expect(() => render(<Textarea change={text => ({ type: "caption.draft.changed", captionId: "one", text })}
+      keypress={key => ({ type: "caption.editor.keypressed", captionId: "one", ...key })} />)).toThrow("under Root");
+    expect(() => render(<Root handle={() => true}><Root handle={() => true}><span /></Root></Root>)).toThrow("Root must not be nested");
+  } finally { consoleError.mockRestore(); }
+});
+
+it("starts a shared button at its own node and traverses its owning component's parents", () => {
+  let path: string[] = [];
+  const root = vi.fn(() => true);
+  function Probe(props: ComponentProps<"button">) {
+    let node: ReturnType<typeof viewHierarchy.useNode> | null = viewHierarchy.useNode();
+    path = [];
+    while (node) { path.push(node.name); node = node.parent; }
+    return <button {...props}>保存</button>;
+  }
+  render(<Root handle={root}><Scope name="screen"><Scope name="list"><Scope name="row:one">
+    <Button asChild intent={{ type: "caption.save.requested", captionId: "one" }}><Probe /></Button>
+  </Scope></Scope></Scope></Root>);
+  expect(path).toEqual(["button", "row:one", "list", "screen", "Root"]);
+  fireEvent.click(screen.getByRole("button", { name: "保存" }));
+  expect(root).toHaveBeenCalledWith({ type: "caption.save.requested", captionId: "one" });
+});
 
 it("requires a Root when mounting a component scope", () => {
   const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -19,7 +49,7 @@ it("requires a Root when mounting a component scope", () => {
 
 it("starts at the component's own scope and stops before Root when its parent handles the event", () => {
   const visited: string[] = [];
-  const event: OperatorEvent = { type: "caption.save.requested", captionId: "one" };
+  const event: ViewEvent = { type: "caption.save.requested", captionId: "one" };
   const root = vi.fn(() => { visited.push("Root"); return true; });
   const sibling = vi.fn(() => true);
   render(
@@ -45,7 +75,7 @@ it("keeps the DOM and routes both emitters and descendants through the updated p
     const emit = useBubble();
     return <button onClick={() => emit({ type: "test.requested" })}>テスト字幕</button>;
   }
-  function Screen({ handle }: { handle: (event: OperatorEvent) => boolean }) {
+  function Screen({ handle }: { handle: (event: ViewEvent) => boolean }) {
     return (
       <Root handle={handle}>
         <Scope name="toolbar">

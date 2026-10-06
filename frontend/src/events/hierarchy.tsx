@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 import { EventNode, type EventHandler } from "./chain";
-import type { AudienceEvent, OperatorEvent } from "../domain";
+import type { ViewEvent } from "../domain";
 
 function createHierarchy<Event>() {
   const Context = createContext<EventNode<Event> | null>(null);
@@ -12,6 +12,8 @@ function createHierarchy<Event>() {
   }
 
   function Root({ handle, children }: { handle: EventHandler<Event>; children: ReactNode }) {
+    const parent = useContext(Context);
+    if (parent) throw new Error("Root must not be nested under another Root");
     const node = useMemo(() => EventNode.root(handle), [handle]);
     return <Context.Provider value={node}>{children}</Context.Provider>;
   }
@@ -32,8 +34,8 @@ function createHierarchy<Event>() {
     return useCallback((event: Event) => node.bubble(event), [node]);
   }
 
-  return { Root, Scope, useBubble };
+  return { Root, Scope, useBubble, useNode: useParent };
 }
 
-export const operatorHierarchy = createHierarchy<OperatorEvent>();
-export const audienceHierarchy = createHierarchy<AudienceEvent>();
+// Both screens and their shared controls use the same component hierarchy.
+export const viewHierarchy = createHierarchy<ViewEvent>();
