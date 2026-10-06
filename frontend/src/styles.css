@@ -161,6 +161,7 @@ button, textarea { font: inherit; }
 .caption-row::after { content: ""; position: absolute; bottom: 0; left: 24px; right: 24px; height: 1px; background: #e5e5e5; pointer-events: none; }
 .caption-row[data-dirty="true"] { background: #fffbeb; }
 .caption-row[data-editing="true"] { background: #eff6ff; outline: 1px solid #93b3d1; outline-offset: -1px; }
+.caption-row[data-editing="true"]::after { display: none; }
 .caption-row[data-current="true"] > .caption-received-time { color: #15406a; font-weight: 700; }
 .caption-row > .caption-received-time { display: inline-flex; align-items: center; height: 32px; }
 .caption-received-time { color: #525252; font-size: 12px; line-height: 16px; font-weight: 400; font-variant-numeric: tabular-nums; white-space: nowrap; }
