@@ -34,7 +34,10 @@ export type OperatorEvent =
   | { type: "caption.editor.keypressed"; captionId: string; key: string; ctrlKey: boolean; metaKey: boolean; isComposing: boolean }
   | { type: "caption.draft.discarded"; captionId: string }
   | { type: "timeline.latest.requested" }
+  | { type: "timeline.editing.requested" }
   | { type: "timeline.scrolled"; scrollHeight: number; clientHeight: number; scrollTop: number }
+  | { type: "timeline.resized"; scrollHeight: number; clientHeight: number; scrollTop: number }
+  | { type: "settings.keypressed"; key: string; isComposing: boolean }
   | { type: "publication.mode.requested"; mode: string }
   | { type: "display.settings.toggled" }
   | { type: "display.field.changed"; field: keyof DisplaySettings; value: string }
