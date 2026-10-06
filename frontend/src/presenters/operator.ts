@@ -4,9 +4,17 @@ import { displayChoices, displayPalettes } from "../display";
 import type { OperatorSnapshot } from "../machines/operator";
 import { presentDisplayPreview, type DisplayPreviewParameters } from "./display";
 
+const receivedTime = new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" });
+const receivedDateTime = new Intl.DateTimeFormat("ja-JP", {
+  year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZoneName: "short",
+});
+
 export interface RowParameters {
   id: string;
   number: number;
+  receivedAt: string;
+  timeLabel: string;
+  timeDescription: string;
   original: string;
   text: string;
   draftText: string;
@@ -172,6 +180,9 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
       + (differentPublic ? `。公開文「${caption.public_text}」と保存済みの表示文は異なります。` : "");
     return {
       id: caption.id, number: index + 1, original: caption.original, text: caption.text,
+      receivedAt: caption.received_at,
+      timeLabel: receivedTime.format(new Date(caption.received_at)),
+      timeDescription: "受信時刻：" + receivedDateTime.format(new Date(caption.received_at)),
       draftText: draft?.text ?? caption.text,
       contentDescription: `原文：${caption.original}\n保存済みの表示文：${caption.text}`,
       formattedText: caption.formatted_text ?? null,

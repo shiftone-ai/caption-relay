@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 
 from .ai import AiRouter
 from .models import (
@@ -81,6 +82,7 @@ class CaptionRelay:
             self._revision += 1
             existing = Caption(
                 id=event.utterance_id, utterance_id=event.utterance_id,
+                received_at=datetime.now(UTC),
                 source_revision=event.revision, revision=self._revision,
                 original=event.text, text=event.formatted_text or event.text,
                 formatted_text=event.formatted_text, source_final=event.is_final,
