@@ -67,6 +67,17 @@ it("keeps a separate focused editor and saved history through arrivals, latest, 
   expect(document.activeElement).toBe(input);
   expect(input.selectionStart).toBe(1);
   expect(input.selectionEnd).toBe(3);
+  const announcement = screen.getByText("新着の字幕が1件あります。");
+  expect(announcement.getAttribute("role")).toBe("status");
+  expect(announcement.getAttribute("aria-live")).toBe("polite");
+  expect(announcement.getAttribute("aria-atomic")).toBe("true");
+  vi.mocked(api.load).mockResolvedValueOnce({ visible: true, captions: [caption, { ...other, source_revision: 2 }] });
+  await act(async () => {
+    actor.send({ type: "refresh.requested" });
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+  });
+  expect(screen.getByText("新着の字幕が1件あります。")).toBe(announcement);
+  expect(document.activeElement).toBe(input);
   expect(screen.getByRole("separator", { name: "ここから新着の字幕" })).toBeTruthy();
   expect(within(screen.getByRole("region", { name: "直近3件の入力" })).getByText("次の入力")).toBeTruthy();
   expect(within(screen.getByRole("region", { name: "観客への表示" })).getByText("次の公開文")).toBeTruthy();
@@ -76,6 +87,7 @@ it("keeps a separate focused editor and saved history through arrivals, latest, 
   expect(document.activeElement).toBe(input);
   expect(input.selectionStart).toBe(1);
   expect(screen.queryByRole("separator")).toBeNull();
+  expect(announcement.textContent).toBe("");
   await user.click(screen.getByRole("button", { name: "訂正位置へ" }));
   expect(document.activeElement).toBe(input);
   await user.keyboard("{Escape}");
@@ -83,11 +95,37 @@ it("keeps a separate focused editor and saved history through arrivals, latest, 
   const row = screen.getByRole("article", { name: "保存済みの表示文：保存済み" });
   expect(row.getAttribute("data-dirty")).toBe("true");
   expect(within(row).getByRole("button", { name: "編集：保存済み" }).textContent).toBe("保存済み");
+  expect(document.activeElement).toBe(within(row).getByRole("button", { name: "編集：保存済み" }));
   expect(within(row).queryByText("未保存の訂正")).toBeNull();
   expect(row.getAttribute("aria-describedby")).toBe("caption-one-time");
   expect(within(row).getByRole("img", { name: /この行は保存済み/ }).tabIndex).toBe(0);
   await user.click(within(row).getByRole("button", { name: "編集：保存済み" }));
   expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe("未保存の訂正");
+});
+
+it.each(["close", "escape", "discard"])("returns focus to the edited history row after %s without refocusing it on refresh", async action => {
+  const { actor, api } = await start();
+  render(<TimelineTestRoot actor={actor} />);
+  const user = userEvent.setup();
+  const rowTrigger = screen.getByRole("button", { name: "編集：保存済み" });
+  await user.click(rowTrigger);
+  await user.type(screen.getByRole("textbox"), "訂正");
+  if (action === "escape") await user.keyboard("{Escape}");
+  else await user.click(screen.getByRole("button", { name: action === "close" ? "編集を閉じる" : "変更を破棄" }));
+  expect(screen.queryByRole("textbox")).toBeNull();
+  expect(document.activeElement).toBe(rowTrigger);
+  expect(api.save).not.toHaveBeenCalled();
+  await user.tab();
+  const nextControl = document.activeElement;
+  expect(nextControl).not.toBe(rowTrigger);
+  vi.mocked(api.load).mockResolvedValueOnce({ visible: true, captions: [{ ...caption, revision: 3 }] });
+  await act(async () => {
+    actor.send({ type: "refresh.requested" });
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+  });
+  expect(document.activeElement).toBe(nextControl);
+  await user.click(rowTrigger);
+  expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe(action === "discard" ? "保存済み" : "保存済み訂正");
 });
 
 it("observes viewport and row reflow, follows after resize, and leaves browsing position alone", async () => {

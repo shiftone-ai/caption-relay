@@ -46,7 +46,7 @@ it("keeps state, effects and behavioral decisions out of Passive View notificati
         if (!renderingImport && !parametersImport) report(node, "View imports a behavior-owning layer");
         if (module === "react" && node.importClause?.namedBindings && ts.isNamedImports(node.importClause.namedBindings)) {
           for (const binding of node.importClause.namedBindings.elements) {
-            if (!["useRef", "useEffect", "useMemo", "useCallback", "useId", "Ref"].includes(binding.name.text)) report(binding, "View imports a state hook");
+            if (!["useRef", "useEffect", "useMemo", "useCallback", "useId", "memo", "Ref"].includes(binding.name.text)) report(binding, "View imports a state hook");
           }
         }
       }

@@ -184,3 +184,19 @@ def test_late_ai_results_check_source_revision_and_preserve_human_edit(client: T
     assert client.put("/api/captions/missing/formatted", json={"source_revision": 1, "text": "候補"}).status_code == 404
     assert client.put("/api/captions/one/formatted", json={"source_revision": 2, "text": "　 "}).status_code == 422
     assert original["original"] == "原文"
+
+
+def test_public_api_returns_display_range_without_discarding_operator_history(client: TestClient) -> None:
+    assert client.get("/api/view").json()["captions"] == []
+    for number in range(12):
+        source(client, utterance_id=str(number), source_event_id=f"event-{number}", text=f"字幕{number}")
+    assert [caption["id"] for caption in client.get("/api/view").json()["captions"]] == ["11"]
+    assert len(client.get("/api/events").json()) == 12
+    for count, expected in [(3, ["9", "10", "11"]), (1, ["11"]), (10, [str(number) for number in range(2, 12)])]:
+        response = client.put("/api/display", json={"history_count": count})
+        assert response.status_code == 200
+        snapshot = client.get("/api/view").json()
+        assert snapshot["display"]["history_count"] == count
+        assert [caption["id"] for caption in snapshot["captions"]] == expected
+        assert all(set(caption) == {"id", "revision", "text"} for caption in snapshot["captions"])
+    assert len(client.get("/api/events").json()) == 12
