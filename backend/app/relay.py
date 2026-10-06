@@ -79,6 +79,8 @@ class CaptionRelay:
             return SourceIgnored(status="duplicate")
         self._seen_events.add(event.source_event_id)
         existing = self._captions.get(event.utterance_id)
+        if existing is None and event.removed:
+            return SourceIgnored(status="stale")
         if existing:
             if event.revision <= existing.source_revision:
                 return SourceIgnored(status="stale")
@@ -90,6 +92,12 @@ class CaptionRelay:
                 self._revision += 1
                 existing.text = event.formatted_text or event.text
                 existing.revision = self._revision
+            if event.removed and not existing.human_edited:
+                existing.published = False
+                existing.public_text = None
+                existing.public_revision = None
+                if existing.id in self._published_ids:
+                    self._published_ids.remove(existing.id)
             if self._visible and event.is_final and existing.publish_eligible and self._auto_publish:
                 self._publish_caption(existing)
         else:

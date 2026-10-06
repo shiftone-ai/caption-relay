@@ -1,6 +1,6 @@
 # 開発手順
 
-設定確認日：2026-10-05
+設定確認日：2026-10-06
 
 リポジトリのルートで以下のコマンドを実行する。Codex Cloud と SSH 接続の固有手順は[リモート開発](remote-development.md)を参照する。
 
@@ -40,8 +40,11 @@ npm --prefix frontend run dev
 |---|---|---|
 | `CAPTION_RELAY_PORT` | `dev.sh` のバックエンドのポート | `24681` |
 | `CAPTION_RELAY_API_URL` | Vite が API を転送する接続先 | `http://127.0.0.1:24681` |
+| `CAPTION_RELAY_UDTALK_URL` | UDトークのWeb字幕の閲覧リンク。未設定なら接続しない | 未設定 |
 
 バックエンドのポートを変更するときは、Vite の接続先も合わせる。
+
+UDトークの実験用入力Adapterの設定・実機確認は[UDトークの入力接続](udtalk-input.md)を参照する。閲覧リンクは秘密として扱い、ログやPRに含めない。
 
 ```bash
 CAPTION_RELAY_PORT=24685 bash scripts/dev.sh

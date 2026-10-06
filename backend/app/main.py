@@ -1,4 +1,6 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import asynccontextmanager
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -10,14 +12,25 @@ from .models import (
     DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
 )
 from .relay import CaptionNotFound, CaptionRelay, RevisionConflict
+from .udtalk_web import UdtalkStatus, UdtalkWebInput
 
 BASE = Path(__file__).resolve().parents[2]
 FRONTEND = BASE / "frontend" / "dist"
 
 
-def create_app(relay: CaptionRelay | None = None) -> FastAPI:
+def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = None) -> FastAPI:
     service = relay if relay is not None else CaptionRelay()
-    application = FastAPI(title="Caption Relay", version="0.2.0")
+    source = UdtalkWebInput(udtalk_url, service.source_event)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
+        source.start()
+        try:
+            yield
+        finally:
+            await source.stop()
+
+    application = FastAPI(title="Caption Relay", version="0.2.0", lifespan=lifespan)
     application.mount("/static", StaticFiles(directory=FRONTEND, check_dir=False), name="static")
 
     @application.get("/", response_class=FileResponse)
@@ -39,6 +52,10 @@ def create_app(relay: CaptionRelay | None = None) -> FastAPI:
     @application.post("/api/source/events", response_model=Caption | SourceIgnored)
     async def source_event(event: SourceEvent) -> Caption | SourceIgnored:
         return service.source_event(event)
+
+    @application.get("/api/source/udtalk", response_model=UdtalkStatus)
+    async def udtalk_status() -> UdtalkStatus:
+        return source.status.model_copy(deep=True)
 
     @application.patch("/api/captions/{caption_id}", response_model=Caption, responses={409: {"model": ConflictResponse}})
     async def patch_caption(caption_id: str, patch: CaptionPatch) -> Caption:
@@ -91,4 +108,4 @@ def create_app(relay: CaptionRelay | None = None) -> FastAPI:
     return application
 
 
-app = create_app()
+app = create_app(udtalk_url=os.environ.get("CAPTION_RELAY_UDTALK_URL"))
