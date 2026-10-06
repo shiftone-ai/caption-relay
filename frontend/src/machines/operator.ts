@@ -15,6 +15,10 @@ interface OperatorContext {
   activeCaptionId: string | null;
   followLatest: boolean;
   latestRequest: number;
+  scrollTarget: "latest" | "caption";
+  editorFocusRequest: number;
+  unreadIds: string[];
+  saveStatus: { captionId: string; message: string } | null;
   autoPublish: boolean;
   requestedMode: PublicationMode;
   display: DisplaySettings;
@@ -88,6 +92,9 @@ export const operatorMachine = setup({
       && !getSaveRequest(context, event.captionId)?.text.trim(),
     closeShortcut: ({ context, event }) => event.type === "caption.editor.keypressed" && !event.isComposing
       && event.key === "Escape" && context.activeCaptionId === event.captionId,
+    closeSettingsShortcut: ({ context, event }) => event.type === "settings.keypressed" && !event.isComposing
+      && event.key === "Escape" && (context.settingsOpen || context.aiSettingsOpen),
+    hasEditor: ({ context }) => context.activeCaptionId !== null,
     validAiStrategy: ({ event }) => event.type === "ai.strategy.selected" && Object.keys(aiStrategies).includes(event.value),
     validAiModel: ({ event }) => event.type === "ai.preferred.selected" && knownAiModel(event.modelId),
     canChangeAiCandidate: ({ context, event }) => event.type === "ai.candidate.changed" && knownAiModel(event.modelId)
@@ -104,11 +111,11 @@ export const operatorMachine = setup({
   },
   actions: {
     clearError: assign({ error: "", errorSource: null, errorCaptionId: null }),
-    invalidSave: assign(({ event }) => ({ error: "字幕を入力してください。", errorSource: "save" as const,
+    invalidSave: assign(({ event }) => ({ error: "字幕を入力してください。", errorSource: "save" as const, saveStatus: null,
       errorCaptionId: event.type === "caption.save.requested" || event.type === "caption.editor.keypressed" ? event.captionId : null })),
     prepareSave: assign(({ context, event }) => ({
       pendingSave: event.type === "caption.save.requested" || event.type === "caption.editor.keypressed" ? getSaveRequest(context, event.captionId) : null,
-      error: "", errorSource: null, errorCaptionId: null,
+      error: "", errorSource: null, errorCaptionId: null, saveStatus: null,
     })),
     prepareMode: assign(({ event }) => ({ requestedMode: { auto_publish: event.type === "publication.mode.requested" && event.mode === "auto" },
       error: "", errorSource: null, errorCaptionId: null })),
@@ -136,17 +143,18 @@ export const operatorMachine = setup({
     }),
     selectCaption: assign(({ context, event }) => {
       if (event.type !== "caption.edit.requested") return {};
-      if (context.activeCaptionId === event.captionId) return { activeCaptionId: null };
+      if (context.activeCaptionId === event.captionId && !context.settingsOpen && !context.aiSettingsOpen) return { activeCaptionId: null };
       const drafts = new Map(context.drafts);
       const caption = context.captions.find(item => item.id === event.captionId)!;
       if (!drafts.has(caption.id)) drafts.set(caption.id, { text: caption.text, baseRevision: caption.revision });
-      return { drafts, activeCaptionId: caption.id, followLatest: false };
+      return { drafts, activeCaptionId: caption.id, followLatest: false, scrollTarget: "caption" as const,
+        latestRequest: context.latestRequest + 1, editorFocusRequest: context.editorFocusRequest + 1, settingsOpen: false, aiSettingsOpen: false };
     }),
     discardDraft: assign(({ context, event }) => {
       if (event.type !== "caption.draft.discarded") return {};
       const drafts = new Map(context.drafts);
       drafts.delete(event.captionId);
-      return { drafts, activeCaptionId: null, error: "", errorSource: null, errorCaptionId: null };
+      return { drafts, activeCaptionId: null, error: "", errorSource: null, errorCaptionId: null, saveStatus: null };
     }),
     editDraft: assign(({ context, event }) => {
       if (event.type !== "caption.draft.changed") return {};
@@ -157,7 +165,7 @@ export const operatorMachine = setup({
         text: event.text, baseRevision: previous?.baseRevision ?? caption.revision,
         conflict: previous?.conflict,
       });
-      return { drafts };
+      return { drafts, saveStatus: context.saveStatus?.captionId === caption.id ? null : context.saveStatus };
     }),
   },
 }).createMachine({
@@ -166,7 +174,7 @@ export const operatorMachine = setup({
   context: ({ input }) => ({
     api: input.api, visible: true, captions: [], drafts: new Map(), pendingSave: null,
     error: "", errorSource: null, errorCaptionId: null, activeCaptionId: null,
-    followLatest: true, latestRequest: 0, autoPublish: true,
+    followLatest: true, latestRequest: 0, scrollTarget: "latest", editorFocusRequest: 0, unreadIds: [], saveStatus: null, autoPublish: true,
     requestedMode: { auto_publish: true },
     display: defaultDisplay, displayDraft: null, settingsOpen: false,
     ai: defaultAi, aiDraft: null, aiSettingsOpen: false,
@@ -175,7 +183,8 @@ export const operatorMachine = setup({
     loading: {
       invoke: {
         src: "load", input: ({ context }) => context.api,
-        onDone: { target: "ready", actions: assign(({ event }) => ({ ...event.output, error: "", errorSource: null })) },
+        onDone: { target: "ready", actions: assign(({ context, event }) => ({ ...event.output, error: "", errorSource: null,
+          unreadIds: [], latestRequest: context.latestRequest + 1 })) },
         onError: { target: "failed", actions: assign({ error: "字幕を取得できませんでした。接続を確認してください。", errorSource: "load" }) },
       },
     },
@@ -191,8 +200,17 @@ export const operatorMachine = setup({
         "caption.edit.closed": { actions: assign({ activeCaptionId: null }) },
         "caption.editor.keypressed": { guard: "closeShortcut", actions: assign({ activeCaptionId: null }) },
         "caption.draft.discarded": { guard: "canDiscard", actions: "discardDraft" },
-        "timeline.latest.requested": { actions: assign(({ context }) => ({ followLatest: true, activeCaptionId: null, latestRequest: context.latestRequest + 1 })) },
-        "timeline.scrolled": { actions: assign(({ event }) => ({ followLatest: event.scrollHeight - event.clientHeight - event.scrollTop < 8 })) },
+        "timeline.latest.requested": { actions: assign(({ context }) => ({ followLatest: true, unreadIds: [], scrollTarget: "latest" as const,
+          latestRequest: context.latestRequest + 1, editorFocusRequest: context.activeCaptionId ? context.editorFocusRequest + 1 : context.editorFocusRequest })) },
+        "timeline.editing.requested": { guard: "hasEditor", actions: assign(({ context }) => ({ followLatest: false,
+          scrollTarget: "caption" as const, latestRequest: context.latestRequest + 1, editorFocusRequest: context.editorFocusRequest + 1 })) },
+        "timeline.scrolled": { actions: assign(({ context, event }) => {
+          const followLatest = event.scrollHeight - event.clientHeight - event.scrollTop < 8;
+          return { followLatest, unreadIds: followLatest ? [] : context.unreadIds };
+        }) },
+        "timeline.resized": { actions: assign(({ context }) => context.followLatest
+          ? { scrollTarget: "latest" as const, latestRequest: context.latestRequest + 1 } : {}) },
+        "settings.keypressed": { guard: "closeSettingsShortcut", actions: assign({ settingsOpen: false, aiSettingsOpen: false }) },
         "display.settings.toggled": { actions: assign(({ context }) => ({ settingsOpen: !context.settingsOpen, aiSettingsOpen: false })) },
         "ai.settings.toggled": { actions: assign(({ context }) => ({ aiSettingsOpen: !context.aiSettingsOpen, settingsOpen: false })) },
       },
@@ -205,12 +223,22 @@ export const operatorMachine = setup({
           on: operations,
           invoke: {
             src: "load", input: ({ context }) => context.api,
-            onDone: { target: "idle", actions: assign(({ context, event }) => ({
-              ...event.output,
-              drafts: new Map([...context.drafts].filter(([id]) => event.output.captions.some(caption => caption.id === id))),
-              error: context.errorSource === "load" ? "" : context.error,
-              errorSource: context.errorSource === "load" ? null : context.errorSource,
-            })) },
+            onDone: { target: "idle", actions: assign(({ context, event }) => {
+              const ids = new Set(context.captions.map(caption => caption.id));
+              const incoming = event.output.captions.filter(caption => !ids.has(caption.id)).map(caption => caption.id);
+              const timelineChanged = event.output.captions.length !== context.captions.length
+                || event.output.captions.some((caption, index) => caption.id !== context.captions[index]?.id || caption.text !== context.captions[index]?.text || caption.original !== context.captions[index]?.original);
+              return {
+                ...event.output,
+                drafts: new Map([...context.drafts].filter(([id]) => event.output.captions.some(caption => caption.id === id))),
+                activeCaptionId: event.output.captions.some(caption => caption.id === context.activeCaptionId) ? context.activeCaptionId : null,
+                unreadIds: context.followLatest ? [] : [...new Set([...context.unreadIds, ...incoming])].filter(id => event.output.captions.some(caption => caption.id === id)),
+                latestRequest: context.followLatest && timelineChanged ? context.latestRequest + 1 : context.latestRequest,
+                scrollTarget: context.followLatest ? "latest" as const : context.scrollTarget,
+                error: context.errorSource === "load" ? "" : context.error,
+                errorSource: context.errorSource === "load" ? null : context.errorSource,
+              };
+            }) },
             onError: { target: "idle", actions: assign({ error: "字幕を取得できませんでした。接続を確認してください。", errorSource: "load" }) },
           },
         },
@@ -223,6 +251,10 @@ export const operatorMachine = setup({
               return {
                 captions: context.captions.map(caption => caption.id === event.output.id ? event.output : caption),
                 drafts, pendingSave: null,
+                saveStatus: { captionId: event.output.id, message: context.visible && event.output.publish_eligible && event.output.source_final !== false
+                  && event.output.published && (event.output.public_text ?? event.output.text) === event.output.text
+                  ? "保存して公開しました。" : "保存しました。観客の表示は変わりません。" },
+                latestRequest: context.followLatest ? context.latestRequest + 1 : context.latestRequest,
               };
             }) },
             onError: { target: "idle", actions: assign(({ context, event }) => {
@@ -233,7 +265,7 @@ export const operatorMachine = setup({
                 const latest = event.error.latest;
                 drafts.set(pending.captionId, {
                   text: retainedText, baseRevision: latest.revision,
-                  conflict: `競合しました。最新の字幕は「${latest.text}」です。確認して再反映してください。`,
+                  conflict: `別の更新がありました。保存済みの表示文「${latest.text}」を確認して、もう一度保存してください。`,
                 });
                 return {
                   drafts, pendingSave: null,
@@ -241,7 +273,7 @@ export const operatorMachine = setup({
                 };
               }
               drafts.set(pending.captionId, { text: retainedText, baseRevision: pending.baseRevision });
-              return { drafts, pendingSave: null, error: "反映できませんでした。修正内容は保持しています。", errorSource: "save" as const, errorCaptionId: pending.captionId };
+              return { drafts, pendingSave: null, error: "保存できませんでした。修正内容は保持しています。もう一度保存してください。", errorSource: "save" as const, errorCaptionId: pending.captionId };
             }) },
           },
         },
