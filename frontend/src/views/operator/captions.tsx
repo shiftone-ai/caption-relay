@@ -10,6 +10,7 @@ const publicationIcons = { hidden: EyeOff, updating: Clock3, live: Eye, publishe
 
 export function CaptionRowView({ row }: { row: RowParameters }) {
   const descriptionId = "caption-" + row.id + "-description";
+  const timeId = "caption-" + row.id + "-time";
   const sourceId = "caption-" + row.id + "-source";
   const publicationId = "caption-" + row.id + "-publication";
   const SourceIcon = sourceIcons[row.source];
@@ -19,14 +20,12 @@ export function CaptionRowView({ row }: { row: RowParameters }) {
       {emit => <>
         {row.firstUnread && <div className="caption-unread-boundary" role="separator" aria-label="ここから新着の字幕">ここから新着</div>}
         <article className="caption-row" data-caption-id={row.id} data-editing={row.editing} data-dirty={row.dirty}
-          data-current={row.current} data-first-unread={row.firstUnread} aria-label={"字幕 " + row.number} aria-describedby={descriptionId}>
+          data-current={row.current} data-first-unread={row.firstUnread} aria-labelledby={descriptionId} aria-describedby={timeId}>
           <span id={descriptionId} className="sr-only">{row.contentDescription}</span>
-          <div className="caption-number"><span>{row.number}</span>
-            <time className="caption-received-time" dateTime={row.receivedAt} title={row.timeDescription} aria-label={row.timeDescription}>{row.timeLabel}</time>
-          </div>
+          <time id={timeId} className="caption-received-time" dateTime={row.receivedAt} title={row.timeDescription} aria-label={row.timeDescription}>{row.timeLabel}</time>
           <div className="caption-text">
-            <button className="caption-edit-text" disabled={row.editDisabled} aria-label={"字幕 " + row.number + " を編集"}
-              aria-describedby={descriptionId} aria-expanded={row.editing}
+            <button className="caption-edit-text" disabled={row.editDisabled} aria-label={"編集：" + row.text}
+              aria-describedby={timeId} aria-expanded={row.editing}
               onClick={() => emit({ type: "caption.edit.requested", captionId: row.id })}>{row.text}</button>
           </div>
           <div className="caption-state">
@@ -40,7 +39,7 @@ export function CaptionRowView({ row }: { row: RowParameters }) {
             </span>
           </div>
           <Button variant="ghost" className="operator-icon-button caption-edit-icon" disabled={row.editDisabled}
-            aria-label={"字幕 " + row.number + " の編集欄を開く"} aria-describedby={descriptionId} aria-expanded={row.editing}
+            aria-label="編集欄を開く" aria-describedby={timeId + " " + descriptionId} aria-expanded={row.editing}
             intent={{ type: "caption.edit.requested", captionId: row.id }}><Pencil size={16} /></Button>
         </article>
       </>}

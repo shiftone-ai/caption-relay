@@ -84,7 +84,7 @@ it("distinguishes the published version from the saved candidate and presents th
   actor.send({ type: "refresh.requested" });
   await waitFor(actor, state => state.matches({ ready: "idle" }));
   const parameters = presentOperator(actor.getSnapshot());
-  expect(parameters.recentCaptions.map(row => row.number)).toEqual([2, 3, 4]);
+  expect(parameters.recentCaptions.map(row => row.id)).toEqual(["2", "3", "4"]);
   expect(parameters.monitor.liveText).toBe("公開文4");
   expect(parameters.rows[3].publication).toContain("公開文「公開文4」と保存済みの表示文は異なります");
   expect(parameters.rows[3]).toMatchObject({ current: true, editing: false, publicationState: "updating" });

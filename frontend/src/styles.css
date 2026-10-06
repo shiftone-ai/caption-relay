@@ -161,8 +161,8 @@ button, textarea { font: inherit; }
 .caption-row::after { content: ""; position: absolute; bottom: 0; left: 24px; right: 24px; height: 1px; background: #e5e5e5; pointer-events: none; }
 .caption-row[data-dirty="true"] { background: #fffbeb; }
 .caption-row[data-editing="true"] { background: #eff6ff; outline: 1px solid #93b3d1; outline-offset: -1px; }
-.caption-row[data-current="true"] .caption-number { color: #15406a; font-weight: 700; }
-.caption-number { display: flex; flex-direction: column; color: #525252; font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
+.caption-row[data-current="true"] > .caption-received-time { color: #15406a; font-weight: 700; }
+.caption-row > .caption-received-time { display: inline-flex; align-items: center; height: 32px; }
 .caption-received-time { color: #525252; font-size: 12px; line-height: 16px; font-weight: 400; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .caption-text { overflow-wrap: anywhere; min-width: 0; }
 .caption-edit-text { display: block; width: 100%; padding-block: 4px; text-align: left; font-size: 16px; line-height: 24px; border-radius: 4px; white-space: pre-wrap; color: #171717; }
@@ -232,8 +232,8 @@ button, textarea { font: inherit; }
 .caption-monitor-recent, .caption-monitor-public { min-width: 0; }
 .caption-monitor h2 { font-size: 12px; font-weight: 400; line-height: 24px; color: #404040; }
 .caption-monitor-rows { display: grid; gap: 0; }
-.caption-monitor-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 16px; align-items: start; gap: var(--space); }
-.caption-monitor-row > span:first-child { font-size: 12px; color: #525252; font-variant-numeric: tabular-nums; }
+.caption-monitor-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 16px; align-items: start; gap: var(--space); }
+.caption-monitor-row > time { line-height: 24px; }
 .caption-monitor-row p { max-height: 48px; overflow-y: auto; overflow-wrap: anywhere; white-space: pre-wrap; }
 .caption-monitor-row svg { align-self: start; margin-top: 4px; }
 .caption-monitor-public { border-left: 1px solid #d4d4d4; padding-left: var(--space-2); }
@@ -295,7 +295,7 @@ button, textarea { font: inherit; }
   .caption-list-heading h2 { padding-inline: var(--space-2); }
   .caption-row { grid-template-columns: 40px minmax(0, 1fr) 56px; gap: 8px; padding: 8px 16px; }
   .caption-row::after { left: 16px; right: 16px; }
-  .caption-number { padding-top: 4px; }
+  .caption-row > .caption-received-time { height: 40px; }
   .caption-edit-text { min-height: 40px; padding-block: var(--space); }
   .caption-state { min-height: 40px; }
   .caption-edit-icon { display: none; }

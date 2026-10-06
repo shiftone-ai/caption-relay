@@ -11,22 +11,23 @@ export function CaptionEditorView({ row }: { row: RowParameters }) {
   const input = useRef<HTMLTextAreaElement>(null);
   const inputId = "caption-" + row.id + "-editor";
   const titleId = inputId + "-title";
+  const timeId = inputId + "-time";
   const messageId = inputId + "-message";
   const hintId = inputId + "-hint";
   useEffect(() => { input.current?.focus({ preventScroll: true }); }, [row.focusVersion]);
   return (
     <Scope name={"caption-editor:" + row.id}>
-      <aside className="caption-editor" aria-labelledby={titleId}>
+      <aside className="caption-editor" aria-labelledby={titleId} aria-describedby={timeId}>
         <header className="caption-editor-header">
-          <div className="caption-editor-title"><h2 id={titleId}>字幕 {row.number} の訂正</h2>
-            <time className="caption-received-time" dateTime={row.receivedAt} title={row.timeDescription} aria-label={row.timeDescription}>{row.timeLabel}</time>
+          <div className="caption-editor-title"><h2 id={titleId}>字幕の訂正</h2>
+            <time id={timeId} className="caption-received-time" dateTime={row.receivedAt} title={row.timeDescription} aria-label={row.timeDescription}>{row.timeLabel}</time>
           </div>
-          <Button variant="ghost" className="operator-icon-button" aria-label={"字幕 " + row.number + " の編集を閉じる"}
+          <Button variant="ghost" className="operator-icon-button" aria-label="編集を閉じる"
             intent={{ type: "caption.edit.closed" }}><X size={16} /></Button>
         </header>
         <div className="caption-editor-scroll">
           <section className="caption-editor-reference" aria-label="訂正する字幕の原文"><h3>原文</h3><p tabIndex={0}>{row.original}</p></section>
-          <label htmlFor={inputId}>字幕 {row.number} の表示文</label>
+          <label htmlFor={inputId}>表示文</label>
           <Textarea ref={input} id={inputId} className="caption-editor-input" value={row.draftText} readOnly={row.readOnly}
             aria-invalid={row.invalid} aria-describedby={hintId + (row.message ? " " + messageId : "")}
             change={text => ({ type: "caption.draft.changed", captionId: row.id, text })}
