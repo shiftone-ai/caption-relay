@@ -8,6 +8,8 @@
 
 単一の `demo` セッションにテキストを入力し、操作画面で表示文を編集して観客へ配信する。AIへの接続は行わない。入力と同時、または後から届くAI修正結果を受け取るAPIを提供する。操作画面は字幕の一覧と原文・表示文を扱い、観客画面は初期設定で最後の公開字幕を表示し、表示設定で直近1〜10件へ変更できる。
 
+UDトークのWeb閲覧リンクを環境変数に設定すると、実験用Adapterで新しい入力を取り込む。設定・根拠・実機確認の範囲は[UDトークの入力接続](udtalk-input.md)を参照する。
+
 状態はサーバーのメモリ上に置く。認証と永続化はなく、ローカルの単一プロセスで使う。
 
 ## 操作と編集
@@ -39,6 +41,8 @@
 ## 入力と公開
 
 同じ発話には同じ `utterance_id` と増加する `revision` を渡す。同じ `source_event_id` の再送は `duplicate`、受信済み以下の入力改版は `stale` として無視する。文章が同じという理由では重複排除しない。
+
+入力の取消は `removed: true`、空の `text`、`is_final: false` で渡す。AI修正文は付けられない。手修正していない字幕の表示文を空にし、公開文を取り下げる。人が保存した表示文と公開文は保護する。受信していない発話の取消は `stale` とし、行を作らない。
 
 上部の「新着の公開」の初期値は「自動公開」。`is_final: true` の入力と、その改版に対応するAI修正結果を自動公開する。「確認して公開」では候補を一覧に保持し、「保存して公開」の保存時に公開する。モード切り替えだけで保留中の候補を一括公開しない。どちらのモードでも、人の入力中の文は自動保存しない。
 
@@ -72,7 +76,7 @@ SSE の切断中は直前の表示を保持し、再接続後のスナップシ�
 
 ## 入力 API の例
 
-本アプリの入力 API であり、UDトークが提供する API ではない。実機との連携には接続仕様に合わせた Adapter が必要。
+本アプリの入力 API であり、UDトークが提供する API ではない。UDトークのWeb入力AdapterはこのAPIと同じRelayの入力処理へ渡す。
 
 ```bash
 curl -X POST http://127.0.0.1:24681/api/source/events \
@@ -91,6 +95,7 @@ curl -X POST http://127.0.0.1:24681/api/source/events \
 | `GET /api/session` | セッション名・表示可否・字幕数 |
 | `GET /api/events` | 操作画面用の字幕一覧 |
 | `POST /api/source/events` | 発話の入力・改版更新 |
+| `GET /api/source/udtalk` | 実験用Web入力の接続状態・受信イベント数。観客用の応答には含めない |
 | `PATCH /api/captions/{caption_id}` | `text` と `base_revision` による表示文の保存 |
 | `PUT /api/captions/{caption_id}/formatted` | 対象原文の改版に対応するAI修正結果 |
 | `PUT /api/publication-mode` | 新着の自動公開・確認して公開 |
@@ -113,6 +118,7 @@ curl -X POST http://127.0.0.1:24681/api/source/events \
 | 全画面の重複要求・失敗・外部解除、DOM リスナーの解放 | [観客 Mediator のテスト](../frontend/src/machines/audience.test.ts)、[全画面 Adapter のテスト](../frontend/src/adapters/fullscreen.test.ts) |
 | 行ごとの保存、編集・設定のフォーカス、状態説明の解除、未保存の離脱確認、変換中のキーイベント | [Root のテスト](../frontend/src/roots.test.tsx) |
 | 入力の改版・再送、手修正の保護、入力検証、公開データの分離、非表示期間 | [API のテスト](../backend/tests/test_api.py) |
+| UDトーク断片の連結、途中／確定、取消、時刻と再送、通信復帰・終了処理 | [入力変換](../backend/tests/test_udtalk.py)、[Web取得](../backend/tests/test_udtalk_web.py) |
 | 公開範囲、変更のない通知の省略、スナップショットの分離と購読キューの再同期 | [Relay のテスト](../backend/tests/test_relay.py) |
 | AIの振り分け、候補の限定、結果の照合、測定値の再送除外 | [AI のテスト](../backend/tests/test_ai.py) |
 | 新着数・通知・境界、訂正位置への往復、リサイズ追従 | [履歴のテスト](../frontend/src/presenters/operator.timeline.test.tsx) |
@@ -122,7 +128,7 @@ curl -X POST http://127.0.0.1:24681/api/source/events \
 
 ## 未実装・未検証
 
-- UDトーク実機との接続、各AI提供元への接続と整形品質・実際の速度・費用の比較、接続仕様・利用許諾の確認。
+- UDトークの対応端末・経路と実機で未確認の範囲は[入力接続](udtalk-input.md#検証と限界)を参照する。各AI提供元への接続と整形品質・実際の速度・費用の比較は未実装。
 - 認証、永続化、複数セッション・複数ワーカー、監査履歴・保存済みの修正の取消、過去字幕の再表示。
 - 手修正 API の冪等キー、保存結果の照合、原文改版の競合判定。
 - 接続異常の表示、会場リハーサル、長時間運転・負荷試験。

@@ -1,0 +1,72 @@
+[
+  [
+    {
+      "utteranceIdentifier": "speech-1:00",
+      "connected": {
+        "timestamp": 1.001022
+      },
+      "phase": "created",
+      "text": "...",
+      "type": -1,
+      "finalizedTimestamp": 1.0
+    },
+    {
+      "utteranceIdentifier": "speech-1:00",
+      "connected": {
+        "timestamp": 1.753135
+      },
+      "phase": "updated",
+      "text": "逆",
+      "type": -1,
+      "finalizedTimestamp": 1.752751
+    }
+  ],
+  [
+    {
+      "utteranceIdentifier": "speech-1:00",
+      "connected": {
+        "timestamp": 3.7585
+      },
+      "phase": "updated",
+      "text": "キャプションリレーの音声認識",
+      "type": -1,
+      "finalizedTimestamp": 3.757941
+    }
+  ],
+  [
+    {
+      "utteranceIdentifier": "speech-1:00",
+      "connected": {
+        "timestamp": 5.750811
+      },
+      "phase": "updated",
+      "text": "キャプションリレーの音声認識テストです。\n本日はあり",
+      "type": -1,
+      "finalizedTimestamp": 5.750051
+    }
+  ],
+  [
+    {
+      "utteranceIdentifier": "speech-1:00",
+      "connected": {
+        "timestamp": 6.880571
+      },
+      "phase": "finalized",
+      "text": "キャプションリレーの音声認識テストです。\n本日はありがとうございます",
+      "type": -1,
+      "endOfUtterance": false,
+      "finalizedTimestamp": 6.878223
+    },
+    {
+      "utteranceIdentifier": "speech-1:01",
+      "connected": {
+        "timestamp": 6.882452
+      },
+      "phase": "finalized",
+      "text": "。\n",
+      "type": -1,
+      "endOfUtterance": true,
+      "finalizedTimestamp": 6.878223
+    }
+  ]
+]

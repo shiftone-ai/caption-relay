@@ -113,6 +113,24 @@
         }
       }
     },
+    "/api/source/udtalk": {
+      "get": {
+        "summary": "Udtalk Status",
+        "operationId": "udtalk_status_api_source_udtalk_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UdtalkStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/captions/{caption_id}": {
       "patch": {
         "summary": "Patch Caption",
@@ -1140,6 +1158,11 @@
               }
             ],
             "title": "Formatted Text"
+          },
+          "removed": {
+            "type": "boolean",
+            "title": "Removed",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -1169,6 +1192,35 @@
           "status"
         ],
         "title": "SourceIgnored"
+      },
+      "UdtalkStatus": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "connecting",
+              "live",
+              "retrying",
+              "failed"
+            ],
+            "title": "State",
+            "default": "disabled"
+          },
+          "received_events": {
+            "type": "integer",
+            "title": "Received Events",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "UDトーク接続は設定されていません。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UdtalkStatus"
       },
       "ValidationError": {
         "properties": {
