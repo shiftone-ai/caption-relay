@@ -51,8 +51,8 @@ it("keeps a separate focused editor and saved history through arrivals, latest, 
   const { actor, api } = await start();
   render(<TimelineTestRoot actor={actor} />);
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "字幕 1 を編集" }));
-  const input = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "字幕 1 の表示文" });
+  await user.click(screen.getByRole("button", { name: "編集：保存済み" }));
+  const input = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "表示文" });
   expect(input.closest(".caption-row")).toBeNull();
   await user.clear(input);
   await user.type(input, "未保存の訂正");
@@ -80,13 +80,13 @@ it("keeps a separate focused editor and saved history through arrivals, latest, 
   expect(document.activeElement).toBe(input);
   await user.keyboard("{Escape}");
   expect(screen.queryByRole("textbox")).toBeNull();
-  const row = screen.getByRole("article", { name: "字幕 1" });
+  const row = screen.getByRole("article", { name: "保存済みの表示文：保存済み" });
   expect(row.getAttribute("data-dirty")).toBe("true");
-  expect(within(row).getByRole("button", { name: "字幕 1 を編集" }).textContent).toBe("保存済み");
+  expect(within(row).getByRole("button", { name: "編集：保存済み" }).textContent).toBe("保存済み");
   expect(within(row).queryByText("未保存の訂正")).toBeNull();
-  expect(row.getAttribute("aria-describedby")).toBe("caption-one-description");
+  expect(row.getAttribute("aria-describedby")).toBe("caption-one-time");
   expect(within(row).getByRole("img", { name: /この行は保存済み/ }).tabIndex).toBe(0);
-  await user.click(within(row).getByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(within(row).getByRole("button", { name: "編集：保存済み" }));
   expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe("未保存の訂正");
 });
 
@@ -111,7 +111,7 @@ it("observes viewport and row reflow, follows after resize, and leaves browsing 
   Object.defineProperty(viewport, "scrollHeight", { configurable: true, value: 1600 });
   act(() => resize([], observer));
   expect(viewport.scrollTop).toBe(1600);
-  await userEvent.setup().click(screen.getByRole("button", { name: "字幕 1 を編集" }));
+  await userEvent.setup().click(screen.getByRole("button", { name: "編集：保存済み" }));
   viewport.scrollTop = 200;
   const input = screen.getByRole("textbox");
   Object.defineProperty(viewport, "scrollHeight", { configurable: true, value: 2000 });
@@ -130,7 +130,7 @@ it("announces save success once while ordinary refreshes keep the same editor st
   expect(receivedTime.textContent).toMatch(/^\d{2}:\d{2}$/);
   expect(receivedTime.title).toMatch(/^受信時刻：2026\/10\/\d{2} .*03/);
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(screen.getByRole("button", { name: "編集：保存済み" }));
   const editorTime = container.querySelector<HTMLTimeElement>(".caption-editor time")!;
   expect(editorTime.dateTime).toBe(receivedTime.dateTime);
   expect(editorTime.textContent).toBe(receivedTime.textContent);
