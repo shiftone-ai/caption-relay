@@ -16,6 +16,7 @@
 | 環境を用意して検証する | [開発手順](development.md) | 依存関係、起動、環境変数、チェック |
 | Cloud・SSH 接続で開発する | [リモート開発](remote-development.md) | Codex Cloud、Mac mini、SSH ポート転送 |
 | UDトークの字幕出力を参照する | [字幕出力の調査](udtalk-display.md) | 公式仕様、今回の対応範囲、未提供の機能 |
+| UDトークのWeb字幕を取り込む | [入力接続](udtalk-input.md) | 実験用Adapter、設定、断片と改版、実機確認と制約 |
 | AIを選び、速度と費用を比較する | [AIの選択と振り分け](ai-routing.md) | Gemini・Claude・Codex、料金の根拠、振り分けと結果の照合 |
 | API モデルを変更する | [API の型生成](generated/README.md) | 生成元、再生成、型の一致確認 |
 | 新しい機能の要件を検討する | [v0.2 の設計案](design-v0.2.md) | 将来要件、未確定事項、受け入れ条件の案 |

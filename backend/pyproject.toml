@@ -6,13 +6,13 @@ dependencies = [
   "fastapi>=0.142,<1",
   "pydantic>=2.13,<3",
   "uvicorn[standard]>=0.30",
+  "httpx2>=2.13.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
     "pyright>=1.1.414",
-    "httpx2>=2.13.1",
 ]
 
 [tool.pytest.ini_options]
