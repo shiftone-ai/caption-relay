@@ -7,12 +7,15 @@
 | 目的 | 文書 | 記載する内容 |
 |---|---|---|
 | 起動して試す | [README](../README.md) | アプリの概要、起動、最初の操作 |
+| 利用者とプロダクト方針を確認する | [PRODUCT.md](../PRODUCT.md) | 会場での利用、目的、優先順位、制約、未確定事項 |
 | 変更ルールを確認する | [AGENTS.md](../AGENTS.md) | 作業に応じた参照先と完了条件 |
 | 現在の動作と制約を確認する | [現行 PoC の仕様](current-behavior.md) | 入力、編集、公開、テストとの対応、未実装の範囲 |
 | 責務やデータの境界を変更する | [システム構成](../ARCHITECTURE.md) | 実装の入口、状態の所有者、API と公開データの境界 |
 | 画面・コンポーネントを変更する | [フロントエンドの構成](frontend-architecture.md) | Root、View、Presenter、Mediator、Adapter とイベント伝播 |
 | 環境を用意して検証する | [開発手順](development.md) | 依存関係、起動、環境変数、チェック |
 | Cloud・SSH 接続で開発する | [リモート開発](remote-development.md) | Codex Cloud、Mac mini、SSH ポート転送 |
+| UDトークの字幕出力を参照する | [字幕出力の調査](udtalk-display.md) | 公式仕様、今回の対応範囲、未提供の機能 |
+| AIを選び、速度と費用を比較する | [AIの選択と振り分け](ai-routing.md) | Gemini・Claude・Codex、料金の根拠、振り分けと結果の照合 |
 | API モデルを変更する | [API の型生成](generated/README.md) | 生成元、再生成、型の一致確認 |
 | 新しい機能の要件を検討する | [v0.2 の設計案](design-v0.2.md) | 将来要件、未確定事項、受け入れ条件の案 |
 
