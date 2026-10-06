@@ -21,7 +21,9 @@ export function CaptionRowView({ row }: { row: RowParameters }) {
         <article className="caption-row" data-caption-id={row.id} data-editing={row.editing} data-dirty={row.dirty}
           data-current={row.current} data-first-unread={row.firstUnread} aria-label={"字幕 " + row.number} aria-describedby={descriptionId}>
           <span id={descriptionId} className="sr-only">{row.contentDescription}</span>
-          <div className="caption-number">{row.number}</div>
+          <div className="caption-number"><span>{row.number}</span>
+            <time className="caption-received-time" dateTime={row.receivedAt} title={row.timeDescription} aria-label={row.timeDescription}>{row.timeLabel}</time>
+          </div>
           <div className="caption-original"><span className="caption-mobile-label">原文</span>{row.original}</div>
           <div className="caption-text">
             <span className="caption-mobile-label">保存済みの表示文</span>

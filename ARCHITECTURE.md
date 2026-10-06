@@ -1,6 +1,6 @@
 # システム構成
 
-実装確認日：2026-10-05
+実装確認日：2026-10-06
 
 Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つローカル PoC。React の操作画面は HTTP で取得・更新し、観客画面は SSE で公開字幕を受け取る。現在の振る舞いは[現行 PoC の仕様](docs/current-behavior.md)、起動方法は[開発手順](docs/development.md)を参照する。
 
@@ -49,6 +49,8 @@ FastAPI は Pydantic モデルで入出力を検証し、`CaptionRelay` に処�
 
 操作画面用の `Caption` と観客用の `PublicCaption` を分ける。`PublicSnapshot` は表示可否と公開字幕の一覧、`PublicCaption` は字幕 ID・改版・表示文だけを定義する。公開用モデルへ原文や入力側の管理情報を追加しない。
 
+`Caption.received_at` は、`CaptionRelay` が発話を初めて受信したときにUTCで記録する。後続の改版や編集では更新せず、操作画面のPresenterが端末のタイムゾーンに合わせて表示する。観客用の字幕には含めない。
+
 SSE は購読登録と初期スナップショットの取得を中断なしに行い、以後も全体のスナップショットを送る。購読キューが満杯になったら古いスナップショットを破棄し、最新状態を送る。永続イベントや再接続カーソルは持たない。
 
 [API の型生成](docs/generated/README.md)でバックエンドのモデルから OpenAPI と TypeScript 型を生成する。フロントエンドの Adapter は生成した型を使用し、API モデルを独自に再定義しない。
@@ -60,7 +62,7 @@ SSE は購読登録と初期スナップショットの取得を中断なしに�
 ## 境界の検証
 
 - [backend/tests/test_api.py](backend/tests/test_api.py)：入力検証、改版競合、手修正の保護、公開データの分離、アプリごとの独立状態。
-- [backend/tests/test_relay.py](backend/tests/test_relay.py)：返却値による内部状態の変更防止、SSE スナップショット、満杯のキューの再同期。
+- [backend/tests/test_relay.py](backend/tests/test_relay.py)：返却値による内部状態の変更防止、受信時刻の保持、SSE スナップショット、満杯のキューの再同期。
 - [frontend/src/events/](frontend/src/events/)・[machines/](frontend/src/machines/)・[presenters/](frontend/src/presenters/) のテスト：イベント伝播、状態遷移、操作可否。
 - [scripts/check.sh](scripts/check.sh)：生成契約の一致、フロントエンドのテスト・型検査・ビルド、バックエンドの型検査・テスト。
 
