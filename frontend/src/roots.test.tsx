@@ -24,6 +24,12 @@ it("bubbles UI events to the actor and preserves the focused input across pollin
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name: "字幕 1 を編集" }));
+  const history = screen.getByRole("region", { name: "字幕一覧" });
+  const editor = screen.getByRole("complementary", { name: "字幕 1 の訂正" });
+  expect(within(history).queryByText("原文", { exact: true })).toBeNull();
+  expect(within(history).getAllByText("字幕", { exact: true })).toHaveLength(1);
+  expect(within(editor).getByRole("region", { name: "訂正する字幕の原文" }).textContent).toBe("原文原文");
+  expect(history.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const input = screen.getByRole("textbox");
   await user.clear(input);
   await user.type(input, "修正中");

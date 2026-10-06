@@ -184,7 +184,7 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
       timeLabel: receivedTime.format(new Date(caption.received_at)),
       timeDescription: "受信時刻：" + receivedDateTime.format(new Date(caption.received_at)),
       draftText: draft?.text ?? caption.text,
-      contentDescription: `原文：${caption.original}\n保存済みの表示文：${caption.text}`,
+      contentDescription: `保存済みの表示文：${caption.text}`,
       formattedText: caption.formatted_text ?? null,
       editing: context.activeCaptionId === caption.id, dirty,
       saveLabel: saving ? "保存中…" : (draft?.conflict ? "再保存" : "保存") + (publishes ? "して公開" : ""),
