@@ -12,6 +12,7 @@
 | 現在の動作と制約を確認する | [現行 PoC の仕様](current-behavior.md) | 入力、編集、公開、テストとの対応、未実装の範囲 |
 | 責務やデータの境界を変更する | [システム構成](../ARCHITECTURE.md) | 実装の入口、状態の所有者、API と公開データの境界 |
 | 画面・コンポーネントを変更する | [フロントエンドの構成](frontend-architecture.md) | Root、View、Presenter、Mediator、Adapter とイベント伝播 |
+| 画面の見た目を揃える | [デザイン規則](../DESIGN.md) | 8pxの配置、文字、配色、状態、操作部品、観客表示の描画 |
 | 環境を用意して検証する | [開発手順](development.md) | 依存関係、起動、環境変数、チェック |
 | Cloud・SSH 接続で開発する | [リモート開発](remote-development.md) | Codex Cloud、Mac mini、SSH ポート転送 |
 | UDトークの字幕出力を参照する | [字幕出力の調査](udtalk-display.md) | 公式仕様、今回の対応範囲、未提供の機能 |
