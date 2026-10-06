@@ -23,9 +23,9 @@ it("bubbles UI events to the actor and preserves the focused input across pollin
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(await screen.findByRole("button", { name: "編集：字幕" }));
   const history = screen.getByRole("region", { name: "字幕一覧" });
-  const editor = screen.getByRole("complementary", { name: "字幕 1 の訂正" });
+  const editor = screen.getByRole("complementary", { name: "字幕の訂正" });
   expect(within(history).queryByText("原文", { exact: true })).toBeNull();
   expect(within(history).getAllByText("字幕", { exact: true })).toHaveLength(1);
   expect(within(editor).getByRole("region", { name: "訂正する字幕の原文" }).textContent).toBe("原文原文");
@@ -68,7 +68,7 @@ it("keeps only the selected editor open and retains drafts when switching rows",
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "字幕 2 を編集" }));
+  await user.click(await screen.findByRole("button", { name: "編集：別の字幕" }));
   const second = screen.getByRole<HTMLTextAreaElement>("textbox");
   await user.clear(second);
   await user.type(second, "二行目の修正");
@@ -78,7 +78,7 @@ it("keeps only the selected editor open and retains drafts when switching rows",
     expect.objectContaining({ captionId: "two", text: "二行目の修正", baseRevision: 1 }), expect.any(AbortSignal),
   ));
   expect(second.readOnly).toBe(true);
-  await user.click(screen.getByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(screen.getByRole("button", { name: "編集：字幕" }));
   const first = screen.getByRole<HTMLTextAreaElement>("textbox");
   expect(screen.getAllByRole("textbox")).toHaveLength(1);
   expect(first.readOnly).toBe(false);
@@ -88,13 +88,13 @@ it("keeps only the selected editor open and retains drafts when switching rows",
   expect(api.save).toHaveBeenCalledTimes(1);
   await act(async () => { resolve({ ...other, text: "二行目の修正", revision: 2, human_edited: true }); });
   expect(first.value).toBe("一行目の下書き");
-  await user.click(screen.getByRole("button", { name: "字幕 2 を編集" }));
+  await user.click(screen.getByRole("button", { name: "編集：二行目の修正" }));
   expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe("二行目の修正");
-  await user.click(screen.getByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(screen.getByRole("button", { name: "編集：字幕" }));
   expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe("一行目の下書き");
   await user.click(screen.getByRole("button", { name: "変更を破棄" }));
   expect(screen.queryByRole("textbox")).toBeNull();
-  await user.click(screen.getByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(screen.getByRole("button", { name: "編集：字幕" }));
   expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe("字幕");
 });
 
@@ -106,7 +106,7 @@ it("shows blank-caption validation beside the input and requires explicit saving
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(await screen.findByRole("button", { name: "編集：字幕" }));
   const input = screen.getByRole("textbox");
   await user.clear(input);
   await user.click(screen.getByRole("button", { name: "保存して公開" }));
@@ -125,7 +125,7 @@ it("focuses the opened setting, switches panels and returns to its toolbar contr
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
-  await screen.findByRole("button", { name: "字幕 1 を編集" });
+  await screen.findByRole("button", { name: "編集：字幕" });
   const aiTrigger = screen.getByRole("button", { name: "AI設定" });
   const displayTrigger = screen.getByRole("button", { name: "表示設定" });
   await user.click(aiTrigger);
@@ -157,7 +157,7 @@ it("does not reset setting focus after a background refresh", async () => {
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
-  await screen.findByRole("button", { name: "字幕 1 を編集" });
+  await screen.findByRole("button", { name: "編集：字幕" });
   await user.click(screen.getByRole("button", { name: "AI設定" }));
   const firstField = screen.getByRole<HTMLSelectElement>("combobox", { name: "AIの選び方" });
   await user.tab();
@@ -177,12 +177,12 @@ it("returns from settings to the draft editor and focuses it through both return
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(await screen.findByRole("button", { name: "編集：字幕" }));
   await user.type(screen.getByRole("textbox"), "未保存の修正");
   for (const returnByRow of [false, true]) {
     await user.click(screen.getByRole("button", { name: "表示設定" }));
     await user.selectOptions(screen.getByRole("combobox", { name: "文字サイズ" }), "96");
-    await user.click(screen.getByRole("button", { name: returnByRow ? "字幕 1 を編集" : "訂正位置へ" }));
+    await user.click(screen.getByRole("button", { name: returnByRow ? "編集：字幕" : "訂正位置へ" }));
     const input = screen.getByRole<HTMLTextAreaElement>("textbox");
     expect(screen.queryByRole("complementary", { name: "観客画面の表示設定" })).toBeNull();
     expect(input.value).toBe("字幕未保存の修正");
@@ -203,8 +203,8 @@ it("keeps the monitor and correction draft available while viewing latest input 
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "字幕 1 を編集" }));
-  const input = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "字幕 1 の表示文" });
+  await user.click(await screen.findByRole("button", { name: "編集：字幕" }));
+  const input = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "表示文" });
   const monitor = screen.getByRole("region", { name: "直近の入力と観客への表示" });
   await user.clear(input);
   await user.type(input, "確認した訂正文");
@@ -215,7 +215,7 @@ it("keeps the monitor and correction draft available while viewing latest input 
   expect(screen.getByRole("region", { name: "直近の入力と観客への表示" })).toBe(monitor);
   await user.click(screen.getByRole("button", { name: "AI設定" }));
   expect(screen.queryByRole("textbox")).toBeNull();
-  expect(screen.queryByRole("complementary", { name: "字幕 1 の訂正" })).toBeNull();
+  expect(screen.queryByRole("complementary", { name: "字幕の訂正" })).toBeNull();
   expect(screen.getByRole("region", { name: "直近の入力と観客への表示" })).toBe(monitor);
   expect(within(screen.getByRole("complementary", { name: "字幕修正のAI設定" })).queryByText("確認した訂正文")).toBeNull();
   await user.click(screen.getByRole("button", { name: "AI設定を閉じる" }));
@@ -259,13 +259,13 @@ it("protects dirty human drafts from page exit and releases the guard after disc
     window.dispatchEvent(event);
     return event.defaultPrevented;
   };
-  await user.click(await screen.findByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(await screen.findByRole("button", { name: "編集：字幕" }));
   await user.type(screen.getByRole("textbox"), "未保存");
   expect(attemptExit()).toBe(true);
   expect(api.save).not.toHaveBeenCalled();
   await user.click(screen.getByRole("button", { name: "変更を破棄" }));
   expect(attemptExit()).toBe(false);
-  await user.click(screen.getByRole("button", { name: "字幕 1 を編集" }));
+  await user.click(screen.getByRole("button", { name: "編集：字幕" }));
   await user.type(screen.getByRole("textbox"), "保存する修正");
   expect(attemptExit()).toBe(true);
   await user.click(screen.getByRole("button", { name: "保存して公開" }));

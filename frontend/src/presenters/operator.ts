@@ -11,7 +11,6 @@ const receivedDateTime = new Intl.DateTimeFormat("ja-JP", {
 
 export interface RowParameters {
   id: string;
-  number: number;
   receivedAt: string;
   timeLabel: string;
   timeDescription: string;
@@ -42,7 +41,9 @@ export interface RowParameters {
 
 export interface RecentCaptionParameters {
   id: string;
-  number: number;
+  receivedAt: string;
+  timeLabel: string;
+  timeDescription: string;
   text: string;
   original: string;
   receiving: boolean;
@@ -162,11 +163,13 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
   const liveText = context.captions.find(caption => caption.id === currentId)?.public_text
     ?? context.captions.find(caption => caption.id === currentId)?.text ?? "";
   const liveLabel = !context.visible ? "非表示 · 入力と編集は継続中" : currentId ? "観客に表示中" : "新しい字幕を待っています";
-  const recentCaptions = context.captions.slice(-3).map((caption, index) => ({
-    id: caption.id, number: Math.max(0, context.captions.length - 3) + index + 1,
+  const recentCaptions = context.captions.slice(-3).map(caption => ({
+    id: caption.id, receivedAt: caption.received_at,
+    timeLabel: receivedTime.format(new Date(caption.received_at)),
+    timeDescription: "受信時刻：" + receivedDateTime.format(new Date(caption.received_at)),
     text: caption.text, original: caption.original, receiving: caption.source_final === false,
   }));
-  const rows: RowParameters[] = context.captions.map((caption, index) => {
+  const rows: RowParameters[] = context.captions.map(caption => {
     const draft = context.drafts.get(caption.id);
     const saving = context.pendingSave?.captionId === caption.id;
     const dirty = Boolean(draft && draft.text !== caption.text);
@@ -179,7 +182,7 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     const publication = { hidden: !context.visible ? "観客には非表示" : "公開の対象外", updating: "観客には前の公開文を表示中", live: "観客に表示中", published: "公開済み", receiving: "発話の確定待ち", waiting: "保存すると公開" }[publicationState]
       + (differentPublic ? `。公開文「${caption.public_text}」と保存済みの表示文は異なります。` : "");
     return {
-      id: caption.id, number: index + 1, original: caption.original, text: caption.text,
+      id: caption.id, original: caption.original, text: caption.text,
       receivedAt: caption.received_at,
       timeLabel: receivedTime.format(new Date(caption.received_at)),
       timeDescription: "受信時刻：" + receivedDateTime.format(new Date(caption.received_at)),
