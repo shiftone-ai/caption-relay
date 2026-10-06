@@ -41,7 +41,7 @@ export const operatorApi: OperatorApi = {
     const id = `test-${crypto.randomUUID()}`;
     await request("/api/source/events", signal, json("POST", {
       utterance_id: id, revision: 1, text: "えー，本日は，本日はありがとうございます．",
-      is_final: true, source_event_id: id,
+      is_final: true, source_event_id: id, removed: false,
     } satisfies components["schemas"]["SourceEvent"]));
   },
   async setPublicationMode(mode, signal) {

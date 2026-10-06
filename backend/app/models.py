@@ -67,6 +67,13 @@ class SourceEvent(Model):
     is_final: bool = True
     source_event_id: str = Field(min_length=1)
     formatted_text: str | None = None
+    removed: bool = False
+
+    @model_validator(mode="after")
+    def valid_removal(self) -> "SourceEvent":
+        if self.removed and (self.text or self.formatted_text is not None or self.is_final):
+            raise ValueError("removed input must be empty and non-final")
+        return self
 
     @field_validator("formatted_text")
     @classmethod
