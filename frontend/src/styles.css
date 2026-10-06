@@ -188,7 +188,8 @@ button, textarea { font: inherit; }
 .display-preview { flex-shrink: 0; margin-top: var(--space); }
 .display-sample { display: block; width: min(100%, 256px); aspect-ratio: 16 / 10; margin-inline: auto; padding: 0; overflow: hidden; }
 .display-preview-labels { padding-top: var(--space); color: #525252; font-size: 12px; line-height: 16px; }
-.display-settings-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin-top: var(--space); padding-right: var(--space); }
+.caption-editor-scroll, .display-settings-scroll, .ai-fields { margin-inline: calc(-1 * var(--space)); padding: var(--space) var(--space-2) var(--space) var(--space); scroll-padding-block: var(--space); }
+.display-settings-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .display-fields { display: grid; min-width: 0; gap: var(--space); }
 .display-setting-group { border-bottom: 1px solid #d4d4d4; padding: var(--space) 0; }
 .display-setting-group > summary, .ai-details > summary { cursor: pointer; font-size: 14px; font-weight: 600; line-height: 24px; }
@@ -204,7 +205,7 @@ button, textarea { font: inherit; }
 .ai-current-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
 .ai-current strong { display: block; font-size: 16px; line-height: 24px; }
 .ai-current p { font-size: 12px; line-height: 24px; color: #525252; }
-.ai-fields { display: flex; flex-direction: column; gap: var(--space); flex: 1; min-height: 0; overflow-y: auto; margin-top: var(--space); padding-right: var(--space); }
+.ai-fields { display: flex; flex-direction: column; gap: var(--space); flex: 1; min-height: 0; overflow-y: auto; }
 .ai-candidates { display: grid; gap: var(--space); border-top: 1px solid #d4d4d4; padding-top: var(--space); }
 .ai-fields .ai-candidate { display: flex; flex-direction: row; align-items: center; gap: var(--space); }
 .ai-candidate > span:first-of-type { flex: 1; min-width: 0; }
@@ -242,7 +243,7 @@ button, textarea { font: inherit; }
 .caption-editor-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space); flex-shrink: 0; }
 .caption-editor-header h2 { font-size: 16px; line-height: 24px; font-weight: 600; }
 .caption-editor-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space); }
-.caption-editor-scroll { min-height: 0; flex: 1; overflow-y: auto; padding-right: var(--space); margin-top: var(--space); overscroll-behavior: contain; }
+.caption-editor-scroll { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; }
 .caption-editor-scroll p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .caption-editor-scroll label, .caption-editor-scroll h3 { display: block; font-size: 12px; line-height: 24px; color: #525252; }
 .caption-editor-reference { margin-bottom: var(--space-2); }
