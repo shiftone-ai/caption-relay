@@ -1,9 +1,10 @@
+import { defaultAi } from "../ai";
 import { createActor, waitFor } from "xstate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { operatorMachine } from "./operator";
 import { CaptionConflict, type Caption, type OperatorApi, type Snapshot } from "../domain";
 
-const caption: Caption = { id: "one", utterance_id: "one", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true };
+const caption: Caption = { id: "one", utterance_id: "one", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true };
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -17,6 +18,8 @@ function api(): OperatorApi {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
     save: vi.fn().mockResolvedValue({ ...caption, text: "修正", revision: 2, human_edited: true }),
     setVisible: vi.fn().mockResolvedValue(false),
+    setPublicationMode: vi.fn().mockResolvedValue({ auto_publish: true }), setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
+    setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
     sendTest: vi.fn().mockResolvedValue(undefined),
   };
 }
@@ -136,4 +139,105 @@ describe("operator Mediator", () => {
     actor.stop();
     expect(signal.aborted).toBe(true);
   });
+});
+
+it("pins the revision when editing opens and preserves a draft when the editor closes", async () => {
+  const adapter = api();
+  const actor = await start(adapter);
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  expect(actor.getSnapshot().context.followLatest).toBe(false);
+  vi.mocked(adapter.load).mockResolvedValueOnce({ visible: true, captions: [{ ...caption, text: "AIの更新", revision: 3 }] });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  actor.send({ type: "caption.draft.changed", captionId: "one", text: "入力中" });
+  actor.send({ type: "caption.edit.closed" });
+  expect(actor.getSnapshot().context.drafts.get("one")).toMatchObject({ text: "入力中", baseRevision: 1 });
+  expect(adapter.save).not.toHaveBeenCalled();
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "caption.draft.discarded", captionId: "one" });
+  expect(actor.getSnapshot().context.drafts.has("one")).toBe(false);
+});
+
+it("keeps unsent display settings on failure and blocks changes while a save is pending", async () => {
+  const adapter = api();
+  const pending = deferred<Awaited<ReturnType<OperatorApi["setDisplay"]>>>();
+  vi.mocked(adapter.setDisplay).mockReturnValueOnce(pending.promise);
+  const actor = await start(adapter);
+  actor.send({ type: "display.field.changed", field: "font_size", value: "48" });
+  actor.send({ type: "display.save.requested" });
+  expect(actor.getSnapshot().can({ type: "display.field.changed", field: "font_size", value: "32" })).toBe(false);
+  pending.reject(new Error("offline"));
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.displayDraft?.font_size).toBe(48);
+  actor.send({ type: "display.save.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.display.font_size).toBe(48);
+  expect(actor.getSnapshot().context.displayDraft).toBeNull();
+});
+
+it("requires explicit AI settings save, keeps failed drafts and blocks duplicate operations", async () => {
+  const adapter = api();
+  const pending = deferred<Awaited<ReturnType<OperatorApi["setAi"]>>>();
+  vi.mocked(adapter.setAi).mockReturnValueOnce(pending.promise);
+  const actor = await start(adapter);
+  actor.send({ type: "ai.settings.toggled" });
+  actor.send({ type: "ai.strategy.selected", value: "manual" });
+  actor.send({ type: "ai.preferred.selected", modelId: "claude-haiku-4-5" });
+  actor.send({ type: "display.settings.toggled" });
+  expect(actor.getSnapshot().context.aiSettingsOpen).toBe(false);
+  expect(actor.getSnapshot().context.settingsOpen).toBe(true);
+  expect(adapter.setAi).not.toHaveBeenCalled();
+  actor.send({ type: "ai.save.requested" });
+  actor.send({ type: "ai.save.requested" });
+  actor.send({ type: "ai.strategy.selected", value: "cost" });
+  expect(adapter.setAi).toHaveBeenCalledTimes(1);
+  pending.reject(new Error("offline"));
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ strategy: "manual", preferred_model: "claude-haiku-4-5" });
+  actor.send({ type: "ai.save.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.ai.settings.preferred_model).toBe("claude-haiku-4-5");
+  expect(actor.getSnapshot().context.aiDraft).toBeNull();
+});
+
+it("owns AI candidate invariants even when UI restrictions are bypassed", async () => {
+  const actor = await start();
+  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-4-5", included: false });
+  actor.send({ type: "ai.preferred.selected", modelId: "claude-haiku-4-5" });
+  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-4-5", included: false });
+  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-4-5", included: true });
+  actor.send({ type: "ai.preferred.selected", modelId: "unknown-model" });
+  actor.send({ type: "ai.strategy.selected", value: "invalid" });
+  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ preferred_model: "claude-haiku-4-5", strategy: "off" });
+  expect(actor.getSnapshot().context.aiDraft?.candidates.filter(id => id === "claude-haiku-4-5")).toHaveLength(1);
+});
+
+it("interprets display fields and palettes without publishing until saved", async () => {
+  const adapter = api();
+  const actor = await start(adapter);
+  actor.send({ type: "display.palette.selected", value: "light" });
+  actor.send({ type: "display.field.changed", field: "font_size", value: "48" });
+  actor.send({ type: "display.field.changed", field: "font_size", value: "NaN" });
+  actor.send({ type: "display.field.changed", field: "background", value: "invalid" });
+  expect(actor.getSnapshot().context.displayDraft).toMatchObject({ background: "#ffffff", foreground: "#171717", font_size: 48 });
+  expect(adapter.setDisplay).not.toHaveBeenCalled();
+  actor.send({ type: "display.save.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(adapter.setDisplay).toHaveBeenCalledWith(expect.objectContaining({ background: "#ffffff", font_size: 48 }), expect.any(AbortSignal));
+});
+
+it("interprets scroll measurements and editor keys in the Mediator", async () => {
+  const adapter = api();
+  const actor = await start(adapter);
+  actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 500, scrollTop: 492 });
+  expect(actor.getSnapshot().context.followLatest).toBe(false);
+  actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 500, scrollTop: 493 });
+  expect(actor.getSnapshot().context.followLatest).toBe(true);
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "caption.editor.keypressed", captionId: "one", key: "Escape", ctrlKey: false, metaKey: false, isComposing: true });
+  expect(actor.getSnapshot().context.activeCaptionId).toBe("one");
+  actor.send({ type: "caption.editor.keypressed", captionId: "one", key: "Escape", ctrlKey: false, metaKey: false, isComposing: false });
+  expect(actor.getSnapshot().context.activeCaptionId).toBeNull();
+  actor.send({ type: "caption.editor.keypressed", captionId: "one", key: "Enter", ctrlKey: true, metaKey: false, isComposing: false });
+  expect(adapter.save).not.toHaveBeenCalled();
 });

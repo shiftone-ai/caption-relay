@@ -1,24 +1,23 @@
-import { operatorHierarchy } from "../events/hierarchy";
+import { viewHierarchy } from "../events/hierarchy";
 import type { OperatorParameters } from "../presenters/operator";
 import { ToolbarView } from "./operator/toolbar";
 import { CaptionListView } from "./operator/captions";
-
-const { Scope } = operatorHierarchy;
+import { DisplaySettingsView } from "./operator/display-settings";
+import { AiSettingsView } from "./operator/ai-settings";
 
 export function OperatorView({ parameters }: { parameters: OperatorParameters }) {
   return (
-    <Scope name="operator-screen">
-      <main className="mx-auto max-w-[1100px] px-[18px] py-8 md:px-8">
-        <header className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Caption Relay</h1>
-            <p className="mt-2 text-neutral-600">UDトーク等 → 整形 → 手修正 → 字幕</p>
-          </div>
-          <ToolbarView parameters={parameters.toolbar} />
-        </header>
-        {parameters.message && <p role="status" className="mt-4 text-red-800">{parameters.message}</p>}
-        <CaptionListView rows={parameters.rows} />
+    <viewHierarchy.Scope name="operator-screen">
+      <main className="operator-shell">
+        <header className="operator-header"><h1>Caption Relay</h1><ToolbarView parameters={parameters.toolbar} /></header>
+        {parameters.message && <p role="status" className="operator-global-error">{parameters.message}</p>}
+        <div className="operator-live-preview"><span className="operator-live-label">{parameters.liveLabel}</span><p>{parameters.liveText}</p></div>
+        <div className="operator-workspace">
+          <CaptionListView parameters={parameters} />
+          {parameters.toolbar.settingsOpen && <DisplaySettingsView parameters={parameters.displaySettings} />}
+          {parameters.toolbar.aiSettingsOpen && <AiSettingsView parameters={parameters.ai} />}
+        </div>
       </main>
-    </Scope>
+    </viewHierarchy.Scope>
   );
 }

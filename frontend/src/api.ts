@@ -1,4 +1,5 @@
-import { CaptionConflict, type AudienceApi, type Caption, type OperatorApi, type PublicSnapshot } from "./domain";
+import { CaptionConflict, type AiRouting, type AudienceApi, type Caption, type DisplaySettings, type OperatorApi, type PublicSnapshot } from "./domain";
+import { defaultDisplay } from "./display";
 import type { components } from "./generated/api";
 
 async function request<T>(path: string, signal: AbortSignal, options: RequestInit = {}): Promise<T> {
@@ -19,11 +20,13 @@ const json = (method: string, data: unknown): RequestInit => ({
 
 export const operatorApi: OperatorApi = {
   async load(signal) {
-    const [session, captions] = await Promise.all([
+    const [session, captions, ai] = await Promise.all([
       request<components["schemas"]["Session"]>("/api/session", signal),
       request<Caption[]>("/api/events", signal),
+      request<AiRouting>("/api/ai", signal),
     ]);
-    return { visible: session.visible, captions };
+    return { visible: session.visible, captions, autoPublish: session.auto_publish ?? true,
+      display: { ...defaultDisplay, ...session.display }, ai };
   },
   save(draft, signal) {
     return request<Caption>(`/api/captions/${encodeURIComponent(draft.captionId)}`, signal,
@@ -40,6 +43,17 @@ export const operatorApi: OperatorApi = {
       utterance_id: id, revision: 1, text: "えー，本日は，本日はありがとうございます．",
       is_final: true, source_event_id: id,
     } satisfies components["schemas"]["SourceEvent"]));
+  },
+  async setPublicationMode(mode, signal) {
+    const result = await request<components["schemas"]["PublicationMode"]>("/api/publication-mode", signal,
+      json("PUT", mode));
+    return result;
+  },
+  async setDisplay(settings, signal) {
+    return request<DisplaySettings>("/api/display", signal, json("PUT", settings));
+  },
+  async setAi(settings, signal) {
+    return request<AiRouting>("/api/ai", signal, json("PUT", settings));
   },
 };
 

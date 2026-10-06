@@ -1,25 +1,36 @@
-import { useCallback } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useActorRef, useSelector } from "@xstate/react";
 import { operatorApi, audienceApi } from "./api";
 import { operatorMachine } from "./machines/operator";
 import { audienceMachine } from "./machines/audience";
-import { operatorHierarchy, audienceHierarchy } from "./events/hierarchy";
+import { viewHierarchy } from "./events/hierarchy";
 import { presentOperator } from "./presenters/operator";
 import { presentAudience } from "./presenters/audience";
 import { OperatorView } from "./views/operator";
 import { AudienceView } from "./views/audience";
-import type { AudienceEvent, OperatorApi, OperatorEvent } from "./domain";
+import { createFullscreenAdapter } from "./adapters/fullscreen";
+import type { AudienceApi, FullscreenAdapter, OperatorApi, ViewEvent } from "./domain";
 
 export function OperatorRoot({ api = operatorApi }: { api?: OperatorApi }) {
   const actor = useActorRef(operatorMachine, { input: { api } });
   const parameters = useSelector(actor, presentOperator);
-  const handle = useCallback((event: OperatorEvent) => { actor.send(event); return true; }, [actor]);
-  return <operatorHierarchy.Root handle={handle}><OperatorView parameters={parameters} /></operatorHierarchy.Root>;
+  const handle = useCallback((event: ViewEvent) => {
+    if (event.type === "display.fullscreen.requested" || !actor.getSnapshot().can(event)) return false;
+    actor.send(event);
+    return true;
+  }, [actor]);
+  return <viewHierarchy.Root handle={handle}><OperatorView parameters={parameters} /></viewHierarchy.Root>;
 }
 
-export function AudienceRoot() {
-  const actor = useActorRef(audienceMachine, { input: { api: audienceApi } });
+export function AudienceRoot({ api = audienceApi, fullscreen }: { api?: AudienceApi; fullscreen?: FullscreenAdapter }) {
+  const screen = useRef<HTMLElement>(null);
+  const adapter = useMemo(() => fullscreen ?? createFullscreenAdapter(() => screen.current, document), [fullscreen]);
+  const actor = useActorRef(audienceMachine, { input: { api, fullscreen: adapter } });
   const parameters = useSelector(actor, presentAudience);
-  const handle = useCallback((event: AudienceEvent) => { actor.send(event); return true; }, [actor]);
-  return <audienceHierarchy.Root handle={handle}><AudienceView {...parameters} /></audienceHierarchy.Root>;
+  const handle = useCallback((event: ViewEvent) => {
+    if (event.type !== "display.fullscreen.requested" || !actor.getSnapshot().can(event)) return false;
+    actor.send(event);
+    return true;
+  }, [actor]);
+  return <viewHierarchy.Root handle={handle}><AudienceView parameters={parameters} screenRef={screen} /></viewHierarchy.Root>;
 }

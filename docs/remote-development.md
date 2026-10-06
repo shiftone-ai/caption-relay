@@ -1,18 +1,6 @@
 # リモート開発
 
-開発環境は Node.js 22.22.3、Python 3.12、uv 0.12.17 を基準にする。アプリは FastAPI の単一プロセスで動き、React のビルドを配信する。現在の実装に外部 API キー、データベース、コンテナは不要。
-
-## 共通コマンド
-
-```bash
-bash scripts/setup.sh
-bash scripts/check.sh
-bash scripts/dev.sh
-```
-
-`setup.sh` はロックファイルから依存関係を導入し、画面をビルドする。uv は `.python-version` の Python を使う。`check.sh` は API 型の一致、フロントエンドのテストとビルド、バックエンドの型検査とテストを実行する。`dev.sh` は `127.0.0.1:24681` で起動する。
-
-フロントエンドの変更を即時確認する場合は、別ターミナルで `npm --prefix frontend run dev` を実行し、`http://127.0.0.1:24682/static/` を開く。API は既定で `127.0.0.1:24681` へ転送する。
+Codex Cloud と `shiftone-macmini` の環境固有の手順を記載する。推奨バージョン、共通コマンド、環境変数、検証方法は[開発手順](development.md)を参照する。
 
 ## Codex Cloud
 
