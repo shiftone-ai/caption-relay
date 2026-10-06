@@ -693,6 +693,11 @@
             "type": "string",
             "title": "Utterance Id"
           },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
           "source_revision": {
             "type": "integer",
             "title": "Source Revision"
@@ -786,6 +791,7 @@
         "required": [
           "id",
           "utterance_id",
+          "received_at",
           "source_revision",
           "revision",
           "original",

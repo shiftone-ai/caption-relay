@@ -333,6 +333,11 @@ export interface components {
             id: string;
             /** Utterance Id */
             utterance_id: string;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
             /** Source Revision */
             source_revision: number;
             /** Revision */

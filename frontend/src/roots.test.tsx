@@ -11,7 +11,7 @@ import { AiSettingsView } from "./views/operator/ai-settings";
 import { ToolbarView } from "./views/operator/toolbar";
 
 afterEach(cleanup);
-const caption: Caption = { id: "one", utterance_id: "one", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true };
+const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true };
 
 it("bubbles UI events to the actor and preserves the focused input across polling", async () => {
   const api: OperatorApi = {
