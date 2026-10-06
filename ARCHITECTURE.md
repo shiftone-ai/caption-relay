@@ -10,10 +10,12 @@ Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つロ
 |---|---|
 | [backend/app/main.py](backend/app/main.py) | HTTP ルート、エラー応答、SSE、ビルド済み画面の配信 |
 | [backend/app/relay.py](backend/app/relay.py) | セッション状態、入力の改版・再送判定、手修正、公開可否、購読キュー |
+| [backend/app/ai.py](backend/app/ai.py) | AI候補・料金、振り分け先、応答時間の集計。提供元への接続は後の段階で追加 |
 | [backend/app/models.py](backend/app/models.py) | 入力・応答・内部状態・公開字幕の Pydantic モデル |
 | [frontend/src/roots.tsx](frontend/src/roots.tsx) | 各画面の Root、XState actor と Presenter の接続 |
 | [frontend/src/views/](frontend/src/views/) | 描画と操作イベントの通知 |
 | [frontend/src/events/](frontend/src/events/) | 親子関係とイベント伝播 |
+| [frontend/src/adapters/fullscreen.ts](frontend/src/adapters/fullscreen.ts) | 全画面のブラウザ API と変更通知 |
 | [frontend/src/machines/](frontend/src/machines/) | 操作の可否、状態遷移、副作用を裁定する Mediator |
 | [frontend/src/presenters/](frontend/src/presenters/) | 状態から描画パラメータへの変換 |
 | [frontend/src/api.ts](frontend/src/api.ts) | HTTP・SSE の Adapter |
@@ -37,7 +39,9 @@ flowchart LR
 
 FastAPI は Pydantic モデルで入出力を検証し、`CaptionRelay` に処理を渡す。状態遷移や公開可否は `relay.py` が所有する。存在しない字幕と改版競合は API 層で 404・409 に変換する。
 
-`create_app()` ごとに独立した状態を作る。状態を共有するデータベースや外部ストアはなく、再起動で消えるため、複数ワーカーで運用しない。UDトーク実機・Gemini の Adapter は未実装。
+`create_app()` ごとに独立した状態を作る。状態を共有するデータベースや外部ストアはなく、再起動で消えるため、複数ワーカーで運用しない。AI設定と測定結果もこのプロセスに保持する。UDトーク実機・各AI提供元の Adapter は未実装。
+
+`AiRouter` は指定AI・参考費用・受信した応答時間に基づいて選び、`CaptionRelay` が確定入力の改版に対する依頼IDとモデルを保存する。結果の依頼ID・モデル・入力改版が一致した場合だけ測定値とAI候補を採用する。設定の変更は既存の依頼を差し替えず、次の確定入力から使う。詳細は[AIの選択と振り分け](docs/ai-routing.md)を参照する。
 
 ## API と公開データの境界
 
@@ -51,7 +55,7 @@ SSE は購読登録と初期スナップショットの取得を中断なしに�
 
 ## 画面の責務
 
-画面は Root の配下に置き、Passive View、Presenter、Mediator、Adapter に責務を分ける。親へ伝播する操作イベントと XState の状態遷移の詳細は[フロントエンドの構成](docs/frontend-architecture.md)を参照する。
+画面と共有の Button・Textarea はそれぞれの Scope を持って Root の配下に置き、Passive View、Presenter、Mediator、Adapter に責務を分ける。親へ伝播する操作イベントと XState の状態遷移の詳細は[フロントエンドの構成](docs/frontend-architecture.md)を参照する。
 
 ## 境界の検証
 

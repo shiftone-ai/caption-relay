@@ -172,6 +172,63 @@
         }
       }
     },
+    "/api/captions/{caption_id}/formatted": {
+      "put": {
+        "summary": "Formatted Result",
+        "operationId": "formatted_result_api_captions__caption_id__formatted_put",
+        "parameters": [
+          {
+            "name": "caption_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Caption Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormattedResult"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Caption"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SourceIgnored"
+                    }
+                  ],
+                  "title": "Response Formatted Result Api Captions  Caption Id  Formatted Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/commands": {
       "post": {
         "summary": "Command",
@@ -193,6 +250,136 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Visibility"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publication-mode": {
+      "put": {
+        "summary": "Publication Mode",
+        "operationId": "publication_mode_api_publication_mode_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationMode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicationMode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/display": {
+      "put": {
+        "summary": "Display Settings",
+        "operationId": "display_settings_api_display_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisplaySettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisplaySettings"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai": {
+      "get": {
+        "summary": "Ai Routing",
+        "operationId": "ai_routing_api_ai_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRouting"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Ai Settings",
+        "operationId": "ai_settings_api_ai_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRouting"
                 }
               }
             }
@@ -242,6 +429,260 @@
   },
   "components": {
     "schemas": {
+      "AiModelOption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "gemini-3.1-flash-lite",
+              "claude-haiku-4-5",
+              "gpt-5.3-codex"
+            ],
+            "title": "Id"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "gemini",
+              "claude",
+              "codex"
+            ],
+            "title": "Provider"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "input_usd_per_million": {
+            "type": "number",
+            "title": "Input Usd Per Million"
+          },
+          "output_usd_per_million": {
+            "type": "number",
+            "title": "Output Usd Per Million"
+          },
+          "pricing_url": {
+            "type": "string",
+            "title": "Pricing Url"
+          },
+          "pricing_checked_on": {
+            "type": "string",
+            "title": "Pricing Checked On",
+            "default": "2026-10-05"
+          },
+          "measured_latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured Latency Ms"
+          },
+          "latency_samples": {
+            "type": "integer",
+            "title": "Latency Samples",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "provider",
+          "label",
+          "input_usd_per_million",
+          "output_usd_per_million",
+          "pricing_url"
+        ],
+        "title": "AiModelOption"
+      },
+      "AiRequest": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "model_id": {
+            "type": "string",
+            "enum": [
+              "gemini-3.1-flash-lite",
+              "claude-haiku-4-5",
+              "gpt-5.3-codex"
+            ],
+            "title": "Model Id"
+          },
+          "source_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Source Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "model_id",
+          "source_revision"
+        ],
+        "title": "AiRequest"
+      },
+      "AiResultInfo": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "model_id": {
+            "type": "string",
+            "enum": [
+              "gemini-3.1-flash-lite",
+              "claude-haiku-4-5",
+              "gpt-5.3-codex"
+            ],
+            "title": "Model Id"
+          },
+          "elapsed_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Elapsed Ms"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "model_id",
+          "elapsed_ms"
+        ],
+        "title": "AiResultInfo"
+      },
+      "AiRouting": {
+        "properties": {
+          "settings": {
+            "$ref": "#/components/schemas/AiSettings"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/AiModelOption"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "selected_model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "gemini-3.1-flash-lite",
+                  "claude-haiku-4-5",
+                  "gpt-5.3-codex"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Model"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "off",
+              "manual",
+              "cost",
+              "speed",
+              "unmeasured"
+            ],
+            "title": "Reason"
+          },
+          "connected": {
+            "type": "boolean",
+            "const": false,
+            "title": "Connected",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "settings",
+          "models",
+          "selected_model",
+          "reason"
+        ],
+        "title": "AiRouting"
+      },
+      "AiSettings": {
+        "properties": {
+          "strategy": {
+            "type": "string",
+            "enum": [
+              "off",
+              "manual",
+              "cost",
+              "speed"
+            ],
+            "title": "Strategy",
+            "default": "off"
+          },
+          "preferred_model": {
+            "type": "string",
+            "enum": [
+              "gemini-3.1-flash-lite",
+              "claude-haiku-4-5",
+              "gpt-5.3-codex"
+            ],
+            "title": "Preferred Model",
+            "default": "gemini-3.1-flash-lite"
+          },
+          "candidates": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "gemini-3.1-flash-lite",
+                "claude-haiku-4-5",
+                "gpt-5.3-codex"
+              ]
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Candidates"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AiSettings"
+      },
       "Caption": {
         "properties": {
           "id": {
@@ -280,6 +721,64 @@
           "publish_eligible": {
             "type": "boolean",
             "title": "Publish Eligible"
+          },
+          "formatted_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formatted Text"
+          },
+          "source_final": {
+            "type": "boolean",
+            "title": "Source Final",
+            "default": true
+          },
+          "public_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Text"
+          },
+          "public_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Revision"
+          },
+          "ai_request": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AiRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ai_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AiResultInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -366,6 +865,130 @@
         ],
         "title": "ConflictResponse"
       },
+      "DisplaySettings": {
+        "properties": {
+          "background": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Background",
+            "default": "#0a0a0a"
+          },
+          "foreground": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Foreground",
+            "default": "#ffffff"
+          },
+          "font": {
+            "type": "string",
+            "enum": [
+              "sans",
+              "serif",
+              "mono"
+            ],
+            "title": "Font",
+            "default": "sans"
+          },
+          "font_size": {
+            "type": "integer",
+            "maximum": 96.0,
+            "minimum": 24.0,
+            "title": "Font Size",
+            "default": 64
+          },
+          "font_weight": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "bold"
+            ],
+            "title": "Font Weight",
+            "default": "bold"
+          },
+          "line_height": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": 1.2,
+            "title": "Line Height",
+            "default": 1.5
+          },
+          "padding": {
+            "type": "integer",
+            "maximum": 160.0,
+            "minimum": 0.0,
+            "title": "Padding",
+            "default": 48
+          },
+          "position": {
+            "type": "string",
+            "enum": [
+              "top",
+              "center",
+              "bottom"
+            ],
+            "title": "Position",
+            "default": "center"
+          },
+          "align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center"
+            ],
+            "title": "Align",
+            "default": "left"
+          },
+          "history_count": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "History Count",
+            "default": 1
+          },
+          "aspect": {
+            "type": "string",
+            "enum": [
+              "window",
+              "16:9"
+            ],
+            "title": "Aspect",
+            "default": "window"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DisplaySettings"
+      },
+      "FormattedResult": {
+        "properties": {
+          "source_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Source Revision"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "ai": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AiResultInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_revision",
+          "text"
+        ],
+        "title": "FormattedResult"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -415,6 +1038,9 @@
             },
             "type": "array",
             "title": "Captions"
+          },
+          "display": {
+            "$ref": "#/components/schemas/DisplaySettings"
           }
         },
         "additionalProperties": false,
@@ -424,6 +1050,20 @@
           "captions"
         ],
         "title": "PublicSnapshot"
+      },
+      "PublicationMode": {
+        "properties": {
+          "auto_publish": {
+            "type": "boolean",
+            "title": "Auto Publish"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "auto_publish"
+        ],
+        "title": "PublicationMode"
       },
       "Session": {
         "properties": {
@@ -440,6 +1080,14 @@
           "count": {
             "type": "integer",
             "title": "Count"
+          },
+          "auto_publish": {
+            "type": "boolean",
+            "title": "Auto Publish",
+            "default": true
+          },
+          "display": {
+            "$ref": "#/components/schemas/DisplaySettings"
           }
         },
         "additionalProperties": false,
@@ -475,6 +1123,17 @@
             "type": "string",
             "minLength": 1,
             "title": "Source Event Id"
+          },
+          "formatted_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formatted Text"
           }
         },
         "additionalProperties": false,

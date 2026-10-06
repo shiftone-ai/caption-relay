@@ -6,8 +6,8 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .models import (
-    Caption, CaptionPatch, Command, ConflictDetail, ConflictResponse, PublicSnapshot,
-    Session, SourceEvent, SourceIgnored, Visibility,
+    AiRouting, AiSettings, Caption, CaptionPatch, Command, ConflictDetail, ConflictResponse, PublicSnapshot,
+    DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
 )
 from .relay import CaptionNotFound, CaptionRelay, RevisionConflict
 
@@ -50,9 +50,32 @@ def create_app(relay: CaptionRelay | None = None) -> FastAPI:
             detail = ConflictDetail(latest=error.latest)
             raise HTTPException(409, detail=detail.model_dump(mode="json")) from error
 
+    @application.put("/api/captions/{caption_id}/formatted", response_model=Caption | SourceIgnored)
+    async def formatted_result(caption_id: str, result: FormattedResult) -> Caption | SourceIgnored:
+        try:
+            return service.formatted_result(caption_id, result)
+        except CaptionNotFound as error:
+            raise HTTPException(404, "caption not found") from error
+
     @application.post("/api/commands", response_model=Visibility)
     async def command(command: Command) -> Visibility:
         return service.command(command)
+
+    @application.put("/api/publication-mode", response_model=PublicationMode)
+    async def publication_mode(mode: PublicationMode) -> PublicationMode:
+        return service.publication_mode(mode)
+
+    @application.put("/api/display", response_model=DisplaySettings)
+    async def display_settings(settings: DisplaySettings) -> DisplaySettings:
+        return service.display_settings(settings)
+
+    @application.get("/api/ai", response_model=AiRouting)
+    async def ai_routing() -> AiRouting:
+        return service.ai_routing()
+
+    @application.put("/api/ai", response_model=AiRouting)
+    async def ai_settings(settings: AiSettings) -> AiRouting:
+        return service.ai_settings(settings)
 
     @application.get("/api/view", response_model=PublicSnapshot)
     async def public_view() -> PublicSnapshot:

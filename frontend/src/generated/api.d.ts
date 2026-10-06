@@ -106,6 +106,23 @@ export interface paths {
         patch: operations["patch_caption_api_captions__caption_id__patch"];
         trace?: never;
     };
+    "/api/captions/{caption_id}/formatted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Formatted Result */
+        put: operations["formatted_result_api_captions__caption_id__formatted_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/commands": {
         parameters: {
             query?: never;
@@ -117,6 +134,58 @@ export interface paths {
         put?: never;
         /** Command */
         post: operations["command_api_commands_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/publication-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Publication Mode */
+        put: operations["publication_mode_api_publication_mode_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/display": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Display Settings */
+        put: operations["display_settings_api_display_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ai Routing */
+        get: operations["ai_routing_api_ai_get"];
+        /** Ai Settings */
+        put: operations["ai_settings_api_ai_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -161,6 +230,103 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AiModelOption */
+        AiModelOption: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex";
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "gemini" | "claude" | "codex";
+            /** Label */
+            label: string;
+            /** Input Usd Per Million */
+            input_usd_per_million: number;
+            /** Output Usd Per Million */
+            output_usd_per_million: number;
+            /** Pricing Url */
+            pricing_url: string;
+            /**
+             * Pricing Checked On
+             * @default 2026-10-05
+             */
+            pricing_checked_on: string;
+            /** Measured Latency Ms */
+            measured_latency_ms?: number | null;
+            /**
+             * Latency Samples
+             * @default 0
+             */
+            latency_samples: number;
+        };
+        /** AiRequest */
+        AiRequest: {
+            /** Id */
+            id: string;
+            /**
+             * Model Id
+             * @enum {string}
+             */
+            model_id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex";
+            /** Source Revision */
+            source_revision: number;
+        };
+        /** AiResultInfo */
+        AiResultInfo: {
+            /** Request Id */
+            request_id: string;
+            /**
+             * Model Id
+             * @enum {string}
+             */
+            model_id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex";
+            /** Elapsed Ms */
+            elapsed_ms: number;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+        };
+        /** AiRouting */
+        AiRouting: {
+            settings: components["schemas"]["AiSettings"];
+            /** Models */
+            models: components["schemas"]["AiModelOption"][];
+            /** Selected Model */
+            selected_model: ("gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex") | null;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "off" | "manual" | "cost" | "speed" | "unmeasured";
+            /**
+             * Connected
+             * @default false
+             * @constant
+             */
+            connected: false;
+        };
+        /** AiSettings */
+        AiSettings: {
+            /**
+             * Strategy
+             * @default off
+             * @enum {string}
+             */
+            strategy: "off" | "manual" | "cost" | "speed";
+            /**
+             * Preferred Model
+             * @default gemini-3.1-flash-lite
+             * @enum {string}
+             */
+            preferred_model: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex";
+            /** Candidates */
+            candidates?: ("gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex")[];
+        };
         /** Caption */
         Caption: {
             /** Id */
@@ -184,6 +350,19 @@ export interface components {
             published: boolean;
             /** Publish Eligible */
             publish_eligible: boolean;
+            /** Formatted Text */
+            formatted_text?: string | null;
+            /**
+             * Source Final
+             * @default true
+             */
+            source_final: boolean;
+            /** Public Text */
+            public_text?: string | null;
+            /** Public Revision */
+            public_revision?: number | null;
+            ai_request?: components["schemas"]["AiRequest"] | null;
+            ai_result?: components["schemas"]["AiResultInfo"] | null;
         };
         /** CaptionPatch */
         CaptionPatch: {
@@ -214,6 +393,77 @@ export interface components {
         ConflictResponse: {
             detail: components["schemas"]["ConflictDetail"];
         };
+        /** DisplaySettings */
+        DisplaySettings: {
+            /**
+             * Background
+             * @default #0a0a0a
+             */
+            background: string;
+            /**
+             * Foreground
+             * @default #ffffff
+             */
+            foreground: string;
+            /**
+             * Font
+             * @default sans
+             * @enum {string}
+             */
+            font: "sans" | "serif" | "mono";
+            /**
+             * Font Size
+             * @default 64
+             */
+            font_size: number;
+            /**
+             * Font Weight
+             * @default bold
+             * @enum {string}
+             */
+            font_weight: "normal" | "bold";
+            /**
+             * Line Height
+             * @default 1.5
+             */
+            line_height: number;
+            /**
+             * Padding
+             * @default 48
+             */
+            padding: number;
+            /**
+             * Position
+             * @default center
+             * @enum {string}
+             */
+            position: "top" | "center" | "bottom";
+            /**
+             * Align
+             * @default left
+             * @enum {string}
+             */
+            align: "left" | "center";
+            /**
+             * History Count
+             * @default 1
+             */
+            history_count: number;
+            /**
+             * Aspect
+             * @default window
+             * @enum {string}
+             */
+            aspect: "window" | "16:9";
+        };
+        /** FormattedResult */
+        FormattedResult: {
+            /** Source Revision */
+            source_revision: number;
+            /** Text */
+            text: string;
+            ai?: components["schemas"]["AiResultInfo"] | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -234,6 +484,12 @@ export interface components {
             visible: boolean;
             /** Captions */
             captions: components["schemas"]["PublicCaption"][];
+            display?: components["schemas"]["DisplaySettings"];
+        };
+        /** PublicationMode */
+        PublicationMode: {
+            /** Auto Publish */
+            auto_publish: boolean;
         };
         /** Session */
         Session: {
@@ -247,6 +503,12 @@ export interface components {
             visible: boolean;
             /** Count */
             count: number;
+            /**
+             * Auto Publish
+             * @default true
+             */
+            auto_publish: boolean;
+            display?: components["schemas"]["DisplaySettings"];
         };
         /** SourceEvent */
         SourceEvent: {
@@ -263,6 +525,8 @@ export interface components {
             is_final: boolean;
             /** Source Event Id */
             source_event_id: string;
+            /** Formatted Text */
+            formatted_text?: string | null;
         };
         /** SourceIgnored */
         SourceIgnored: {
@@ -452,6 +716,41 @@ export interface operations {
             };
         };
     };
+    formatted_result_api_captions__caption_id__formatted_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                caption_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormattedResult"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Caption"] | components["schemas"]["SourceIgnored"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     command_api_commands_post: {
         parameters: {
             query?: never;
@@ -472,6 +771,125 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Visibility"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publication_mode_api_publication_mode_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicationMode"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationMode"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    display_settings_api_display_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisplaySettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplaySettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ai_routing_api_ai_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRouting"];
+                };
+            };
+        };
+    };
+    ai_settings_api_ai_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRouting"];
                 };
             };
             /** @description Validation Error */
