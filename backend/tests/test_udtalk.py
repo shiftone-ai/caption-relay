@@ -78,6 +78,86 @@ def test_text_during_recognition_can_have_unknown_type():
     assert partial.text == "途中の入力" and partial.is_final is False
 
 
+@pytest.mark.parametrize("phase", ["created", "updated", "modified"])
+def test_empty_partial_keeps_the_published_caption_until_final(phase):
+    async def verify():
+        decoder = UdtalkDecoder("room")
+        relay = CaptionRelay()
+        stream = relay.snapshots()
+        assert (await anext(stream)).captions == []
+        relay.source_event(decoder.decode([message("公開文")])[0])
+        assert (await anext(stream)).captions[0].text == "公開文"
+
+        partial = decoder.decode([message("", phase=phase, clock=2.0, end=False)])[0]
+        assert not partial.removed and not partial.is_final
+        relay.source_event(partial)
+        assert relay.captions()[0].original == ""
+        assert relay.public_snapshot().captions[0].text == "公開文"
+
+        relay.source_event(decoder.decode([message("次の確定文", clock=3.0)])[0])
+        # The stream must not have queued a blank snapshot during the partial.
+        assert (await anext(stream)).captions[0].text == "次の確定文"
+        await stream.aclose()
+    asyncio.run(verify())
+
+
+@pytest.mark.parametrize("removed_index", [0, 1, 2])
+def test_fragment_removal_publishes_the_remaining_final_text(removed_index):
+    async def verify():
+        decoder = UdtalkDecoder("room")
+        relay = CaptionRelay()
+        stream = relay.snapshots()
+        assert (await anext(stream)).captions == []
+        texts = ["前半", "中間", "後半"]
+        fragments = [message(text, identifier=f"speech:{index:02d}",
+                             clock=float(index + 1), end=index == 2)
+                     for index, text in enumerate(texts)]
+        relay.source_event(decoder.decode(fragments)[0])
+        assert (await anext(stream)).captions[0].text == "前半中間後半"
+
+        removed = message("", identifier=f"speech:{removed_index:02d}",
+                          phase="removed", clock=4.0, end=None)
+        remaining = decoder.decode([removed])[0]
+        expected = "".join(text for index, text in enumerate(texts) if index != removed_index)
+        assert remaining.is_final and not remaining.removed
+        assert remaining.text == expected
+        relay.source_event(remaining)
+        assert relay.captions()[0].original == expected
+        assert relay.public_snapshot().captions[0].text == expected
+        assert (await anext(stream)).captions[0].text == expected
+
+        assert decoder.decode(fragments + [removed]) == []
+        assert decoder.decode([message("古い取消済み文", identifier=f"speech:{removed_index:02d}",
+                                       clock=3.5)]) == []
+        cancelled = decoder.decode([
+            message("", identifier=f"speech:{index:02d}", phase="removed", clock=5.0, end=None)
+            for index in range(3) if index != removed_index
+        ])[0]
+        assert cancelled.removed and not cancelled.is_final
+        relay.source_event(cancelled)
+        assert (await anext(stream)).captions == []
+        await stream.aclose()
+    asyncio.run(verify())
+
+
+def test_unseen_fragment_remains_a_gap_until_explicitly_removed():
+    decoder = UdtalkDecoder("room")
+    incomplete = decoder.decode([
+        message("前半"), message("後半", identifier="speech:02", clock=2.0),
+    ])[0]
+    assert incomplete.is_final is False
+    completed = decoder.decode([
+        message("", identifier="speech:01", phase="removed", clock=3.0, end=None),
+    ])[0]
+    assert completed.text == "前半後半" and completed.is_final and not completed.removed
+
+
+def test_picture_record_does_not_replace_a_text_fragment():
+    decoder = UdtalkDecoder("room")
+    decoder.decode([message("維持する認識文")])
+    assert decoder.decode([message("画像", clock=2.0, kind=1)]) == []
+
+
 def test_recorded_blackhole_speech_is_private_until_all_fragments_are_final():
     # Captured from iOS UD Talk 344 on macOS via BlackHole + Kyoko.
     # Only protocol fields are retained; identifiers and clock origin are replaced.
