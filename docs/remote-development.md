@@ -1,6 +1,6 @@
 # リモート開発
 
-Codex Cloud と `shiftone-macmini` の環境固有の手順を記載する。推奨バージョン、共通コマンド、環境変数、検証方法は[開発手順](development.md)を参照する。
+Codex Cloud と Mac mini への SSH 接続の手順を記載する。推奨バージョン、共通コマンド、環境変数、検証方法は[開発手順](development.md)を参照する。
 
 ## Codex Cloud
 
@@ -18,20 +18,20 @@ Codex Cloud と `shiftone-macmini` の環境固有の手順を記載する。推
 
 2026-10-05 の環境構築では、Cloud の Node.js 24.19.0、Python 3.12.14、uv 0.12.19 で共通のチェックを通した。Mac mini は Node.js 22.22.3、Python 3.12.13、uv 0.12.17 を使用した。
 
-## shiftone-macmini
+## Mac mini
 
-リポジトリは `/Users/shiftone/ghq/github.com/shiftone-ai/caption-relay` に配置する。初回取得には Mac mini の GitHub SSH 認証を使用する。
+実際の SSH 接続先とリポジトリの配置は公開文書に記載しない。利用端末で `CAPTION_RELAY_SSH_HOST`、接続先で `CAPTION_RELAY_REMOTE_REPO` を設定する。変数名は [.env.example](../.env.example) に記載するが、これらは以下の SSH 手順用であり、アプリの起動スクリプトは読み込まない。初回取得には Mac mini の GitHub SSH 認証を使用する。
 
 ```bash
-ssh shiftone-macmini
+ssh "$CAPTION_RELAY_SSH_HOST"
 ghq get git@github.com:shiftone-ai/caption-relay.git
-cd ~/ghq/github.com/shiftone-ai/caption-relay
+cd "$CAPTION_RELAY_REMOTE_REPO"
 bash scripts/setup.sh
 bash scripts/check.sh
 bash scripts/dev.sh
 ```
 
-Mac mini の Codex で作業する場合は、同じディレクトリで `codex` を起動する。Codex デスクトップからは `shiftone-macmini` 接続を選び、このディレクトリをプロジェクトとして開く。
+Mac mini の Codex で作業する場合は、同じディレクトリで `codex` を起動する。Codex デスクトップからは設定した SSH 接続を選び、このディレクトリをプロジェクトとして開く。
 
 ローカル端末で SSH ポート転送を開始する。
 
@@ -39,7 +39,7 @@ Mac mini の Codex で作業する場合は、同じディレクトリで `codex
 ssh -N -o ExitOnForwardFailure=yes \
   -L 127.0.0.1:24683:127.0.0.1:24681 \
   -L 127.0.0.1:24684:127.0.0.1:24682 \
-  shiftone-macmini
+  "$CAPTION_RELAY_SSH_HOST"
 ```
 
 操作画面は `http://127.0.0.1:24683/`、観客画面は `http://127.0.0.1:24683/view/demo`。Vite を起動した場合は `http://127.0.0.1:24684/static/` も使える。終了時はサーバーとポート転送をそれぞれ Ctrl+C で止める。
