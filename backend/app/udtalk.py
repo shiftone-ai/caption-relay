@@ -9,6 +9,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from hashlib import sha256
 from typing import Literal
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -73,6 +74,7 @@ class Utterance:
 class UdtalkDecoder:
     def __init__(self, room: str) -> None:
         self._room = room
+        self._connection_id = str(uuid4())
         self._utterances: dict[str, Utterance] = {}
 
     def decode(self, messages: list[WebMessage]) -> list[SourceEvent]:
@@ -157,7 +159,7 @@ class UdtalkDecoder:
                 continue
             utterance.content = content
             utterance.revision += 1
-            opaque_id = sha256(f"{self._room}:{root}".encode()).hexdigest()
+            opaque_id = sha256(f"{self._connection_id}:{self._room}:{root}".encode()).hexdigest()
             events.append(SourceEvent(
                 utterance_id=f"udtalk-{opaque_id}", revision=utterance.revision,
                 text=text, is_final=final, speaker=speaker,

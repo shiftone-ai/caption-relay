@@ -106,6 +106,8 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
             if len(body) > 65536:
                 raise HTTPException(413, "caption too large")
         try:
+            # Reading a streamed body can span a connection change.
+            authorize_receiver(signature)
             workflow.connections.receive(seq, uttrId, lang, body.decode("utf-8"))
         except (UnicodeDecodeError, ReceiverError) as error:
             raise HTTPException(400, "invalid caption packet") from error

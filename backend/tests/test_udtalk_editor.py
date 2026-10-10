@@ -15,7 +15,8 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.models import AiSettings, CaptionPatch, ConnectionSettings
 from app.relay import CaptionRelay, RevisionConflict
-from app.udtalk_editor import EditorError, decode_editor_url
+from app.udtalk import WebMessage
+from app.udtalk_editor import EditorError, UdtalkEditor, decode_editor_url
 from app.workflow import CaptionWorkflow
 
 
@@ -195,3 +196,251 @@ def test_api_mode_switch_rejects_late_receiver_and_does_not_leak_editor_url():
         assert client.post(path + "&seq=1&uttrId=late", content="古い接続の字幕", headers={"content-type": "text/plain"}).status_code == 403
         assert client.get("/api/events").json() == []
         assert client.put("/api/connection", json={"mode": "host"}).status_code == 200
+
+
+def test_reconnecting_same_talk_keeps_new_corrections_and_rejects_old_drafts():
+    async def verify():
+        server = NativeServer()
+        relay = CaptionRelay()
+        workflow = CaptionWorkflow(relay, None, {}, editor_transport=httpx.MockTransport(server.handle))
+        settings = ConnectionSettings(mode="client", editor_url=editor_url())
+        workflow.start()
+        try:
+            await workflow.configure(settings)
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            server.history.append(speech())
+            await wait_until(lambda: len(relay.captions()) == 1)
+            before = relay.captions()[0]
+            await workflow.configure(settings)
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            server.history.append(speech("再接続後の訂正", root="speech", timestamp=2.0, sender="other-editor"))
+            await wait_until(lambda: workflow.connections.status().received_events == 1)
+            latest = relay.captions()[-1]
+            assert latest.original == "再接続後の訂正"
+            assert latest.human_edited
+            assert before.id not in workflow.connections.status().editable_caption_ids
+            with pytest.raises(EditorError):
+                await workflow.patch_caption(before.id, CaptionPatch(text="古い下書き", base_revision=before.revision))
+            assert not any(route == "/push/editMessage/" for route, _ in server.requests)
+            assert relay.caption(before.id).text == "原文"
+        finally:
+            await workflow.stop()
+    asyncio.run(verify())
+
+
+def test_inflight_receiver_body_cannot_cross_a_connection_change():
+    async def verify():
+        server = NativeServer()
+        app = create_app(environment={}, editor_transport=httpx.MockTransport(server.handle))
+        reached = asyncio.Event()
+        release = asyncio.Event()
+
+        async def body():
+            reached.set()
+            await release.wait()
+            yield "古い接続の字幕".encode()
+
+        async with app.router.lifespan_context(app), httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://testserver",
+        ) as client:
+            path = (await client.get("/api/connection")).json()["receiver_path"]
+            pending = asyncio.create_task(client.post(path + "&seq=1&uttrId=late", content=body(),
+                                                     headers={"content-type": "text/plain"}))
+            try:
+                await reached.wait()
+                assert (await client.put("/api/connection", json={"mode": "client", "editor_url": editor_url()})).status_code == 200
+                assert (await client.put("/api/connection", json={"mode": "host"})).status_code == 200
+                release.set()
+                assert (await pending).status_code == 403
+                assert (await client.get("/api/events")).json() == []
+            finally:
+                release.set()
+                await pending
+    asyncio.run(verify())
+
+
+def test_ai_source_change_releases_editor_lock_with_yielding_transport():
+    async def verify():
+        server = NativeServer(update_on_lock=True)
+
+        async def handle(request):
+            await asyncio.sleep(0)
+            return server.handle(request)
+
+        ai = httpx.MockTransport(lambda _: httpx.Response(200, json={
+            "candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "AIの訂正"}]}}],
+        }))
+        relay = CaptionRelay()
+        workflow = CaptionWorkflow(relay, None, {"GEMINI_API_KEY": "test-key"}, ai, httpx.MockTransport(handle))
+        workflow.start()
+        try:
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            relay.ai_settings(AiSettings(strategy="manual"))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            server.history.append(speech())
+            await wait_until(lambda: bool(relay.captions()) and relay.captions()[0].human_edited)
+            await wait_until(lambda: not workflow._tasks)
+        finally:
+            await workflow.stop()
+        assert relay.captions()[0].text == "別の編集者の訂正"
+        assert not any(route == "/push/editMessage/" for route, _ in server.requests)
+        assert any(route == "/push/unlockMessage/" for route, _ in server.requests)
+        notifications = [json.loads(body["mt"])["phase"] for route, body in server.requests if route == "/push/talkOption/"]
+        assert "unlocked" in notifications
+    asyncio.run(verify())
+
+
+def test_unchanged_remote_save_protects_text_from_pending_ai():
+    async def verify():
+        server = NativeServer()
+        release = asyncio.Event()
+
+        async def ai_response(_):
+            await release.wait()
+            return httpx.Response(200, json={
+                "candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "AIの置換"}]}}],
+            })
+
+        relay = CaptionRelay()
+        workflow = CaptionWorkflow(relay, None, {"GEMINI_API_KEY": "test-key"}, httpx.MockTransport(ai_response),
+                                   httpx.MockTransport(server.handle))
+        workflow.start()
+        try:
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            relay.ai_settings(AiSettings(strategy="manual"))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            server.history.append(speech())
+            await wait_until(lambda: bool(relay.captions()) and relay.captions()[0].ai_status == "running")
+            server.history.append(speech(root="speech", timestamp=2.0, sender="other-editor"))
+            await wait_until(lambda: any(route == "/pull/talkMessage/" and body["l"] == 2 for route, body in server.requests))
+            assert relay.captions()[0].human_edited
+            release.set()
+            await wait_until(lambda: not workflow._tasks)
+            assert relay.captions()[0].text == "原文"
+            assert not any(route == "/push/editMessage/" for route, _ in server.requests)
+        finally:
+            await workflow.stop()
+    asyncio.run(verify())
+
+
+@pytest.mark.parametrize("cancellations", [2, 3])
+def test_repeated_save_cancellation_waits_for_lock_release(cancellations):
+    async def verify():
+        server = NativeServer()
+        editing = asyncio.Event()
+        unlocking = asyncio.Event()
+        release = asyncio.Event()
+
+        async def handle(request):
+            if request.url.path == "/push/editMessage/":
+                editing.set()
+                await asyncio.Event().wait()
+            if request.url.path == "/push/unlockMessage/":
+                unlocking.set()
+                await release.wait()
+            return server.handle(request)
+
+        relay = CaptionRelay()
+        workflow = CaptionWorkflow(relay, None, {}, editor_transport=httpx.MockTransport(handle))
+        workflow.start()
+        try:
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            server.history.append(speech())
+            await wait_until(lambda: bool(relay.captions()))
+            caption = relay.captions()[0]
+            pending = asyncio.create_task(workflow.patch_caption(caption.id, CaptionPatch(text="訂正", base_revision=caption.revision)))
+            await asyncio.wait_for(editing.wait(), 4)
+            pending.cancel()
+            await asyncio.wait_for(unlocking.wait(), 4)
+            for _ in range(cancellations - 1):
+                pending.cancel()
+                await asyncio.sleep(0)
+            release.set()
+            with pytest.raises(asyncio.CancelledError):
+                await pending
+            assert any(route == "/push/unlockMessage/" for route, _ in server.requests)
+            assert relay.captions()[0].text == "原文"
+        finally:
+            release.set()
+            await workflow.stop()
+    asyncio.run(verify())
+
+
+def test_fresh_remote_save_of_unchanged_native_text_updates_shared_choice():
+    async def verify():
+        server = NativeServer()
+        relay = CaptionRelay()
+        workflow = CaptionWorkflow(relay, None, {}, editor_transport=httpx.MockTransport(server.handle))
+        workflow.start()
+        try:
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            server.history.append(speech())
+            await wait_until(lambda: bool(relay.captions()))
+            server.history.append(speech("人が保存した本文", root="speech", timestamp=2.0, sender="other-editor"))
+            await wait_until(lambda: relay.captions()[0].text == "人が保存した本文")
+            server.history.append(speech("認識の更新", root="speech", timestamp=3.0))
+            await wait_until(lambda: relay.captions()[0].original == "認識の更新")
+            assert relay.captions()[0].text == "人が保存した本文"
+            saved = speech("認識の更新", root="speech", timestamp=4.0, sender="other-editor")
+            server.history.append(saved)
+            await wait_until(lambda: any(route == "/pull/talkMessage/" and body["l"] == 4 for route, body in server.requests))
+            assert relay.captions()[0].text == "認識の更新"
+            revision = relay.captions()[0].source_revision
+            server.history.append(saved)
+            await wait_until(lambda: any(route == "/pull/talkMessage/" and body["l"] == 5 for route, body in server.requests))
+            assert relay.captions()[0].source_revision == revision
+        finally:
+            await workflow.stop()
+    asyncio.run(verify())
+
+
+@pytest.mark.parametrize("single_batch", [False, True])
+def test_human_save_followed_by_recognition_is_independent_of_poll_batch(single_batch):
+    async def verify():
+        relay = CaptionRelay()
+        relay.connection_mode("client")
+        def accept(event, edited):
+            relay.source_event(event, remote_edit=edited)
+        editor = UdtalkEditor(decode_editor_url(editor_url()), accept, httpx.MockTransport(NativeServer().handle))
+        try:
+            editor._receive([WebMessage(meta=json.dumps(speech()))])
+            messages = [WebMessage(meta=json.dumps(command)) for command in [
+                speech("人が保存した本文", root="speech", timestamp=2.0, sender="other-editor"),
+                speech("後着の認識結果", root="speech", timestamp=3.0),
+            ]]
+            if single_batch:
+                editor._receive(messages)
+            else:
+                for message in messages:
+                    editor._receive([message])
+            caption = relay.captions()[0]
+            assert caption.text == "人が保存した本文"
+            assert caption.original == "後着の認識結果"
+            assert caption.human_edited
+        finally:
+            await editor.stop()
+    asyncio.run(verify())
+
+
+def test_invalid_editor_batch_does_not_partly_apply_a_human_save():
+    async def verify():
+        relay = CaptionRelay()
+        def accept(event, edited):
+            relay.source_event(event, remote_edit=edited)
+        editor = UdtalkEditor(decode_editor_url(editor_url()), accept, httpx.MockTransport(NativeServer().handle))
+        try:
+            editor._receive([WebMessage(meta=json.dumps(speech()))])
+            changed = WebMessage(meta=json.dumps(speech("訂正", root="speech", timestamp=2.0, sender="other-editor")))
+            invalid = WebMessage(meta=json.dumps(speech(root="invalid:fragment")))
+            with pytest.raises(EditorError):
+                editor._receive([changed, invalid])
+            assert relay.captions()[0].text == "原文"
+            assert not relay.captions()[0].human_edited
+            editor._receive([changed])
+            assert relay.captions()[0].source_revision == 2
+            assert relay.captions()[0].text == "訂正"
+        finally:
+            await editor.stop()
+    asyncio.run(verify())

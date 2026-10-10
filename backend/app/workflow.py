@@ -51,8 +51,11 @@ class CaptionWorkflow:
         result = self.relay.source_event(event, remote_edit=remote_edit)
         if not isinstance(result, Caption):
             return result
-        pending = self._tasks.pop(result.id, None)
-        if pending is not None:
+        pending = self._tasks.get(result.id)
+        # A save's own poll can receive an update. Let its validation fail and
+        # release the lock rather than cancelling itself before cleanup awaits.
+        if pending is not None and pending is not asyncio.current_task():
+            self._tasks.pop(result.id)
             pending.cancel()
         if result.ai_request is not None:
             if result.ai_request.model_id not in self.provider.available:

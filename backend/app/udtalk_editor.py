@@ -162,7 +162,7 @@ class UdtalkEditor:
     def _receive(self, messages: list[WebMessage]) -> None:
         # Stage all metadata and derived state before invoking the application.
         state = deepcopy(self._utterances)
-        changed: dict[str, bool] = {}
+        accepted: list[tuple[SourceEvent, bool, str]] = []
         for message in messages:
             command = JSON_OBJECT.validate_json(message.meta)
             if command.get("phase") not in {"created", "updated", "modified", "finalized", "direct", "removed", "image"}:
@@ -180,6 +180,8 @@ class UdtalkEditor:
                 raise EditorError("UDトークの断片数が多すぎるため、受信を停止しました。")
             utterance = state.setdefault(root, NativeUtterance())
             previous = utterance.fragments.get(index)
+            if previous == command:
+                continue
             if previous:
                 prior = Fragment.model_validate(previous)
                 if fragment.connected.timestamp < prior.connected.timestamp or (
@@ -195,33 +197,14 @@ class UdtalkEditor:
                 for earlier_index, earlier in utterance.fragments.items():
                     if earlier_index < index:
                         earlier["endOfUtterance"] = True
-            changed[root] = changed.get(root, False) or remote_edit
-        accepted: list[tuple[SourceEvent, bool]] = []
-        for root, remote_edit in changed.items():
-            utterance = state[root]
-            active = {i: value for i, value in utterance.fragments.items() if value.get("phase") != "removed"
-                      and not (value.get("phase") == "created" and value.get("text") == "..." and value.get("type") == -1)}
-            if utterance.content is None and not any(value.get("text") for value in active.values()):
-                continue
-            text = "".join(str(active[i].get("text", "")) for i in sorted(active))
-            complete = bool(active) and set(range(max(active) + 1)) <= utterance.fragments.keys()
-            final = complete and all(value.get("phase") == "direct" or (
-                value.get("phase") == "finalized" and value.get("endOfUtterance") is True
-            ) for value in active.values())
-            removed = all(value.get("phase") == "removed" for value in utterance.fragments.values())
-            speaker = speaker_from_fragments(Fragment.model_validate(command) for command in active.values())
-            content = (text, final, removed, speaker)
-            if content == utterance.content:
-                continue
-            utterance.content = content
-            utterance.revision += 1
-            caption_id = "editor-" + sha256(f"{self.info.talk_id}:{root}".encode()).hexdigest()
-            self._roots[caption_id] = root
-            event = SourceEvent(utterance_id=caption_id, revision=utterance.revision, text=text,
-                is_final=final, removed=removed, speaker=speaker, source_event_id=f"{caption_id}-{utterance.revision}")
-            accepted.append((event, remote_edit))
+            # Keep human saves and later recognition in their original order;
+            # a poll batch must have the same effect as separate polls.
+            event = self._decode_utterance(root, utterance, remote_edit)
+            if event is not None:
+                accepted.append((event, remote_edit, root))
         self._utterances = state
-        for event, remote_edit in accepted:
+        for event, remote_edit, root in accepted:
+            self._roots[event.utterance_id] = root
             self._accept(event, remote_edit)
             self.status.received_events += 1
         editable: list[str] = []
@@ -230,6 +213,27 @@ class UdtalkEditor:
             if content is not None and content[1]:
                 editable.append(caption_id)
         self.status.editable_caption_ids = editable
+
+    def _decode_utterance(self, root: str, utterance: NativeUtterance, remote_edit: bool) -> SourceEvent | None:
+        active = {i: value for i, value in utterance.fragments.items() if value.get("phase") != "removed"
+                  and not (value.get("phase") == "created" and value.get("text") == "..." and value.get("type") == -1)}
+        if utterance.content is None and not any(value.get("text") for value in active.values()):
+            return None
+        text = "".join(str(active[i].get("text", "")) for i in sorted(active))
+        complete = bool(active) and set(range(max(active) + 1)) <= utterance.fragments.keys()
+        final = complete and all(value.get("phase") == "direct" or (
+            value.get("phase") == "finalized" and value.get("endOfUtterance") is True
+        ) for value in active.values())
+        removed = all(value.get("phase") == "removed" for value in utterance.fragments.values())
+        speaker = speaker_from_fragments(Fragment.model_validate(command) for command in active.values())
+        content = (text, final, removed, speaker)
+        if content == utterance.content and not remote_edit:
+            return None
+        utterance.content = content
+        utterance.revision += 1
+        caption_id = "editor-" + sha256(f"{self._device}:{self.info.talk_id}:{root}".encode()).hexdigest()
+        return SourceEvent(utterance_id=caption_id, revision=utterance.revision, text=text,
+            is_final=final, removed=removed, speaker=speaker, source_event_id=f"{caption_id}-{utterance.revision}")
 
     async def _poll(self) -> None:
         if self._cursor is None:
@@ -307,11 +311,27 @@ class UdtalkEditor:
                 if edited.number is not None and edited.current is not None:
                     self._push_cursor = (edited.number, edited.current)
             finally:
-                unlock_token = str(uuid4())
-                try:
-                    unlocked = await self._post("/push/unlockMessage/", {**lock_body, "token": unlock_token})
-                    await self._notify("unlocked", root, unlocked.result is True, unlock_token)
-                    if unlocked.result is not True:
-                        self.status.message = "編集ロックの解除を確認できませんでした。UDトーク側を確認してください。"
-                except (httpx.HTTPError, EditorError, ValueError):
+                # Wait for cleanup even if another cancellation arrives while
+                # the save is already unwinding. Shutdown must not close the
+                # client before the unlock request and notification finish.
+                cleanup = asyncio.create_task(self._release_lock(lock_body, root))
+                cancelled = False
+                while not cleanup.done():
+                    try:
+                        await asyncio.shield(cleanup)
+                    except asyncio.CancelledError:
+                        cancelled = True
+                cleanup.result()
+                if cancelled:
+                    raise asyncio.CancelledError()
+
+    async def _release_lock(self, lock_body: dict[str, JsonValue], root: str) -> None:
+        unlock_token = str(uuid4())
+        try:
+            async with asyncio.timeout(5):
+                unlocked = await self._post("/push/unlockMessage/", {**lock_body, "token": unlock_token})
+                await self._notify("unlocked", root, unlocked.result is True, unlock_token)
+                if unlocked.result is not True:
                     self.status.message = "編集ロックの解除を確認できませんでした。UDトーク側を確認してください。"
+        except (TimeoutError, httpx.HTTPError, EditorError, ValueError):
+            self.status.message = "編集ロックの解除を確認できませんでした。UDトーク側を確認してください。"

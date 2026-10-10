@@ -60,7 +60,7 @@ class ZoomInput:
         text = text.strip()
         opaque_id = sha256(f"{self.token}:{language}:{utterance_id}".encode()).hexdigest()
         caption_id = f"zoom-{opaque_id}"
-        if sequence <= self._last_sequences.get(caption_id, 0) or sequence <= self.sequence - 128:
+        if sequence <= self._last_sequences.get(caption_id, 0):
             return None
         revision = self._revisions.get(caption_id, 0) + 1
         event = SourceEvent(utterance_id=caption_id, revision=revision, text=text, speaker=speaker,

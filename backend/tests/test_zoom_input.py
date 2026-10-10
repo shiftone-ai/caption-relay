@@ -104,3 +104,15 @@ def test_out_of_order_new_speech_is_kept_but_older_correction_cannot_roll_back()
         captions = client.get("/api/events").json()
         assert len(captions) == 2
         assert captions[0]["text"] == "最新の訂正"
+
+
+def test_delayed_unseen_speech_is_kept_outside_the_retry_cache_window():
+    with TestClient(create_app(environment={})) as client:
+        path = client.get("/api/connection").json()["receiver_path"]
+        for seq, utterance, text in [(200, "newer", "新しい字幕"), (1, "older", "遅れて届いた字幕"),
+                                     (2, "newer", "[Edited] 古い訂正")]:
+            response = client.post(path + f"&seq={seq}&uttrId={utterance}", content=text,
+                                   headers={"content-type": "text/plain"})
+            assert response.status_code == 200
+        captions = client.get("/api/events").json()
+        assert [caption["text"] for caption in captions] == ["新しい字幕", "遅れて届いた字幕"]
