@@ -37,7 +37,9 @@ class Connections:
 
     def status(self) -> ConnectionStatus:
         if self.editor is not None:
-            return self.editor.status.model_copy(deep=True)
+            result = self.editor.status.model_copy(deep=True)
+            result.zoom_text_format = self.receiver.text_format
+            return result
         result = self._status.model_copy(deep=True)
         result.received_events += self.web.status.received_events
         if self.receiver.sequence == 0 and self.web.status.state != "disabled":

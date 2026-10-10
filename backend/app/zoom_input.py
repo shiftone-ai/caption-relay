@@ -21,7 +21,7 @@ class Packet:
 
 class ZoomInput:
     def __init__(self, text_format: Literal["plain", "speaker"] = "plain") -> None:
-        self.text_format = text_format
+        self.text_format: Literal["plain", "speaker"] = text_format
         self.token = token_urlsafe(32)
         self.sequence = 0
         self._packets: dict[int, Packet] = {}

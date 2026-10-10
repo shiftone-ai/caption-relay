@@ -14,7 +14,8 @@
 | 画面・コンポーネントを変更する | [フロントエンドの構成](frontend-architecture.md) | Root、View、Presenter、Mediator、Adapter とイベント伝播 |
 | 画面の見た目を揃える | [デザイン規則](../DESIGN.md) | 8pxの配置、文字、配色、状態、操作部品、観客表示の描画 |
 | 環境を用意して検証する | [開発手順](development.md) | 依存関係、起動、環境変数、チェック |
-| Cloud・SSH 接続で開発する | [リモート開発](remote-development.md) | Codex Cloud、Mac mini、SSH ポート転送 |
+| Cloud・SSH 接続で開発する | [リモート開発](remote-development.md) | Codex Cloud、SSH 接続とポート転送 |
+| 公開前の点検結果を確認する | [公開前の点検](publication-check.md) | 検査範囲、修正、履歴に残る情報、公開と LICENSE の判断 |
 | UDトークの字幕出力を参照する | [字幕出力の調査](udtalk-display.md) | 公式仕様、今回の対応範囲、未提供の機能 |
 | UDトークの字幕を受け取り、訂正の配信先を選ぶ | [入力接続](udtalk-input.md) | Zoom形式の独立配信、編集参加、任意のWeb入力、実機確認と制約 |
 | UDトークへ訂正を戻す接続を調べる | [編集通信の解析](research/udtalk-editor-protocol.md)・[公開資料](research/udtalk-editor-protocol-sources.md) | 純正編集アプリの要求形式、オフライン実行結果、実接続の未確認事項 |

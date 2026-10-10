@@ -95,6 +95,8 @@ class UdtalkWebInput:
                 await self._task
             except asyncio.CancelledError:
                 pass
+            self._task = None
+            self.status = UdtalkStatus(message="UDトークのWeb入力は停止しています。")
 
     async def _post(self, client: httpx.AsyncClient, route: str, body: dict[str, str | int]) -> httpx.Response:
         response = await client.post(API + route + self._path, json=body)
