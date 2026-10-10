@@ -263,7 +263,9 @@ class UdtalkEditor:
                     self.status.message = "編集参加の通信が応答しています。純正画面への反映は実機確認が必要です。"
                     delay = 1
                     await asyncio.sleep(1)
-                except httpx.HTTPError:
+                except (httpx.TransportError, httpx.HTTPStatusError) as error:
+                    if isinstance(error, httpx.HTTPStatusError) and error.response.status_code not in (408, 429, 500, 502, 503, 504):
+                        raise EditorError("UDトークへの編集参加が拒否されました。公開状態と編集権を確認してください。") from None
                     self.status.state = "retrying"
                     self.status.message = "UDトークとの通信を再試行しています。障害時は独立配信を使えます。"
                     await asyncio.sleep(delay)
