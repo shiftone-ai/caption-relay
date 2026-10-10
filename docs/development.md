@@ -1,6 +1,6 @@
 # 開発手順
 
-設定確認日：2026-10-06
+設定確認日：2026-10-10
 
 リポジトリのルートで以下のコマンドを実行する。Codex Cloud と SSH 接続の固有手順は[リモート開発](remote-development.md)を参照する。
 
@@ -13,7 +13,7 @@
 | uv | [CI](../.github/workflows/ci.yml) と同じ 0.12.17 を基準とする |
 | npm | フロントエンドの依存関係をロックファイルから導入する |
 
-外部 API キー、データベース、コンテナは不要。
+手動訂正と独立配信の起動に外部APIキー、データベース、コンテナは不要。AI校正は使う提供元のAPIキー、編集参加は有効なUDトークの編集用リンクが必要。
 
 ## セットアップと起動
 
@@ -32,7 +32,7 @@ bash scripts/dev.sh
 npm --prefix frontend run dev
 ```
 
-操作画面は <http://127.0.0.1:24682/static/>、観客画面は <http://127.0.0.1:24682/view/demo>。Vite が `/api` をバックエンドへ転送する。終了時は各サーバーを Ctrl+C で止める。
+操作画面は <http://127.0.0.1:24682/static/>、観客画面は <http://127.0.0.1:24682/view/demo>。Viteが `/api` と `/closedcaption` をバックエンドへ転送するため、接続設定の送信先も利用できる。終了時は各サーバーをCtrl+Cで止める。
 
 ## 環境変数
 
@@ -41,18 +41,26 @@ npm --prefix frontend run dev
 | `CAPTION_RELAY_PORT` | `dev.sh` のバックエンドのポート | `24681` |
 | `CAPTION_RELAY_API_URL` | Vite が API を転送する接続先 | `http://127.0.0.1:24681` |
 | `CAPTION_RELAY_UDTALK_URL` | UDトークのWeb字幕の閲覧リンク。未設定なら接続しない | 未設定 |
+| `GEMINI_API_KEY` | GeminiのAPIキー | 未設定 |
+| `ANTHROPIC_API_KEY` | ClaudeのAPIキー | 未設定 |
+| `OPENAI_API_KEY` | OpenAIのAPIキー | 未設定 |
+| `CAPTION_RELAY_AI_TIMEOUT_SECONDS` | AI要求全体の制限時間。0より大きく120以下 | `15` |
 
-バックエンドのポートを変更するときは、Vite の接続先も合わせる。
+バックエンドのポートを変更するときは、`CAPTION_RELAY_PORT` と Vite の `CAPTION_RELAY_API_URL` を合わせて設定する。値の記入例は [.env.example](../.env.example) を参照する。
 
 UDトークの実験用入力Adapterの設定・実機確認は[UDトークの入力接続](udtalk-input.md)を参照する。閲覧リンクは秘密として扱い、ログやPRに含めない。
 
+[.env.example](../.env.example)が設定項目の一覧。起動スクリプトは `.env` を読み込まないため、起動するシェルの環境変数で渡す。Geminiを使う例：
+
 ```bash
-CAPTION_RELAY_PORT=24685 bash scripts/dev.sh
-# 別のターミナルで実行
-CAPTION_RELAY_API_URL=http://127.0.0.1:24685 npm --prefix frontend run dev
+read -r -s GEMINI_API_KEY
+export GEMINI_API_KEY
+bash scripts/dev.sh
 ```
 
-[.env.example](../.env.example) の Gemini 設定は将来接続用であり、現行実装は使用しない。起動スクリプトは `.env` を読み込まないため、現行の設定はコマンドの環境変数で渡す。
+入力待ちでキーを貼り付け、Enterを押す。キーをコマンド履歴に書かない。ClaudeとOpenAIも対応する変数で同様に設定する。操作画面のAI設定はキーの有無を表示するが、キー本体を返さない。AIは初期値オフで、画面で設定を保存した次の確定字幕から呼び出す。
+
+UDトークのZoom送信先は画面の接続設定から取得する。編集用の参加リンクもこの画面で適用し、サーバーのメモリだけに保持する。再起動と配信先の変更で受信先の資格情報が変わるため、UDトーク側も設定し直す。「送られる字幕」だけを変更した場合は送信先と受信番号を保つ。送信先と参加リンクをログ・スクリーンショット・PRに含めない。`dev.sh`はURLの資格情報を記録しないようHTTPアクセスログを無効にする。
 
 ## 検証
 

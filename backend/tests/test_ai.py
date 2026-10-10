@@ -2,11 +2,22 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.ai import AiRouter
+from app.models import AiSettings
 
 
 GEMINI = "gemini-3.1-flash-lite"
 CLAUDE = "claude-haiku-4-5"
 CODEX = "gpt-5.3-codex"
+
+
+def test_unmeasured_speed_route_uses_a_configured_candidate_when_preferred_key_is_missing() -> None:
+    router = AiRouter()
+    router.set_available({CLAUDE})
+    result = router.configure(AiSettings(strategy="speed", preferred_model=GEMINI))
+    assert result.selected_model == CLAUDE
+    assert result.connected is True and result.reason == "unmeasured"
+    assert all(model.measured_latency_ms is None for model in result.models)
 
 
 def settings(strategy: str, preferred: str = CLAUDE, candidates: list[str] | None = None) -> dict[str, object]:
@@ -34,7 +45,7 @@ def complete(client: TestClient, caption: dict[str, object], elapsed: float, tex
 
 
 def test_routes_new_final_inputs_and_preserves_the_original_plan_after_settings_change() -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(environment={})) as client:
         assert client.get("/api/ai").json()["connected"] is False
         assert source(client, "off")["ai_request"] is None
         client.put("/api/ai", json=settings("manual"))
@@ -51,7 +62,7 @@ def test_routes_new_final_inputs_and_preserves_the_original_plan_after_settings_
 
 
 def test_cost_route_uses_only_selected_candidates() -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(environment={})) as client:
         result = client.put("/api/ai", json=settings("cost", CODEX)).json()
         assert result["selected_model"] == GEMINI
         result = client.put("/api/ai", json=settings("cost", CODEX, [CLAUDE, CODEX])).json()
@@ -60,7 +71,7 @@ def test_cost_route_uses_only_selected_candidates() -> None:
 
 
 def test_speed_uses_measurements_without_fabricating_latency_or_counting_replays() -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(environment={})) as client:
         result = client.put("/api/ai", json=settings("speed", CODEX)).json()
         assert result["selected_model"] == CODEX and result["reason"] == "unmeasured"
         assert all(model["measured_latency_ms"] is None for model in result["models"])
@@ -77,7 +88,7 @@ def test_speed_uses_measurements_without_fabricating_latency_or_counting_replays
 
 
 def test_routed_results_reject_wrong_models_and_preserve_human_edits() -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(environment={})) as client:
         client.put("/api/ai", json=settings("manual"))
         first = source(client, "one")
         wrong = client.put("/api/captions/one/formatted", json={
@@ -98,7 +109,7 @@ def test_routed_results_reject_wrong_models_and_preserve_human_edits() -> None:
     {"strategy": "cost", "preferred_model": GEMINI, "candidates": []},
 ])
 def test_invalid_routing_settings_do_not_replace_saved_settings(payload: dict[str, object]) -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(environment={})) as client:
         before = client.get("/api/ai").json()
         assert client.put("/api/ai", json=payload).status_code == 422
         assert client.get("/api/ai").json() == before

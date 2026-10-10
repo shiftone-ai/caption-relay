@@ -1,9 +1,11 @@
-import { Bot, ExternalLink, FlaskConical, Info, Settings2 } from "lucide-react";
+import { Bot, Cable, Eye, EyeOff, FlaskConical, Info, Monitor, Settings2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
+import { Disclosure } from "../../components/ui/disclosure";
 import { viewHierarchy } from "../../events/hierarchy";
 import type { ToolbarParameters } from "../../presenters/operator";
 
 export function ToolbarView({ parameters }: { parameters: ToolbarParameters }) {
+  const VisibilityIcon = { hide: EyeOff, show: Eye }[parameters.visibilityIcon];
   return (
     <viewHierarchy.Scope name="toolbar">
       {emit => (
@@ -14,24 +16,24 @@ export function ToolbarView({ parameters }: { parameters: ToolbarParameters }) {
               <option value="auto">自動公開</option><option value="manual">確認して公開</option>
             </select>
           </label>
-          <details className="operator-mode-help">
-            <summary aria-label="公開方法の説明"><Info size={16} aria-hidden="true" /></summary>
+          <Disclosure parameters={parameters.helpDisclosure} className="operator-mode-help" summaryLabel="公開方法の説明" summary={<Info size={16} aria-hidden="true" />}>
             <p className="operator-mode-help-body">新しく届く確定字幕の公開方法です。どちらの方法でも、編集した文は保存するまで観客に送られません。</p>
-          </details>
-          <details className="operator-preparation">
-            <summary><FlaskConical size={16} aria-hidden="true" /><span>準備</span></summary>
+          </Disclosure>
+          <Disclosure parameters={parameters.preparationDisclosure} className="operator-preparation" summary={<><FlaskConical size={16} aria-hidden="true" /><span>準備</span></>}>
             <div className="operator-preparation-body">
               <p>{parameters.preparationHint}</p>
               <Button variant="outline" className="operator-button toolbar-test" intent={{ type: "test.requested" }} disabled={parameters.testDisabled}>テスト字幕を送る</Button>
               <p className="caption-hint">編集と配信の確認用です。音声認識や UDトークの接続は確認できません。</p>
             </div>
-          </details>
-          <Button variant="outline" className="operator-button toolbar-visibility" intent={{ type: "visibility.toggle.requested" }} disabled={parameters.toggleDisabled}>{parameters.toggleLabel}</Button>
+          </Disclosure>
+          <Button variant="outline" className="operator-icon-button toolbar-visibility" aria-label={parameters.toggleLabel} title={parameters.toggleLabel} intent={{ type: "visibility.toggle.requested" }} disabled={parameters.toggleDisabled}><VisibilityIcon size={16} /></Button>
+          <Button variant="outline" className="operator-icon-button toolbar-connection" data-settings-trigger="connection" aria-label="UDトークの接続設定" title="UDトークの接続設定" aria-expanded={parameters.connectionSettingsOpen} aria-controls="connection-settings"
+            intent={{ type: "connection.settings.toggled" }}><Cable size={16} /></Button>
           <Button variant="outline" className="operator-icon-button toolbar-ai" data-settings-trigger="ai" aria-label="AI設定" title={parameters.aiTitle} aria-expanded={parameters.aiSettingsOpen} aria-controls="ai-settings"
             intent={{ type: "ai.settings.toggled" }}><Bot size={16} /></Button>
-          <Button variant="outline" className="operator-icon-button toolbar-display" data-settings-trigger="display" aria-label="表示設定" title="表示設定" aria-expanded={parameters.settingsOpen} aria-controls="display-settings"
+          <Button variant="outline" className="operator-icon-button toolbar-display" data-settings-trigger="display" aria-label="表示設定" title="表示設定" disabled={!parameters.localOutput} aria-expanded={parameters.settingsOpen} aria-controls="display-settings"
             intent={{ type: "display.settings.toggled" }}><Settings2 size={16} /></Button>
-          <a className="operator-output-link" aria-label="観客画面" title="観客画面を開く" href="/view/demo" target="_blank" rel="noopener noreferrer"><span>観客画面</span><ExternalLink size={16} aria-hidden="true" /></a>
+          {parameters.localOutput && <a className="operator-output-link" aria-label="観客画面" title="観客画面を開く" href="/view/demo" target="_blank" rel="noopener noreferrer"><Monitor size={16} aria-hidden="true" /></a>}
         </div>
       )}
     </viewHierarchy.Scope>

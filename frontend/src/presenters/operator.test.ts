@@ -1,11 +1,13 @@
 import { defaultAi } from "../ai";
+import { defaultDisplay } from "../display";
+import { defaultConnection } from "../connection";
 import { createActor, waitFor } from "xstate";
 import { afterEach, expect, it, vi } from "vitest";
 import { operatorMachine } from "../machines/operator";
 import { presentOperator } from "./operator";
 import { CaptionConflict, type Caption, type OperatorApi, type OperatorEvent, type Snapshot } from "../domain";
 
-const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true };
+const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
 const actors: ReturnType<typeof createActor<typeof operatorMachine>>[] = [];
 afterEach(() => { actors.splice(0).forEach(actor => actor.stop()); });
 
@@ -15,13 +17,29 @@ function start() {
     save: vi.fn().mockReturnValue(new Promise<Caption>(() => {})),
     setVisible: vi.fn().mockReturnValue(new Promise<boolean>(() => {})),
     setPublicationMode: vi.fn().mockResolvedValue({ auto_publish: true }), setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
-    setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
+    setConnection: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
     sendTest: vi.fn().mockReturnValue(new Promise<void>(() => {})),
   };
   const actor = createActor(operatorMachine, { input: { api } });
   actors.push(actor);
   return { actor: actor.start(), api };
 }
+
+it("shows the current native caption without claiming local publication in client mode", async () => {
+  const { actor, api } = start();
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  const native = { ...caption, id: "native", utterance_id: "native", text: "純正側の受信文", published: false, publish_eligible: false };
+  vi.mocked(api.load).mockResolvedValueOnce({ visible: true, captions: [caption, native], connection: {
+    ...defaultConnection, mode: "client", state: "live", editable_caption_ids: ["native"],
+  } });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  const view = presentOperator(actor.getSnapshot());
+  expect(view.monitor.liveText).toBe("純正側の受信文");
+  expect(view.monitor.liveLabel).toBe("UDトークで表示");
+  expect(view.toolbar.localOutput).toBe(false);
+  expect(view.rows[1]).toMatchObject({ publicationState: "native", saveLabel: "保存してUDトークへ反映" });
+});
 
 it("disables commands during initial loading and permits them during background loading", async () => {
   const { actor, api } = start();
@@ -69,9 +87,9 @@ it("shows saved text on a dirty closed row while retaining the draft only in the
   parameters = presentOperator(actor.getSnapshot());
   expect(parameters.editor).toBeNull();
   expect(parameters.rows[0]).toMatchObject({ text: "字幕", dirty: true, source: "unsaved" });
-  expect(parameters.rows[0].state).toContain("この行は保存済み");
+  expect(parameters.rows[0].state).toContain("一覧には変更前の字幕");
   expect(parameters.rows[0].contentDescription).not.toContain("原文：");
-  expect(parameters.rows[0].contentDescription).toContain("保存済みの表示文：字幕");
+  expect(parameters.rows[0].contentDescription).toContain("字幕：字幕");
   expect(parameters.rows[0].contentDescription).not.toContain("未保存の訂正");
 });
 
@@ -86,17 +104,32 @@ it("distinguishes the published version from the saved candidate and presents th
   const parameters = presentOperator(actor.getSnapshot());
   expect(parameters.recentCaptions.map(row => row.id)).toEqual(["2", "3", "4"]);
   expect(parameters.monitor.liveText).toBe("公開文4");
-  expect(parameters.rows[3].publication).toContain("公開文「公開文4」と保存済みの表示文は異なります");
+  expect(parameters.rows[3].publication).toContain("公開文「公開文4」と一覧の字幕は異なります");
   expect(parameters.rows[3]).toMatchObject({ current: true, editing: false, publicationState: "updating" });
   expect(parameters.unreadCount).toBe(3);
   expect(parameters.rows[1].firstUnread).toBe(true);
   expect(parameters.latestLabel).toBe("最新へ · 新着 3 件");
 });
 
+it("marks every caption in the saved audience range as visible and updates after changing the range", async () => {
+  const { actor, api } = start();
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  const captions = Array.from({ length: 5 }, (_, index) => ({ ...caption, id: String(index), utterance_id: String(index), text: `字幕${index}` }));
+  vi.mocked(api.load).mockResolvedValueOnce({ visible: true, captions, display: { ...defaultDisplay, display_mode: "recent", history_count: 3 } });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(presentOperator(actor.getSnapshot()).rows.map(row => row.publicationState)).toEqual(["published", "published", "live", "live", "live"]);
+  expect(presentOperator(actor.getSnapshot()).rows[0].publication).toContain("表示範囲外");
+  actor.send({ type: "display.field.changed", field: "history_count", value: "1" });
+  actor.send({ type: "display.save.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(presentOperator(actor.getSnapshot()).rows.map(row => row.publicationState)).toEqual(["published", "published", "published", "published", "live"]);
+});
+
 it.each([
-  { visible: true, publish_eligible: true, source_final: true, expected: "保存して公開" },
-  { visible: false, publish_eligible: true, source_final: true, expected: "保存" },
-  { visible: true, publish_eligible: false, source_final: true, expected: "保存" },
+  { visible: true, publish_eligible: true, source_final: true, ai_status: "off", expected: "保存して公開" },
+  { visible: false, publish_eligible: true, source_final: true, ai_status: "off", expected: "保存" },
+  { visible: true, publish_eligible: false, source_final: true, ai_status: "off", expected: "保存" },
   { visible: true, publish_eligible: true, source_final: false, expected: "保存" },
 ])("names the publication consequence of saving: $expected", async ({ visible, publish_eligible, source_final, expected }) => {
   const { actor, api } = start();
