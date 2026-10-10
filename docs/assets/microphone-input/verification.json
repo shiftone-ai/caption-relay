@@ -39,5 +39,6 @@
   "tracks_ended_after_stop": true,
   "physical_microphone": "not tested",
   "openai_audio_sent_seconds": 0,
-  "openai_recognition": "not tested: repository key unavailable"
+  "openai_recognition": "not tested: repository key unavailable",
+  "recognizer_choice_matches_configuration": true
 }

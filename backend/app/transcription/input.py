@@ -22,6 +22,7 @@ from .apple import AppleRecognizer, apple_option
 
 class AudioStart(Model):
     type: Literal["start"]
+    recognizer: RecognizerId
     sample_rate: int = Field(ge=8000, le=96000)
     channels: Literal[1]
     format: Literal["pcm16"]
@@ -93,6 +94,8 @@ class MicrophoneInput:
             if len(first) > 4096:
                 raise TranscriptionError("マイクの設定が長すぎます。")
             config = AudioStart.model_validate_json(first)
+            if config.recognizer != provider:
+                raise TranscriptionError("音声認識の選択が変更されました。接続設定を確認してから開始してください。")
             option = next(item for item in self.options() if item.id == provider)
             if not option.available:
                 raise TranscriptionError(option.message)

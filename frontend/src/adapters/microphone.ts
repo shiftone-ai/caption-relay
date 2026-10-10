@@ -8,7 +8,7 @@ export function createMicrophoneAdapter(): MicrophoneAdapter {
       return devices.filter(device => device.kind === "audioinput" && device.deviceId)
         .map((device, index) => ({ id: device.deviceId, label: device.label || `マイク ${index + 1}` }));
     },
-    async start(deviceId, signal, status): Promise<MicrophoneSession> {
+    async start({ deviceId, recognizer }, signal, status): Promise<MicrophoneSession> {
       let stream: MediaStream | null = null;
       let context: AudioContext | null = null;
       let node: AudioWorkletNode | null = null;
@@ -54,7 +54,7 @@ export function createMicrophoneAdapter(): MicrophoneAdapter {
         await new Promise<void>((resolve, reject) => {
           const timer = window.setTimeout(() => { reject(new OperationError("認識の準備が時間内に終わりませんでした。")); release(); }, 15000);
           const finish = (error?: Error) => { window.clearTimeout(timer); error ? reject(error) : resolve(); };
-          connection.onopen = () => connection.send(JSON.stringify({ type: "start", sample_rate: audioContext.sampleRate, channels: 1, format: "pcm16" }));
+          connection.onopen = () => connection.send(JSON.stringify({ type: "start", recognizer, sample_rate: audioContext.sampleRate, channels: 1, format: "pcm16" }));
           connection.onmessage = event => {
             try {
               const packet = JSON.parse(event.data as string) as { type?: string; status?: TranscriptionStatus };
