@@ -144,7 +144,7 @@ const operations = {
   "connection.text-format.selected": { guard: "validConnectionTextFormat", actions: "editConnection" },
   "connection.input.selected": { guard: "validInputSource", actions: "editConnection" },
   "connection.recognizer.selected": { guard: "validRecognizer", actions: "editConnection" },
-  "connection.save.requested": { guard: "validConnectionSettings", target: "settingConnection", actions: ["stopMicrophone", "clearError"] },
+  "connection.save.requested": { guard: "validConnectionSettings", target: "settingConnection", actions: "clearError" },
 } as const;
 
 export const operatorMachine = setup({
@@ -537,7 +537,12 @@ export const operatorMachine = setup({
             src: "connection", input: ({ context }) => ({ api: context.api, settings: {
               ...context.connectionDraft!, editor_url: context.connectionDraft?.mode === "client" ? context.connectionDraft.editor_url : null,
             } }),
-            onDone: { target: "refreshing", actions: assign(({ event }) => ({ connection: event.output, connectionDraft: null })) },
+            onDone: [
+              { guard: ({ context, event }) => context.connection.mode !== event.output.mode
+                || context.connection.input_source !== event.output.input_source || context.connection.recognizer !== event.output.recognizer,
+                target: "refreshing", actions: ["stopMicrophone", assign(({ event }) => ({ connection: event.output, connectionDraft: null }))] },
+              { target: "refreshing", actions: assign(({ event }) => ({ connection: event.output, connectionDraft: null })) },
+            ],
             onError: { target: "idle", actions: assign(({ event }) => ({ error: event.error instanceof OperationError
               ? event.error.message : "接続を変更できませんでした。現在の接続と下書きは保持しています。", errorSource: "command" as const })) },
           },

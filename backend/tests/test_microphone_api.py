@@ -10,6 +10,7 @@ import sys
 from starlette.websockets import WebSocketDisconnect
 
 from test_openai_transcription import ProviderSocket
+from app.transcription.budget import TrialBudget
 
 
 def test_microphone_selection_does_not_connect_and_disables_udtalk_input():
@@ -79,6 +80,51 @@ def test_audio_reaches_the_provider_and_final_captions_reach_the_audience(tmp_pa
         assert len(peers) == 1 and peers[0].closed
         assert len(peers[0].audio) == 14400  # 300ms at 24kHz, not at the capture rate.
         assert client.get("/api/connection").json()["transcription"]["sent_seconds"] == 0.3
+        assert client.get("/api/connection").json()["received_events"] == 1
+
+
+def test_persisted_trial_usage_is_reported_before_any_new_audio(tmp_path: Path):
+    path = tmp_path / "usage.json"
+    TrialBudget(path, yen_per_usd=200).reserve(48000)
+    env = {"CAPTION_RELAY_OPENAI_API_KEY": secrets.token_hex(16), "CAPTION_RELAY_STT_JPY_PER_USD": "200",
+           "CAPTION_RELAY_STT_USAGE_PATH": str(path)}
+    async def connector(key):
+        return ProviderSocket()
+    with TestClient(create_app(environment=env, audio_connector=connector)) as client:
+        status = client.get("/api/connection").json()["transcription"]
+        assert status["sent_seconds"] == 2
+        assert status["estimated_yen"] == pytest.approx(0.226667)
+        client.put("/api/connection", json={"input_source": "microphone"}).raise_for_status()
+        with client.websocket_connect("/api/source/audio", headers={"origin": "http://testserver"}) as audio:
+            audio.send_json({"type": "start", "recognizer": "openai", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
+            assert audio.receive_json()["status"]["sent_seconds"] == 2
+            assert audio.receive_json()["status"]["estimated_yen"] == pytest.approx(0.226667)
+            audio.send_json({"type": "stop"})
+            assert audio.receive_json()["status"]["sent_seconds"] == 2
+
+
+def test_a_failed_send_reports_reserved_usage_in_the_failure_status(tmp_path: Path):
+    class BrokenSocket(ProviderSocket):
+        async def send(self, raw):
+            import json
+            if json.loads(raw)["type"] == "input_audio_buffer.append":
+                raise OSError("unavailable")
+            await super().send(raw)
+    async def connector(key):
+        return BrokenSocket()
+    env = {"CAPTION_RELAY_OPENAI_API_KEY": secrets.token_hex(16), "CAPTION_RELAY_STT_JPY_PER_USD": "200",
+           "CAPTION_RELAY_STT_USAGE_PATH": str(tmp_path / "usage.json")}
+    with TestClient(create_app(environment=env, audio_connector=connector)) as client:
+        client.put("/api/connection", json={"input_source": "microphone"}).raise_for_status()
+        with client.websocket_connect("/api/source/audio", headers={"origin": "http://testserver"}) as audio:
+            audio.send_json({"type": "start", "recognizer": "openai", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
+            audio.receive_json()
+            audio.receive_json()
+            audio.send_bytes(struct.pack("!II", 0, 0) + bytes(9600))
+            status = audio.receive_json()["status"]
+            assert status["state"] == "failed" and status["sent_seconds"] > 0
+            assert status["estimated_yen"] > 0
+        assert client.get("/api/connection").json()["transcription"]["sent_seconds"] == status["sent_seconds"]
 
 
 def test_untrusted_origin_is_rejected_before_any_recognition_connection():
