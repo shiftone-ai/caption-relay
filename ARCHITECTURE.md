@@ -1,6 +1,6 @@
 # システム構成
 
-実装確認日：2026-10-08
+実装確認日：2026-10-10
 
 Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つローカル PoC。React の操作画面は HTTP で取得・更新し、観客画面は SSE で公開字幕を受け取る。現在の振る舞いは[現行 PoC の仕様](docs/current-behavior.md)、起動方法は[開発手順](docs/development.md)を参照する。
 
