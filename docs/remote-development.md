@@ -1,6 +1,6 @@
 # リモート開発
 
-Codex Cloud と `shiftone-macmini` の環境固有の手順を記載する。推奨バージョン、共通コマンド、環境変数、検証方法は[開発手順](development.md)を参照する。
+Codex Cloud と SSH 接続で開発する手順を記載する。推奨バージョン、共通コマンド、環境変数、検証方法は[開発手順](development.md)を参照する。
 
 ## Codex Cloud
 
@@ -16,32 +16,30 @@ Codex Cloud と `shiftone-macmini` の環境固有の手順を記載する。推
 
 環境の作成・更新・公開は [OpenAI の Cloud environments 手順](https://learn.chatgpt.com/docs/environments/cloud-environments)を参照する。
 
-2026-10-05 の環境構築では、Cloud の Node.js 24.19.0、Python 3.12.14、uv 0.12.19 で共通のチェックを通した。Mac mini は Node.js 22.22.3、Python 3.12.13、uv 0.12.17 を使用した。
+## SSH 接続
 
-## shiftone-macmini
+接続先と利用者名は自分の SSH 設定で管理する。内部のホスト名、利用者名、ホームディレクトリの絶対パスをリポジトリに記録しない。
 
-リポジトリは `/Users/shiftone/ghq/github.com/shiftone-ai/caption-relay` に配置する。初回取得には Mac mini の GitHub SSH 認証を使用する。
+SSH で接続したサーバー上で、このリポジトリを作業用ディレクトリへ取得する。非公開の間は GitHub の認証が必要。
 
 ```bash
-ssh shiftone-macmini
-ghq get git@github.com:shiftone-ai/caption-relay.git
-cd ~/ghq/github.com/shiftone-ai/caption-relay
+git clone https://github.com/shiftone-ai/caption-relay.git
+cd caption-relay
 bash scripts/setup.sh
 bash scripts/check.sh
 bash scripts/dev.sh
 ```
 
-Mac mini の Codex で作業する場合は、同じディレクトリで `codex` を起動する。Codex デスクトップからは `shiftone-macmini` 接続を選び、このディレクトリをプロジェクトとして開く。
-
-ローカル端末で SSH ポート転送を開始する。
+ローカル端末の Bash で SSH 接続先を入力し、ポート転送を開始する。サーバー側は `dev.sh` の既定ポートを使用する。ローカル側で同じポートを使用中なら、転送先の設定に合わせて空いているポートへ変更する。
 
 ```bash
+read -r -p 'SSH 接続先: ' CAPTION_RELAY_SSH_TARGET
 ssh -N -o ExitOnForwardFailure=yes \
-  -L 127.0.0.1:24683:127.0.0.1:24681 \
-  -L 127.0.0.1:24684:127.0.0.1:24682 \
-  shiftone-macmini
+  -L 127.0.0.1:24681:127.0.0.1:24681 \
+  -L 127.0.0.1:24682:127.0.0.1:24682 \
+  -- "$CAPTION_RELAY_SSH_TARGET"
 ```
 
-操作画面は `http://127.0.0.1:24683/`、観客画面は `http://127.0.0.1:24683/view/demo`。Vite を起動した場合は `http://127.0.0.1:24684/static/` も使える。終了時はサーバーとポート転送をそれぞれ Ctrl+C で止める。
+既定の転送では、操作画面は <http://127.0.0.1:24681/>、観客画面は <http://127.0.0.1:24681/view/demo>。Vite を起動した場合は <http://127.0.0.1:24682/static/> も使える。終了時はサーバーとポート転送をそれぞれ Ctrl+C で止める。
 
 更新は作業前に `git status` を確認し、変更がない場合に `git pull --ff-only` を実行する。依存関係が変わったら `bash scripts/setup.sh` を再実行する。
