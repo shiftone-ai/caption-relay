@@ -7,33 +7,28 @@ import { DisplaySettingsView } from "./operator/display-settings";
 import { AiSettingsView } from "./operator/ai-settings";
 import { CaptionEditorView } from "./operator/editor";
 import { CaptionMonitorView } from "./operator/monitor";
+import { ConnectionSettingsView } from "./operator/connection-settings";
 
 export function OperatorView({ parameters }: { parameters: OperatorParameters }) {
   const screen = useRef<HTMLElement>(null);
-  const previousPanel = useRef<"display" | "ai" | null>(null);
-  const previousEditorFocus = useRef(parameters.editor?.focusVersion);
-  const activePanel = parameters.toolbar.settingsOpen ? "display" : parameters.toolbar.aiSettingsOpen ? "ai" : null;
+  const activePanel = parameters.toolbar.settingsOpen ? "display" : parameters.toolbar.aiSettingsOpen ? "ai" : parameters.toolbar.connectionSettingsOpen ? "connection" : null;
 
   useEffect(() => {
-    if (activePanel) {
-      screen.current?.querySelector<HTMLElement>(`#${activePanel}-settings [data-setting-autofocus], #${activePanel}-settings select:not(:disabled)`)?.focus();
-    } else if (previousPanel.current && previousEditorFocus.current === parameters.editor?.focusVersion) {
-      screen.current?.querySelector<HTMLElement>(`[data-settings-trigger="${previousPanel.current}"]`)?.focus();
-    }
-    previousPanel.current = activePanel;
-    previousEditorFocus.current = parameters.editor?.focusVersion;
-  }, [activePanel, parameters.editor?.focusVersion]);
+    if (parameters.panelFocus) screen.current?.querySelector<HTMLElement>(parameters.panelFocus.selector)?.focus();
+  }, [parameters.panelFocus?.version, parameters.panelFocus?.selector]);
 
   return (
     <viewHierarchy.Scope name="operator-screen">
       <main ref={screen} className="operator-shell">
         <header className="operator-header"><h1>Caption Relay</h1><ToolbarView parameters={parameters.toolbar} /></header>
+        <p className="operator-connection-status" role="status">{parameters.connection.modeLabel} · {parameters.connection.stateLabel}</p>
         {parameters.message && <p role="status" className="operator-global-error">{parameters.message}</p>}
         <CaptionMonitorView parameters={parameters.monitor} />
         <div className="operator-workspace">
           <CaptionListView parameters={parameters} />
           {parameters.toolbar.settingsOpen && <DisplaySettingsView parameters={parameters.displaySettings} />}
           {parameters.toolbar.aiSettingsOpen && <AiSettingsView parameters={parameters.ai} />}
+          {parameters.toolbar.connectionSettingsOpen && <ConnectionSettingsView parameters={parameters.connection} />}
           {!activePanel && parameters.editor && <div className="operator-inspector"><CaptionEditorView row={parameters.editor} /></div>}
         </div>
       </main>

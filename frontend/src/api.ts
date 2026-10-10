@@ -1,4 +1,4 @@
-import { CaptionConflict, type AiRouting, type AudienceApi, type Caption, type DisplaySettings, type OperatorApi, type PublicSnapshot } from "./domain";
+import { CaptionConflict, OperationError, type ConnectionStatus, type AiRouting, type AudienceApi, type Caption, type DisplaySettings, type OperatorApi, type PublicSnapshot } from "./domain";
 import { defaultDisplay } from "./display";
 import type { components } from "./generated/api";
 
@@ -7,7 +7,12 @@ async function request<T>(path: string, signal: AbortSignal, options: RequestIni
   if (!response.ok) {
     if (response.status === 409) {
       const data = await response.json() as components["schemas"]["ConflictResponse"];
-      throw new CaptionConflict(data.detail.latest);
+      if (data.detail && typeof data.detail === "object" && data.detail.latest) throw new CaptionConflict(data.detail.latest);
+    } else if (response.status === 502) {
+      throw new OperationError(await response.text());
+    } else if (response.status === 422) {
+      const data = await response.json() as { detail?: unknown };
+      if (typeof data.detail === "string") throw new OperationError(data.detail);
     }
     throw new Error(`HTTP ${response.status}`);
   }
@@ -20,17 +25,19 @@ const json = (method: string, data: unknown): RequestInit => ({
 
 export const operatorApi: OperatorApi = {
   async load(signal) {
-    const [session, captions, ai] = await Promise.all([
+    const [session, captions, ai, connection] = await Promise.all([
       request<components["schemas"]["Session"]>("/api/session", signal),
       request<Caption[]>("/api/events", signal),
       request<AiRouting>("/api/ai", signal),
+      request<ConnectionStatus>("/api/connection", signal),
     ]);
     return { visible: session.visible, captions, autoPublish: session.auto_publish ?? true,
-      display: { ...defaultDisplay, ...session.display }, ai };
+      display: { ...defaultDisplay, ...session.display }, ai, connection,
+      receiverUrl: connection.receiver_path ? new URL(connection.receiver_path, window.location.origin).href : "" };
   },
   save(draft, signal) {
     return request<Caption>(`/api/captions/${encodeURIComponent(draft.captionId)}`, signal,
-      json("PATCH", { text: draft.text, base_revision: draft.baseRevision } satisfies components["schemas"]["CaptionPatch"]));
+      json("PATCH", { text: draft.text, base_revision: draft.baseRevision, base_source_revision: draft.baseSourceRevision } satisfies components["schemas"]["CaptionPatch"]));
   },
   async setVisible(visible, signal) {
     const result = await request<components["schemas"]["Visibility"]>("/api/commands", signal,
@@ -54,6 +61,9 @@ export const operatorApi: OperatorApi = {
   },
   async setAi(settings, signal) {
     return request<AiRouting>("/api/ai", signal, json("PUT", settings));
+  },
+  async setConnection(settings, signal) {
+    return request<ConnectionStatus>("/api/connection", signal, json("PUT", settings));
   },
 };
 

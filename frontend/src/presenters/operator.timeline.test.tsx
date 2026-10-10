@@ -13,7 +13,7 @@ import { CaptionEditorView } from "../views/operator/editor";
 import { CaptionMonitorView } from "../views/operator/monitor";
 import { presentOperator } from "./operator";
 
-const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "保存済み", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true };
+const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "保存済み", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
 const actors: ReturnType<typeof createActor<typeof operatorMachine>>[] = [];
 afterEach(() => { cleanup(); actors.splice(0).forEach(actor => actor.stop()); vi.unstubAllGlobals(); });
 
@@ -24,7 +24,7 @@ async function start(captions = [caption]) {
     setVisible: vi.fn().mockResolvedValue(false), sendTest: vi.fn().mockResolvedValue(undefined),
     setPublicationMode: vi.fn().mockResolvedValue({ auto_publish: true }),
     setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
-    setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
+    setConnection: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
   };
   const actor = createActor(operatorMachine, { input: { api } }).start();
   actors.push(actor);
@@ -36,7 +36,7 @@ function TimelineTestRoot({ actor }: { actor: ReturnType<typeof createActor<type
   const snapshot = useSelector(actor, state => state);
   const parameters = presentOperator(snapshot);
   return <viewHierarchy.Root handle={event => {
-    if (event.type === "display.fullscreen.requested") return false;
+    if (event.type === "display.fullscreen.requested" || event.type === "display.scrolled" || event.type === "display.latest.requested") return false;
     if (!actor.getSnapshot().can(event)) return false;
     actor.send(event);
     return true;
@@ -92,13 +92,13 @@ it("keeps a separate focused editor and saved history through arrivals, latest, 
   expect(document.activeElement).toBe(input);
   await user.keyboard("{Escape}");
   expect(screen.queryByRole("textbox")).toBeNull();
-  const row = screen.getByRole("article", { name: "保存済みの表示文：保存済み" });
+  const row = screen.getByRole("article", { name: "字幕：保存済み" });
   expect(row.getAttribute("data-dirty")).toBe("true");
   expect(within(row).getByRole("button", { name: "編集：保存済み" }).textContent).toBe("保存済み");
   expect(document.activeElement).toBe(within(row).getByRole("button", { name: "編集：保存済み" }));
   expect(within(row).queryByText("未保存の訂正")).toBeNull();
   expect(row.getAttribute("aria-describedby")).toBe("caption-one-time");
-  expect(within(row).getByRole("img", { name: /この行は保存済み/ }).tabIndex).toBe(0);
+  expect(within(row).getByRole("img", { name: /一覧には変更前の字幕/ }).tabIndex).toBe(0);
   await user.click(within(row).getByRole("button", { name: "編集：保存済み" }));
   expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe("未保存の訂正");
 });

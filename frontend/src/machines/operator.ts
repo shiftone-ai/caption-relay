@@ -1,9 +1,11 @@
 import { assign, fromPromise, setup, type SnapshotFrom } from "xstate";
-import { CaptionConflict, type AiRouting, type AiSettings, type Caption, type DisplaySettings, type Draft, type OperatorApi, type OperatorEvent, type PublicationMode, type SaveRequest, type StatusTooltipGeometry } from "../domain";
+import { CaptionConflict, OperationError, disclosureIds, type DisclosureId, type ConnectionSettings, type ConnectionStatus, type AiRouting, type AiSettings, type Caption, type DisplaySettings, type Draft, type OperatorApi, type ViewEvent, type PublicationMode, type SaveRequest, type StatusTooltipGeometry } from "../domain";
 import { changeDisplayField, defaultDisplay, selectDisplayPalette } from "../display";
 import { aiStrategies, defaultAi, knownAiModel } from "../ai";
+import { defaultConnection } from "../connection";
 
 type StatusTarget = { captionId: string; kind: "source" | "publication" };
+type SettingsPanel = "display" | "ai" | "connection";
 
 interface StatusTooltipPosition {
   top: number;
@@ -30,6 +32,10 @@ interface OperatorContext {
   editorFocusRequest: number;
   historyFocusRequest: number;
   historyFocusCaptionId: string | null;
+  settingsPanel: SettingsPanel | null;
+  settingsFocusTarget: { panel: SettingsPanel; destination: "field" | "trigger" } | null;
+  settingsFocusRequest: number;
+  openedDisclosures: Set<DisclosureId>;
   statusTooltip: { pointer: StatusTarget | null; focus: StatusTarget | null; dismissed: StatusTarget | null;
     measurement: (StatusTarget & { geometry: StatusTooltipGeometry; position: StatusTooltipPosition }) | null };
   unreadIds: string[];
@@ -38,32 +44,47 @@ interface OperatorContext {
   requestedMode: PublicationMode;
   display: DisplaySettings;
   displayDraft: DisplaySettings | null;
-  settingsOpen: boolean;
   ai: AiRouting;
   aiDraft: AiSettings | null;
-  aiSettingsOpen: boolean;
+  connection: ConnectionStatus;
+  receiverUrl: string;
+  connectionDraft: ConnectionSettings | null;
 }
 
 function getSaveRequest(context: OperatorContext, captionId: string): SaveRequest | null {
   const caption = context.captionsById.get(captionId);
   if (!caption) return null;
-  const draft = context.drafts.get(captionId) ?? { text: caption.text, baseRevision: caption.revision };
+  const draft = context.drafts.get(captionId) ?? { text: caption.text, baseRevision: caption.revision, baseSourceRevision: caption.source_revision };
   return { captionId, ...draft };
 }
 
 const saveTransitions = [
   { guard: "validSave", target: "saving", actions: "prepareSave" },
-  { actions: "invalidSave" },
+  { guard: "validSaveDestination", actions: "invalidSave" },
 ] as const;
 
-function isSaveShortcut(event: OperatorEvent) {
+function isSaveShortcut(event: ViewEvent) {
   return event.type === "caption.editor.keypressed" && !event.isComposing
     && event.key === "Enter" && (event.ctrlKey || event.metaKey);
+}
+
+function toggleSettings(context: OperatorContext, panel: SettingsPanel) {
+  const opening = context.settingsPanel !== panel;
+  return {
+    settingsPanel: opening ? panel : null,
+    settingsFocusTarget: { panel, destination: opening ? "field" as const : "trigger" as const },
+    settingsFocusRequest: context.settingsFocusRequest + 1,
+  };
 }
 
 function closeEditor(context: OperatorContext) {
   return { activeCaptionId: null, historyFocusCaptionId: context.activeCaptionId,
     historyFocusRequest: context.historyFocusRequest + 1 };
+}
+
+function canSaveDestination(context: OperatorContext, captionId: string) {
+  return context.connection.mode === "host" || (context.connection.state === "live"
+    && context.connection.editable_caption_ids.includes(captionId));
 }
 
 function sameStatusTarget(left: StatusTarget | null, right: StatusTarget | null) {
@@ -100,22 +121,26 @@ const operations = {
     { guard: "validShortcutSave", target: "saving", actions: "prepareSave" },
     { guard: "invalidShortcutSave", actions: "invalidSave" },
   ],
-  "visibility.toggle.requested": { target: "toggling", actions: "clearError" },
-  "test.requested": { target: "testing", actions: "clearError" },
+  "visibility.toggle.requested": { guard: "hostMode", target: "toggling", actions: "clearError" },
+  "test.requested": { guard: "hostMode", target: "testing", actions: "clearError" },
   "publication.mode.requested": { guard: "validMode", target: "settingMode", actions: "prepareMode" },
-  "display.save.requested": { target: "settingDisplay", actions: "clearError" },
-  "display.field.changed": { actions: "editDisplay" },
-  "display.palette.selected": { actions: "editDisplay" },
+  "display.save.requested": { guard: "hostMode", target: "settingDisplay", actions: "clearError" },
+  "display.field.changed": { guard: "hostMode", actions: "editDisplay" },
+  "display.palette.selected": { guard: "hostMode", actions: "editDisplay" },
   "ai.strategy.selected": { guard: "validAiStrategy", actions: "editAi" },
   "ai.preferred.selected": { guard: "validAiModel", actions: "editAi" },
   "ai.candidate.changed": { guard: "canChangeAiCandidate", actions: "editAi" },
   "ai.save.requested": { target: "settingAi", actions: "clearError" },
+  "connection.mode.selected": { guard: "validConnectionMode", actions: "editConnection" },
+  "connection.url.changed": { actions: "editConnection" },
+  "connection.text-format.selected": { guard: "validConnectionTextFormat", actions: "editConnection" },
+  "connection.save.requested": { guard: "validConnectionSettings", target: "settingConnection", actions: "clearError" },
 } as const;
 
 export const operatorMachine = setup({
   types: {
     context: {} as OperatorContext,
-    events: {} as OperatorEvent,
+    events: {} as ViewEvent,
     input: {} as { api: OperatorApi },
   },
   actors: {
@@ -130,18 +155,27 @@ export const operatorMachine = setup({
     mode: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; mode: PublicationMode }; signal: AbortSignal }) => input.api.setPublicationMode(input.mode, signal)),
     display: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; settings: DisplaySettings }; signal: AbortSignal }) => input.api.setDisplay(input.settings, signal)),
     ai: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; settings: AiSettings }; signal: AbortSignal }) => input.api.setAi(input.settings, signal)),
+    connection: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; settings: ConnectionSettings }; signal: AbortSignal }) => input.api.setConnection(input.settings, signal)),
   },
   guards: {
-    validMode: ({ event }) => event.type === "publication.mode.requested" && (event.mode === "auto" || event.mode === "manual"),
+    knownDisclosure: ({ context, event }) => event.type === "disclosure.toggled" &&
+      (disclosureIds.some(id => id === event.id) || ((event.id.startsWith("caption-saved:") || event.id.startsWith("caption-ai:"))
+        && context.captionsById.has(event.id.slice(event.id.indexOf(":") + 1)))),
+    hostMode: ({ context }) => context.connection.mode === "host",
+    validConnectionMode: ({ event }) => event.type === "connection.mode.selected" && (event.mode === "host" || event.mode === "client"),
+    validConnectionTextFormat: ({ event }) => event.type === "connection.text-format.selected" && (event.format === "plain" || event.format === "speaker"),
+    validConnectionSettings: ({ context }) => Boolean(context.connectionDraft && (context.connectionDraft.mode === "host"
+      || context.connectionDraft.editor_url?.trim())),
+    validMode: ({ context, event }) => context.connection.mode === "host" && event.type === "publication.mode.requested" && (event.mode === "auto" || event.mode === "manual"),
     validShortcutSave: ({ context, event }) => isSaveShortcut(event) && event.type === "caption.editor.keypressed"
-      && context.activeCaptionId === event.captionId && Boolean(getSaveRequest(context, event.captionId)?.text.trim()),
+      && context.activeCaptionId === event.captionId && canSaveDestination(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim()),
     invalidShortcutSave: ({ context, event }) => isSaveShortcut(event) && event.type === "caption.editor.keypressed"
-      && context.activeCaptionId === event.captionId && Boolean(getSaveRequest(context, event.captionId))
+      && context.activeCaptionId === event.captionId && canSaveDestination(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId))
       && !getSaveRequest(context, event.captionId)?.text.trim(),
     closeShortcut: ({ context, event }) => event.type === "caption.editor.keypressed" && !event.isComposing
       && event.key === "Escape" && context.activeCaptionId === event.captionId,
     closeSettingsShortcut: ({ context, event }) => event.type === "settings.keypressed" && !event.defaultPrevented && !event.isComposing
-      && event.key === "Escape" && (context.settingsOpen || context.aiSettingsOpen),
+      && event.key === "Escape" && context.settingsPanel !== null,
     dismissStatusShortcut: ({ context, event }) => {
       const target = context.statusTooltip.focus ?? context.statusTooltip.pointer;
       return (event.type === "caption.editor.keypressed" || (event.type === "settings.keypressed" && !event.defaultPrevented))
@@ -163,7 +197,8 @@ export const operatorMachine = setup({
     canChangeAiCandidate: ({ context, event }) => event.type === "ai.candidate.changed" && knownAiModel(event.modelId)
       && (event.included || event.modelId !== (context.aiDraft ?? context.ai.settings).preferred_model),
     validSave: ({ context, event }) => event.type === "caption.save.requested"
-      && Boolean(getSaveRequest(context, event.captionId)?.text.trim()),
+      && canSaveDestination(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim()),
+    validSaveDestination: ({ context, event }) => event.type === "caption.save.requested" && canSaveDestination(context, event.captionId),
     canEdit: ({ context, event }) => event.type === "caption.draft.changed"
       && context.pendingSave?.captionId !== event.captionId
       && context.captionsById.has(event.captionId),
@@ -173,6 +208,18 @@ export const operatorMachine = setup({
       && context.pendingSave?.captionId !== event.captionId,
   },
   actions: {
+    toggleDisclosure: assign(({ context, event }) => {
+      if (event.type !== "disclosure.toggled") return {};
+      const openedDisclosures = new Set(context.openedDisclosures);
+      if (openedDisclosures.has(event.id)) openedDisclosures.delete(event.id);
+      else openedDisclosures.add(event.id);
+      return { openedDisclosures };
+    }),
+    closeSettings: assign(({ context }) => ({
+      settingsPanel: null,
+      settingsFocusTarget: context.settingsPanel ? { panel: context.settingsPanel, destination: "trigger" as const } : null,
+      settingsFocusRequest: context.settingsFocusRequest + 1,
+    })),
     closeEditor: assign(({ context }) => closeEditor(context)),
     changeStatusInteraction: assign(({ context, event }) => {
       if (event.type !== "caption.status.interaction.changed") return {};
@@ -223,14 +270,27 @@ export const operatorMachine = setup({
       }
       return {};
     }),
+    editConnection: assign(({ context, event }) => {
+      const current = context.connectionDraft ?? { mode: context.connection.mode, editor_url: "", zoom_text_format: context.connection.zoom_text_format };
+      if (event.type === "connection.mode.selected" && (event.mode === "host" || event.mode === "client")) {
+        const updated: ConnectionSettings = { ...current, mode: event.mode };
+        return { connectionDraft: updated };
+      }
+      if (event.type === "connection.url.changed") return { connectionDraft: { ...current, editor_url: event.url } };
+      if (event.type === "connection.text-format.selected" && (event.format === "plain" || event.format === "speaker")) {
+        const updated: ConnectionSettings = { ...current, zoom_text_format: event.format };
+        return { connectionDraft: updated };
+      }
+      return {};
+    }),
     selectCaption: assign(({ context, event }) => {
       if (event.type !== "caption.edit.requested") return {};
-      if (context.activeCaptionId === event.captionId && !context.settingsOpen && !context.aiSettingsOpen) return closeEditor(context);
+      if (context.activeCaptionId === event.captionId && context.settingsPanel === null) return closeEditor(context);
       const drafts = new Map(context.drafts);
       const caption = context.captionsById.get(event.captionId)!;
-      if (!drafts.has(caption.id)) drafts.set(caption.id, { text: caption.text, baseRevision: caption.revision });
+      if (!drafts.has(caption.id)) drafts.set(caption.id, { text: caption.text, baseRevision: caption.revision, baseSourceRevision: caption.source_revision });
       return { drafts, activeCaptionId: caption.id, followLatest: false, scrollTarget: "caption" as const,
-        latestRequest: context.latestRequest + 1, editorFocusRequest: context.editorFocusRequest + 1, settingsOpen: false, aiSettingsOpen: false };
+        latestRequest: context.latestRequest + 1, editorFocusRequest: context.editorFocusRequest + 1, settingsPanel: null, settingsFocusTarget: null };
     }),
     discardDraft: assign(({ context, event }) => {
       if (event.type !== "caption.draft.discarded") return {};
@@ -245,6 +305,7 @@ export const operatorMachine = setup({
       const previous = drafts.get(caption.id);
       drafts.set(caption.id, {
         text: event.text, baseRevision: previous?.baseRevision ?? caption.revision,
+        baseSourceRevision: previous?.baseSourceRevision ?? caption.source_revision,
         conflict: previous?.conflict,
       });
       return { drafts, saveStatus: context.saveStatus?.captionId === caption.id ? null : context.saveStatus };
@@ -258,10 +319,14 @@ export const operatorMachine = setup({
     error: "", errorSource: null, errorCaptionId: null, activeCaptionId: null,
     followLatest: true, latestRequest: 0, scrollTarget: "latest", editorFocusRequest: 0,
     historyFocusRequest: 0, historyFocusCaptionId: null, statusTooltip: { pointer: null, focus: null, dismissed: null, measurement: null }, unreadIds: [], saveStatus: null, autoPublish: true,
+    settingsPanel: null, settingsFocusTarget: null, settingsFocusRequest: 0,
+    openedDisclosures: new Set<DisclosureId>(["display-speaker", "display-appearance"]),
     requestedMode: { auto_publish: true },
-    display: defaultDisplay, displayDraft: null, settingsOpen: false,
-    ai: defaultAi, aiDraft: null, aiSettingsOpen: false,
+    display: defaultDisplay, displayDraft: null,
+    ai: defaultAi, aiDraft: null,
+    connection: defaultConnection, receiverUrl: "", connectionDraft: null,
   }),
+  on: { "disclosure.toggled": { guard: "knownDisclosure", actions: "toggleDisclosure" } },
   states: {
     loading: {
       invoke: {
@@ -292,7 +357,7 @@ export const operatorMachine = setup({
         "timeline.latest.requested": { actions: assign(({ context }) => ({ followLatest: true, unreadIds: [], scrollTarget: "latest" as const,
           latestRequest: context.latestRequest + 1, editorFocusRequest: context.activeCaptionId ? context.editorFocusRequest + 1 : context.editorFocusRequest })) },
         "timeline.editing.requested": { guard: "hasEditor", actions: assign(({ context }) => ({ followLatest: false,
-          settingsOpen: false, aiSettingsOpen: false,
+          settingsPanel: null, settingsFocusTarget: null,
           scrollTarget: "caption" as const, latestRequest: context.latestRequest + 1, editorFocusRequest: context.editorFocusRequest + 1 })) },
         "timeline.scrolled": { actions: assign(({ context, event }) => {
           const followLatest = !(context.activeCaptionId && context.scrollTarget === "caption")
@@ -303,10 +368,11 @@ export const operatorMachine = setup({
           ? { scrollTarget: "latest" as const, latestRequest: context.latestRequest + 1 } : {}) },
         "settings.keypressed": [
           { guard: "dismissStatusShortcut", actions: "dismissStatus" },
-          { guard: "closeSettingsShortcut", actions: assign({ settingsOpen: false, aiSettingsOpen: false }) },
+          { guard: "closeSettingsShortcut", actions: "closeSettings" },
         ],
-        "display.settings.toggled": { actions: assign(({ context }) => ({ settingsOpen: !context.settingsOpen, aiSettingsOpen: false })) },
-        "ai.settings.toggled": { actions: assign(({ context }) => ({ aiSettingsOpen: !context.aiSettingsOpen, settingsOpen: false })) },
+        "display.settings.toggled": { guard: "hostMode", actions: assign(({ context }) => toggleSettings(context, "display")) },
+        "ai.settings.toggled": { actions: assign(({ context }) => toggleSettings(context, "ai")) },
+        "connection.settings.toggled": { actions: assign(({ context }) => toggleSettings(context, "connection")) },
       },
       states: {
         idle: {
@@ -355,7 +421,8 @@ export const operatorMachine = setup({
                 captions: context.captions.map(caption => caption.id === event.output.id ? event.output : caption),
                 captionsById,
                 drafts, pendingSave: null,
-                saveStatus: { captionId: event.output.id, message: context.visible && event.output.publish_eligible && event.output.source_final !== false
+                saveStatus: { captionId: event.output.id, message: context.connection.mode === "client"
+                  ? "UDトークが訂正を受け付けました。純正画面の表示を確認してください。" : context.visible && event.output.publish_eligible && event.output.source_final !== false
                   && event.output.published && (event.output.public_text ?? event.output.text) === event.output.text
                   ? "保存して公開しました。" : "保存しました。観客の表示は変わりません。" },
                 latestRequest: context.followLatest ? context.latestRequest + 1 : context.latestRequest,
@@ -370,8 +437,8 @@ export const operatorMachine = setup({
                 const captionsById = new Map(context.captionsById);
                 captionsById.set(latest.id, latest);
                 drafts.set(pending.captionId, {
-                  text: retainedText, baseRevision: latest.revision,
-                  conflict: `別の更新がありました。保存済みの表示文「${latest.text}」を確認して、もう一度保存してください。`,
+                  text: retainedText, baseRevision: latest.revision, baseSourceRevision: latest.source_revision,
+                  conflict: `別の更新がありました。最新の字幕「${latest.text}」を確認して、もう一度保存してください。`,
                 });
                 return {
                   drafts, pendingSave: null,
@@ -379,8 +446,8 @@ export const operatorMachine = setup({
                   captionsById,
                 };
               }
-              drafts.set(pending.captionId, { text: retainedText, baseRevision: pending.baseRevision });
-              return { drafts, pendingSave: null, error: "保存できませんでした。修正内容は保持しています。もう一度保存してください。", errorSource: "save" as const, errorCaptionId: pending.captionId };
+              drafts.set(pending.captionId, { text: retainedText, baseRevision: pending.baseRevision, baseSourceRevision: pending.baseSourceRevision });
+              return { drafts, pendingSave: null, error: event.error instanceof OperationError ? event.error.message : "保存できませんでした。修正内容は保持しています。もう一度保存してください。", errorSource: "save" as const, errorCaptionId: pending.captionId };
             }) },
           },
         },
@@ -417,6 +484,16 @@ export const operatorMachine = setup({
             src: "ai", input: ({ context }) => ({ api: context.api, settings: context.aiDraft ?? context.ai.settings }),
             onDone: { target: "idle", actions: assign(({ event }) => ({ ai: event.output, aiDraft: null })) },
             onError: { target: "idle", actions: assign({ error: "AI設定を保存できませんでした。設定内容は保持しています。", errorSource: "command" }) },
+          },
+        },
+        settingConnection: {
+          invoke: {
+            src: "connection", input: ({ context }) => ({ api: context.api, settings: {
+              ...context.connectionDraft!, editor_url: context.connectionDraft?.mode === "client" ? context.connectionDraft.editor_url : null,
+            } }),
+            onDone: { target: "refreshing", actions: assign(({ event }) => ({ connection: event.output, connectionDraft: null })) },
+            onError: { target: "idle", actions: assign(({ event }) => ({ error: event.error instanceof OperationError
+              ? event.error.message : "接続を変更できませんでした。現在の接続と下書きは保持しています。", errorSource: "command" as const })) },
           },
         },
       },

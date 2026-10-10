@@ -1,5 +1,6 @@
 import { assign, fromCallback, fromPromise, setup, type SnapshotFrom } from "xstate";
-import type { AudienceApi, AudienceEvent, FullscreenAdapter, PublicSnapshot } from "../domain";
+import type { AudienceApi, AudienceEvent, ViewEvent, FullscreenAdapter, PublicSnapshot } from "../domain";
+import { defaultDisplay } from "../display";
 
 interface AudienceContext extends PublicSnapshot {
   api: AudienceApi;
@@ -7,6 +8,8 @@ interface AudienceContext extends PublicSnapshot {
   fullscreenActive: boolean;
   fullscreenRequested: boolean;
   fullscreenError: string;
+  followLatest: boolean;
+  latestRequest: number;
 }
 
 const fullscreenRequest = {
@@ -17,7 +20,7 @@ export const audienceMachine = setup({
   types: {
     context: {} as AudienceContext,
     input: {} as { api: AudienceApi; fullscreen: FullscreenAdapter },
-    events: {} as AudienceEvent,
+    events: {} as AudienceEvent | ViewEvent,
   },
   actors: {
     stream: fromCallback<AudienceEvent, AudienceApi>(({ input, sendBack }) => {
@@ -33,13 +36,21 @@ export const audienceMachine = setup({
   guards: { fullscreenAvailable: ({ context }) => context.fullscreen.available },
   actions: {
     prepareFullscreen: assign(({ context }) => ({ fullscreenRequested: !context.fullscreenActive, fullscreenError: "" })),
+    receiveSnapshot: assign(({ context, event }) => {
+      if (event.type !== "stream.snapshot") return {};
+      const reset = context.visible !== event.snapshot.visible || (context.display?.display_mode ?? defaultDisplay.display_mode) !== (event.snapshot.display?.display_mode ?? defaultDisplay.display_mode);
+      return { ...event.snapshot, followLatest: reset ? true : context.followLatest };
+    }),
+    observeScroll: assign(({ context, event }) => event.type === "display.scrolled" ? {
+      followLatest: (context.display?.display_mode ?? defaultDisplay.display_mode) !== "scroll" || event.scrollHeight - event.clientHeight - event.scrollTop <= 24,
+    } : {}),
   },
 }).createMachine({
   id: "audience",
   type: "parallel",
   context: ({ input }) => ({
     api: input.api, fullscreen: input.fullscreen, visible: true, captions: [],
-    fullscreenActive: input.fullscreen.isActive(), fullscreenRequested: false, fullscreenError: "",
+    fullscreenActive: input.fullscreen.isActive(), fullscreenRequested: false, fullscreenError: "", followLatest: true, latestRequest: 0,
   }),
   invoke: [
     { src: "stream", input: ({ context }) => context.api },
@@ -47,6 +58,8 @@ export const audienceMachine = setup({
   ],
   on: {
     "display.fullscreen.changed": { actions: assign(({ event }) => ({ fullscreenActive: event.active })) },
+    "display.scrolled": { actions: "observeScroll" },
+    "display.latest.requested": { actions: assign(({ context }) => ({ followLatest: true, latestRequest: context.latestRequest + 1 })) },
   },
   states: {
     connection: {
@@ -54,7 +67,7 @@ export const audienceMachine = setup({
       on: {
         "stream.opened": { target: ".live" },
         "stream.failed": { target: ".reconnecting" },
-        "stream.snapshot": { target: ".live", actions: assign(({ event }) => event.snapshot) },
+        "stream.snapshot": { target: ".live", actions: "receiveSnapshot" },
       },
       states: { connecting: {}, live: {}, reconnecting: {} },
     },

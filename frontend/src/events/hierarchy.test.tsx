@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, expectTypeOf, it, vi } from "vitest";
 import { viewHierarchy } from "./hierarchy";
 import type { ViewEvent } from "../domain";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
+import { Disclosure } from "../components/ui/disclosure";
 import type { ComponentProps } from "react";
 
 const { Root, Scope, useBubble } = viewHierarchy;
@@ -16,8 +17,40 @@ it("requires Root for shared controls and rejects nested roots", () => {
     expect(() => render(<Button intent={{ type: "test.requested" }}>テスト</Button>)).toThrow("under Root");
     expect(() => render(<Textarea change={text => ({ type: "caption.draft.changed", captionId: "one", text })}
       keypress={key => ({ type: "caption.editor.keypressed", captionId: "one", ...key })} />)).toThrow("under Root");
+    expect(() => render(<Disclosure parameters={{ id: "preparation", open: false }} summary="準備"><span /></Disclosure>)).toThrow("under Root");
     expect(() => render(<Root handle={() => true}><Root handle={() => true}><span /></Root></Root>)).toThrow("Root must not be nested");
   } finally { consoleError.mockRestore(); }
+});
+
+it("does not expose DOM action callbacks from shared controls", () => {
+  expectTypeOf<Extract<keyof ComponentProps<typeof Button>, `on${string}`>>().toEqualTypeOf<never>();
+  expectTypeOf<Extract<keyof ComponentProps<typeof Textarea>, `on${string}`>>().toEqualTypeOf<never>();
+});
+
+it("starts disclosures at their own node and keeps browser toggles disabled when a parent declines", () => {
+  const root = vi.fn(() => false);
+  const owner = vi.fn(() => false);
+  let path: string[] = [];
+  function Probe() {
+    let node: ReturnType<typeof viewHierarchy.useNode> | null = viewHierarchy.useNode();
+    path = [];
+    while (node) { path.push(node.name); node = node.parent; }
+    return <span>説明</span>;
+  }
+  const { rerender } = render(<Root handle={root}><Scope name="toolbar" handle={owner}>
+    <Disclosure parameters={{ id: "preparation", open: false }} summary={<Probe />}><p>準備の内容</p></Disclosure>
+  </Scope></Root>);
+  expect(path).toEqual(["disclosure:preparation", "toolbar", "Root"]);
+  const summary = screen.getByText("説明").closest("summary")!;
+  fireEvent.click(summary);
+  expect(owner).toHaveBeenCalledWith({ type: "disclosure.toggled", id: "preparation" });
+  expect(root).toHaveBeenCalledWith({ type: "disclosure.toggled", id: "preparation" });
+  expect(summary.closest("details")!.open).toBe(false);
+  rerender(<Root handle={root}><Scope name="toolbar" handle={owner}>
+    <Disclosure parameters={{ id: "preparation", open: true }} summary={<Probe />}><p>準備の内容</p></Disclosure>
+  </Scope></Root>);
+  fireEvent.click(summary);
+  expect(summary.closest("details")!.open).toBe(true);
 });
 
 it("starts a shared button at its own node and traverses its owning component's parents", () => {

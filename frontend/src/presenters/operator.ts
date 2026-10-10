@@ -1,8 +1,9 @@
-import type { AiSettings, Caption, DisplaySettings } from "../domain";
+import type { AiSettings, Caption, DisclosureId, DisplaySettings } from "../domain";
 import { aiProviderNames, aiStrategies } from "../ai";
 import { displayChoices, displayPalettes } from "../display";
 import type { OperatorSnapshot } from "../machines/operator";
-import { presentDisplayPreview, type DisplayPreviewParameters } from "./display";
+import { presentDisplayPreview, type DisplayCaption, type DisplayPreviewParameters } from "./display";
+import { presentDisclosure, type DisclosureParameters } from "./disclosure";
 
 const receivedTime = new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" });
 const receivedDateTime = new Intl.DateTimeFormat("ja-JP", {
@@ -10,12 +11,15 @@ const receivedDateTime = new Intl.DateTimeFormat("ja-JP", {
 });
 
 export interface RowParameters {
+  savedDisclosure: DisclosureParameters;
+  aiDisclosure: DisclosureParameters;
   id: string;
   receivedAt: string;
   timeLabel: string;
   timeDescription: string;
   original: string;
   text: string;
+  speaker: string | null;
   draftText: string;
   contentDescription: string;
   formattedText: string | null;
@@ -31,12 +35,13 @@ export interface RowParameters {
   state: string;
   source: "saving" | "unsaved" | "human" | "ai" | "original";
   publication: string;
-  publicationState: "hidden" | "updating" | "live" | "published" | "receiving" | "waiting";
+  publicationState: "hidden" | "updating" | "live" | "published" | "receiving" | "waiting" | "native";
   current: boolean;
   firstUnread: boolean;
   focusVersion: number;
   saveSuccess: string;
   saveConsequence: string;
+  saveConsequenceVisible: boolean;
   sourceStatusOpen: boolean;
   publicationStatusOpen: boolean;
   statusTooltipPosition: { top: number; left: number; maxWidth: number; maxHeight: number;
@@ -60,18 +65,29 @@ export interface CaptionMonitorParameters {
 }
 
 export interface ToolbarParameters {
+  helpDisclosure: DisclosureParameters;
+  preparationDisclosure: DisclosureParameters;
   preparationHint: string;
   testDisabled: boolean;
   toggleDisabled: boolean;
   toggleLabel: string;
+  visibilityIcon: "hide" | "show";
   mode: string;
   modeDisabled: boolean;
   settingsOpen: boolean;
   aiSettingsOpen: boolean;
   aiTitle: string;
+  connectionSettingsOpen: boolean;
+  localOutput: boolean;
 }
 
 export interface AiParameters {
+  helpDisclosure: DisclosureParameters;
+  comparisonDisclosure: DisclosureParameters;
+  connectionDescription: string;
+  connectionWarning: boolean;
+  showModelSettings: boolean;
+  showCurrentSelection: boolean;
   preferredLabel: string;
   preferredHint: string;
   selectionHeading: string;
@@ -88,25 +104,47 @@ export interface AiParameters {
     sampleCost: string; latency: string; selected: boolean; disabled: boolean; pricingUrl: string; checkedOn: string }[];
 }
 
+export interface ConnectionParameters {
+  hostHelpDisclosure: DisclosureParameters;
+  clientHelpDisclosure: DisclosureParameters;
+  mode: "host" | "client";
+  modeLabel: string;
+  stateLabel: string;
+  message: string;
+  messageVisible: boolean;
+  receiverUrl: string;
+  editorUrl: string;
+  textFormat: "plain" | "speaker";
+  showReceiver: boolean;
+  showEditor: boolean;
+  disabled: boolean;
+  saveDisabled: boolean;
+  receivedLabel: string;
+}
+
 export interface DisplayFieldParameters {
   field: keyof DisplaySettings;
   label: string;
   value: string;
   kind: "color" | "select";
   options: { value: string; label: string }[];
+  autofocus?: boolean;
 }
 
 export interface DisplayParameters {
+  helpDisclosure: DisclosureParameters;
   preview: DisplayPreviewParameters;
   palette: string;
   palettes: { value: string; label: string }[];
-  sections: { id: string; label: string; open: boolean; palette: boolean; groups: DisplayFieldParameters[][] }[];
+  modeField: DisplayFieldParameters;
+  primaryFields: DisplayFieldParameters[];
+  sections: { id: string; label: string; disclosure: DisclosureParameters; palette: boolean; groups: DisplayFieldParameters[][] }[];
   disabled: boolean;
   saveDisabled: boolean;
   saveHint: string;
 }
 
-function presentDisplay(settings: DisplaySettings, saved: DisplaySettings, disabled: boolean, texts: string[]): DisplayParameters {
+function presentDisplay(settings: DisplaySettings, saved: DisplaySettings, disabled: boolean, captions: DisplayCaption[], openedDisclosures: ReadonlySet<DisclosureId>): DisplayParameters {
   const dirty = JSON.stringify(settings) !== JSON.stringify(saved);
   const field = (key: keyof DisplaySettings, label: string): DisplayFieldParameters => ({
     field: key, label, value: String(settings[key]),
@@ -114,24 +152,29 @@ function presentDisplay(settings: DisplaySettings, saved: DisplaySettings, disab
     options: key === "background" || key === "foreground" ? [] : displayChoices[key].map(choice => ({ ...choice, value: String(choice.value) })),
   });
   return {
-    preview: presentDisplayPreview(settings, texts),
+    helpDisclosure: presentDisclosure("display-help", openedDisclosures),
+    preview: presentDisplayPreview(settings, captions),
     palette: Object.entries(displayPalettes).find(([, palette]) => palette.background === settings.background && palette.foreground === settings.foreground)?.[0] ?? "custom",
     palettes: [...Object.entries(displayPalettes).map(([value, palette]) => ({ value, label: palette.label })), { value: "custom", label: "カスタム" }],
+    modeField: { ...field("display_mode", "表示方式"), autofocus: true },
+    primaryFields: [field("font_size", "文字サイズ"), ...(settings.display_mode === "recent" ? [field("history_count", "表示件数")] : []), field("line_height", "行間")],
     sections: [
-      { id: "appearance", label: "文字と配色", open: true, palette: true, groups: [
+      { id: "speaker", label: "発話者", disclosure: presentDisclosure("display-speaker", openedDisclosures), palette: false, groups: [[field("speaker_display", "名前の表示")]] },
+      { id: "appearance", label: "文字と配色", disclosure: presentDisclosure("display-appearance", openedDisclosures), palette: true, groups: [
         [field("background", "背景"), field("foreground", "文字")], [field("font", "フォント")],
-        [field("font_size", "文字サイズ"), field("font_weight", "太さ")],
+        [field("font_weight", "太さ")],
       ] },
-      { id: "layout", label: "配置と表示量", open: false, palette: false, groups: [
-        [field("line_height", "行間"), field("padding", "余白")], [field("position", "縦位置"), field("align", "文字揃え")],
-        [field("history_count", "表示する発話"), field("aspect", "表示領域")],
+      { id: "layout", label: "配置と余白", disclosure: presentDisclosure("display-layout", openedDisclosures), palette: false, groups: [
+        [field("position", "縦位置"), field("align", "文字揃え")], [field("padding", "余白")],
+        [field("aspect", "表示領域")],
       ] },
     ],
-    disabled, saveDisabled: disabled || !dirty, saveHint: dirty ? "未反映の設定があります" : "現在の表示設定",
+    disabled, saveDisabled: disabled || !dirty, saveHint: dirty ? "未反映" : "",
   };
 }
 
 export interface OperatorParameters {
+  panelFocus: { selector: string; version: number } | null;
   toolbar: ToolbarParameters;
   message: string;
   rows: RowParameters[];
@@ -156,28 +199,38 @@ export interface OperatorParameters {
   loading: boolean;
   displaySettings: DisplayParameters;
   ai: AiParameters;
+  connection: ConnectionParameters;
 }
 
 const rowCache = new WeakMap<Caption, { dependencies: readonly unknown[]; parameters: RowParameters }>();
 
 export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters {
   const { context } = snapshot;
+  const clientMode = context.connection.mode === "client";
   let currentCaption: Caption | undefined;
-  if (context.visible) {
+  if (clientMode) {
+    for (let index = context.captions.length - 1; index >= 0; index--) {
+      if (context.connection.editable_caption_ids.includes(context.captions[index].id)) { currentCaption = context.captions[index]; break; }
+    }
+  } else if (context.visible) {
     for (let index = context.captions.length - 1; index >= 0; index--) {
       if (context.captions[index].published) { currentCaption = context.captions[index]; break; }
     }
   }
   const currentId = currentCaption?.id;
+  const publishedCaptions = context.captions.filter(caption => caption.published);
+  const displayedIds = new Set(!clientMode && context.visible
+    ? (context.display.display_mode === "scroll" ? publishedCaptions : publishedCaptions.slice(-context.display.history_count)).map(caption => caption.id) : []);
   const displayDraft = context.displayDraft ?? context.display;
   const aiDraft = context.aiDraft ?? context.ai.settings;
   const selectedAi = context.ai.models.find(model => model.id === context.ai.selected_model);
   const aiDirty = JSON.stringify(aiDraft) !== JSON.stringify(context.ai.settings);
   const aiDisabled = !snapshot.can({ type: "ai.save.requested" });
+  const connectionDraft = context.connectionDraft ?? { mode: context.connection.mode, editor_url: "", zoom_text_format: context.connection.zoom_text_format };
   const unreadIds = new Set(context.unreadIds);
   const firstUnreadId = context.captions.find(caption => unreadIds.has(caption.id))?.id ?? null;
-  const liveText = currentCaption?.public_text ?? currentCaption?.text ?? "";
-  const liveLabel = !context.visible ? "非表示 · 入力と編集は継続中" : currentId ? "観客に表示中" : "新しい字幕を待っています";
+  const liveText = clientMode ? currentCaption?.text ?? "" : currentCaption?.public_text ?? currentCaption?.text ?? "";
+  const liveLabel = clientMode ? "UDトークで表示" : !context.visible ? "非表示" : currentId ? "観客に表示中" : "字幕を待っています";
   const recentCaptions = context.captions.slice(-3).map(caption => ({
     id: caption.id, receivedAt: caption.received_at,
     timeLabel: receivedTime.format(new Date(caption.received_at)),
@@ -204,36 +257,40 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     const publicationStatusOpen = statusOpen && statusTarget?.captionId === caption.id && statusTarget.kind === "publication";
     const statusTooltipPosition = (sourceStatusOpen || publicationStatusOpen) && context.statusTooltip.measurement?.captionId === caption.id
       && context.statusTooltip.measurement.kind === statusTarget?.kind ? context.statusTooltip.measurement.position : null;
+    const savedDisclosure = presentDisclosure(`caption-saved:${caption.id}`, context.openedDisclosures);
+    const aiDisclosure = presentDisclosure(`caption-ai:${caption.id}`, context.openedDisclosures);
     const dependencies = [draft, saving, rowError, editing, focusVersion, saveSuccess, disabled, readOnly, discardDisabled, editDisabled,
-      sourceModelName, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition, context.visible, currentId === caption.id, firstUnreadId === caption.id];
+      sourceModelName, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition, context.visible, currentId === caption.id, displayedIds.has(caption.id), firstUnreadId === caption.id, clientMode, savedDisclosure.open, aiDisclosure.open];
     const cached = rowCache.get(caption);
     if (cached && dependencies.every((dependency, index) => dependency === cached.dependencies[index])) return cached.parameters;
     const dirty = Boolean(draft && draft.text !== caption.text);
     const source = saving ? "saving" : dirty ? "unsaved" : caption.human_edited ? "human" : caption.formatted_text ? "ai" : "original";
     const differentPublic = caption.published && caption.public_text != null && caption.public_text !== caption.text;
-    const publicationState = !context.visible || !caption.publish_eligible ? "hidden" : differentPublic ? "updating"
-      : currentId === caption.id ? "live" : caption.published ? "published" : caption.source_final === false ? "receiving" : "waiting";
+    const publicationState = clientMode ? "native" : !context.visible || !caption.publish_eligible ? "hidden" : differentPublic && displayedIds.has(caption.id) ? "updating"
+      : displayedIds.has(caption.id) ? "live" : caption.published ? "published" : caption.source_final === false ? "receiving" : "waiting";
     const publishes = context.visible && caption.publish_eligible && caption.source_final !== false;
-    const publication = { hidden: !context.visible ? "観客には非表示" : "公開の対象外", updating: "観客には前の公開文を表示中", live: "観客に表示中", published: "公開済み", receiving: "発話の確定待ち", waiting: "保存すると公開" }[publicationState]
-      + (differentPublic ? `。公開文「${caption.public_text}」と保存済みの表示文は異なります。` : "");
+    const publication = clientMode ? "UDトーク側の字幕表示を使います。受信文と訂正の受付状態は、このアプリで確認できます。" : { hidden: !context.visible ? "観客には非表示" : "公開の対象外", updating: "観客には前の公開文を表示中", live: "観客に表示中", published: "公開済み・現在の表示範囲外", receiving: "発話の確定待ち", waiting: "保存すると公開", native: "UDトーク側の字幕表示を使います。" }[publicationState]
+      + (differentPublic ? `。公開文「${caption.public_text}」と一覧の字幕は異なります。` : "");
     const parameters: RowParameters = {
-      id: caption.id, original: caption.original, text: caption.text,
+      savedDisclosure, aiDisclosure,
+      id: caption.id, original: caption.original, text: caption.text, speaker: caption.speaker?.trim() || null,
       receivedAt: caption.received_at,
       timeLabel: receivedTime.format(new Date(caption.received_at)),
       timeDescription: "受信時刻：" + receivedDateTime.format(new Date(caption.received_at)),
       draftText: draft?.text ?? caption.text,
-      contentDescription: `保存済みの表示文：${caption.text}`,
+      contentDescription: `字幕：${caption.text}`,
       formattedText: caption.formatted_text ?? null,
       editing, dirty,
-      saveLabel: saving ? "保存中…" : (draft?.conflict ? "再保存" : "保存") + (publishes ? "して公開" : ""),
-      saveConsequence: publishes ? "保存した文を観客に公開します。" : caption.source_final === false
+      saveLabel: saving ? "保存中…" : clientMode ? (draft?.conflict ? "再送して" : "保存して") + "UDトークへ反映" : (draft?.conflict ? "再保存" : "保存") + (publishes ? "して公開" : ""),
+      saveConsequence: clientMode ? "編集権と発話の更新を確認し、UDトークへ訂正を送ります。通信失敗時は下書きを保持します。" : publishes ? "保存した文を観客に公開します。" : caption.source_final === false
         ? "発話が未確定のため、保存しても観客の表示は変わりません。" : "保存しても観客の表示は変わりません。",
+      saveConsequenceVisible: !clientMode && !publishes,
       disabled, readOnly, discardDisabled, editDisabled,
-      message: draft?.conflict ?? rowError,
+      message: draft?.conflict ?? (rowError || caption.ai_error || ""),
       invalid: Boolean(rowError && !draft?.text.trim()),
       source, state: source === "ai" && caption.ai_result
         ? "AI修正 · " + sourceModelName
-        : { saving: "保存中", unsaved: "未保存の下書きがあります。この行は保存済みの表示文です。", human: "手修正済み", ai: "AI修正", original: "原文採用" }[source],
+        : { saving: "保存中", unsaved: "未保存の下書きがあります。一覧には変更前の字幕を表示しています。", human: "手修正済み", ai: "AI修正", original: caption.ai_status === "running" || caption.ai_status === "queued" ? "AIの訂正待ち" : caption.ai_error ? "原文採用 · " + caption.ai_error : "原文採用" }[source],
       publicationState, publication, current: currentId === caption.id,
       firstUnread: firstUnreadId === caption.id, focusVersion, saveSuccess, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition,
     };
@@ -241,18 +298,29 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     return parameters;
   });
   return {
+    panelFocus: context.settingsFocusTarget ? {
+      selector: context.settingsFocusTarget.destination === "field"
+        ? `#${context.settingsFocusTarget.panel}-settings [data-setting-autofocus], #${context.settingsFocusTarget.panel}-settings select:not(:disabled)`
+        : `[data-settings-trigger="${context.settingsFocusTarget.panel}"]`,
+      version: context.settingsFocusRequest,
+    } : null,
     toolbar: {
+      helpDisclosure: presentDisclosure("publication-help", context.openedDisclosures),
+      preparationDisclosure: presentDisclosure("preparation", context.openedDisclosures),
       preparationHint: !context.visible ? "非表示中のため、テスト字幕は一覧に追加され、観客には表示されません。"
         : context.autoPublish ? "自動公開中のため、テスト字幕は観客画面にも表示されます。"
         : "テスト字幕は一覧に追加されます。保存して公開するまで観客の表示は変わりません。",
       testDisabled: !snapshot.can({ type: "test.requested" }),
       toggleDisabled: !snapshot.can({ type: "visibility.toggle.requested" }),
       toggleLabel: context.visible ? "字幕を隠す" : "字幕を表示",
+      visibilityIcon: context.visible ? "hide" : "show",
       mode: context.autoPublish ? "auto" : "manual",
       modeDisabled: !snapshot.can({ type: "publication.mode.requested", mode: context.autoPublish ? "manual" : "auto" }),
-      settingsOpen: context.settingsOpen,
-      aiSettingsOpen: context.aiSettingsOpen,
+      settingsOpen: !clientMode && context.settingsPanel === "display",
+      aiSettingsOpen: context.settingsPanel === "ai",
       aiTitle: "AI設定 · " + (selectedAi?.label ?? "AIなし"),
+      connectionSettingsOpen: context.settingsPanel === "connection",
+      localOutput: !clientMode,
     },
     message: context.errorSource === "save" ? "" : context.error,
     rows, editor: rows.find(row => row.editing) ?? null,
@@ -261,7 +329,9 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     unreadAnnouncement: context.unreadIds.length ? `新着の字幕が${context.unreadIds.length}件あります。` : "",
     latestLabel: context.unreadIds.length ? `最新へ · 新着 ${context.unreadIds.length} 件` : "最新へ",
     returnToEditorDisabled: !snapshot.can({ type: "timeline.editing.requested" }),
-    hasUnsavedChanges: rows.some(row => row.dirty) || aiDirty || JSON.stringify(displayDraft) !== JSON.stringify(context.display),
+    hasUnsavedChanges: rows.some(row => row.dirty) || aiDirty || JSON.stringify(displayDraft) !== JSON.stringify(context.display)
+      || Boolean(context.connectionDraft && (context.connectionDraft.mode !== context.connection.mode || context.connectionDraft.editor_url?.trim()
+        || context.connectionDraft.zoom_text_format !== context.connection.zoom_text_format)),
     liveText, liveLabel,
     scrollToLatest: context.followLatest,
     scrollVersion: String(context.latestRequest), scrollTarget: context.scrollTarget, scrollCaptionId: context.activeCaptionId,
@@ -269,31 +339,57 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     followLabel: context.followLatest ? "最新に追従中" : "履歴を確認中",
     loading: snapshot.matches("loading"),
     displaySettings: presentDisplay(displayDraft, context.display, !snapshot.can({ type: "display.save.requested" }),
-      context.captions.slice(-displayDraft.history_count).map(caption => caption.public_text ?? caption.text)),
+      context.captions.map(caption => ({ id: caption.id,
+        text: caption.public_text ?? caption.text, speaker: caption.published ? caption.public_speaker : caption.speaker })), context.openedDisclosures),
     ai: {
-      selectionHeading: "保存済み設定の選択先",
+      helpDisclosure: presentDisclosure("ai-help", context.openedDisclosures),
+      comparisonDisclosure: presentDisclosure("ai-comparison", context.openedDisclosures),
+      connectionWarning: context.ai.settings.strategy !== "off" && !context.ai.connected,
+      showModelSettings: aiDraft.strategy !== "off",
+      showCurrentSelection: context.ai.settings.strategy !== "off" || aiDraft.strategy !== "off",
+      connectionDescription: context.ai.settings.strategy === "off" ? "AIはオフです。原文を受け取り、手動で訂正できます。"
+        : context.ai.connected ? "確定した字幕を選択したAIへ送って訂正します。API利用料がかかります。"
+          : "選択したAIのAPIキーが未設定です。サーバーにキーを設定して再起動してください。",
+      selectionHeading: "現在のAI",
       preferredLabel: { manual: "指定AI", speed: "未計測時のAI", cost: "候補に残すAI", off: "初期候補のAI" }[aiDraft.strategy],
-      preferredHint: { manual: "指定したAIを使います。候補からは外せません。", speed: "すべての候補が未計測の場合に使います。候補からは外せません。",
+      preferredHint: { manual: "指定したAIを使います。候補からは外せません。", speed: "未計測時に使います。キー未設定なら設定済みの候補を選びます。候補からは外せません。",
         cost: "このAIを候補に含めます。選択先は候補の料金で決まり、ここでの指定とは一致しない場合があります。", off: "AIを使う設定に切り替えたときの候補です。現在は原文を採用します。" }[aiDraft.strategy],
-      strategyHint: { off: "原文を採用します。AIへの接続はまだ行いません。", manual: "下で指定したAIを選びます。",
-        cost: "入力200・出力100トークンの参考条件で、候補の料金を比較します。", speed: "直近20件の実測中央値で比較します。未計測の候補は比較から除き、すべて未計測なら下のAIを選びます。" }[aiDraft.strategy],
+      strategyHint: { off: "原文を採用し、AIへ送信しません。", manual: "下で指定したAIを選びます。",
+        cost: "キー設定済みの候補から、入力200・出力100トークンの参考費用で選びます。", speed: "キー設定済みの候補の直近20件の実測中央値で比較します。未計測なら下のAIを優先します。" }[aiDraft.strategy],
       strategy: aiDraft.strategy, preferredModel: aiDraft.preferred_model,
       strategies: Object.entries(aiStrategies).map(([value, label]) => ({ value, label })),
-      saveDisabled: aiDisabled || !aiDirty, saveHint: aiDirty ? "未保存の設定があります" : "設定は次の確定字幕から使います",
+      saveDisabled: aiDisabled || !aiDirty, saveHint: aiDirty ? "未保存" : "",
       disabled: aiDisabled,
       selectedLabel: selectedAi?.label ?? "AIなし",
       selectionNote: { off: "原文を採用します。", manual: "指定したAIへ振り分けます。", cost: "候補の中から参考条件で最も安いAIを選びます。",
-        speed: "候補の中から実測の応答時間が短いAIを選びます。", unmeasured: "応答時間が未計測のため、指定したAIを使います。" }[context.ai.reason],
+        speed: "候補の中から実測の応答時間が短いAIを選びます。", unmeasured: "応答時間が未計測のため、キー設定済みの候補では指定AIを優先します。" }[context.ai.reason],
       models: context.ai.models.map(model => ({
         id: model.id, provider: aiProviderNames[model.provider], label: model.label,
         variant: model.label.replace(/^(Gemini |Claude |Codex · )/, ""),
         inputPrice: "$" + model.input_usd_per_million.toFixed(2), outputPrice: "$" + model.output_usd_per_million.toFixed(2),
         sampleCost: "$" + ((200 * model.input_usd_per_million + 100 * model.output_usd_per_million) / 1000).toFixed(2),
-        latency: model.measured_latency_ms == null ? "未計測" : `${Math.round(model.measured_latency_ms)} ms · ${model.latency_samples ?? 0} 件`,
+        latency: model.configured === false ? "キー未設定" : model.measured_latency_ms == null ? "未計測" : `${Math.round(model.measured_latency_ms)} ms · ${model.latency_samples ?? 0} 件`,
         selected: aiDraft.candidates.includes(model.id),
         disabled: !snapshot.can({ type: "ai.candidate.changed", modelId: model.id, included: !aiDraft.candidates.includes(model.id) }),
         pricingUrl: model.pricing_url, checkedOn: model.pricing_checked_on ?? "",
       })),
+    },
+    connection: {
+      hostHelpDisclosure: presentDisclosure("connection-host-help", context.openedDisclosures),
+      clientHelpDisclosure: presentDisclosure("connection-client-help", context.openedDisclosures),
+      mode: connectionDraft.mode ?? "host",
+      modeLabel: clientMode ? "UDトークへ反映" : "独立配信",
+      stateLabel: { waiting: "受信待ち", connecting: "接続中", live: "受信中", retrying: "再試行中", failed: "接続停止" }[context.connection.state],
+      message: context.connection.message,
+      messageVisible: context.connection.state === "failed" || context.connection.state === "retrying",
+      receiverUrl: context.receiverUrl,
+      editorUrl: connectionDraft.editor_url ?? "",
+      textFormat: connectionDraft.zoom_text_format ?? "plain",
+      showReceiver: connectionDraft.mode !== "client",
+      showEditor: connectionDraft.mode === "client",
+      disabled: !snapshot.can({ type: "connection.mode.selected", mode: "host" }),
+      saveDisabled: !snapshot.can({ type: "connection.save.requested" }),
+      receivedLabel: `受信した更新：${context.connection.received_events}件`,
     },
   };
 }

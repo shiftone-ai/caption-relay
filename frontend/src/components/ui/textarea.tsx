@@ -10,7 +10,7 @@ export interface EditorKey {
   isComposing: boolean;
 }
 
-function Textarea({ className, change, keypress, ...props }: Omit<React.ComponentProps<"textarea">, "onChange" | "onKeyDown"> & {
+function Textarea({ className, change, keypress, ...props }: Omit<React.ComponentProps<"textarea">, `on${string}`> & {
   change: (value: string) => ViewEvent;
   keypress: (key: EditorKey) => ViewEvent;
 }) {

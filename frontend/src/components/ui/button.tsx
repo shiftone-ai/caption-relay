@@ -49,7 +49,7 @@ function Button({
   asChild = false,
   intent,
   ...props
-}: Omit<React.ComponentProps<"button">, "onClick"> &
+}: Omit<React.ComponentProps<"button">, `on${string}`> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
     intent?: ViewEvent

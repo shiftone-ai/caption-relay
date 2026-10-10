@@ -1,36 +1,51 @@
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 import os
+from datetime import UTC, datetime
 from pathlib import Path
+from collections.abc import Mapping
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+import httpx2 as httpx
 
 from .models import (
     AiRouting, AiSettings, Caption, CaptionPatch, Command, ConflictDetail, ConflictResponse, PublicSnapshot,
-    DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
+    ConnectionSettings, ConnectionStatus, DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
 )
 from .relay import CaptionNotFound, CaptionRelay, RevisionConflict
-from .udtalk_web import UdtalkStatus, UdtalkWebInput
+from .udtalk_web import UdtalkStatus
+from .udtalk_editor import EditorError
+from .workflow import CaptionWorkflow
+from .zoom_input import ReceiverError
 
 BASE = Path(__file__).resolve().parents[2]
 FRONTEND = BASE / "frontend" / "dist"
 
 
-def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = None) -> FastAPI:
+def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = None,
+               environment: Mapping[str, str] | None = None,
+               ai_transport: httpx.AsyncBaseTransport | None = None,
+               editor_transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
     service = relay if relay is not None else CaptionRelay()
-    source = UdtalkWebInput(udtalk_url, service.source_event)
+    workflow = CaptionWorkflow(service, udtalk_url, environment if environment is not None else os.environ,
+                               ai_transport, editor_transport)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
-        source.start()
+        workflow.start()
         try:
             yield
         finally:
-            await source.stop()
+            await workflow.stop()
 
     application = FastAPI(title="Caption Relay", version="0.2.0", lifespan=lifespan)
+
+    @application.exception_handler(EditorError)
+    async def editor_error(_: Request, error: EditorError) -> PlainTextResponse:
+        return PlainTextResponse(str(error), status_code=502)
+
     application.mount("/static", StaticFiles(directory=FRONTEND, check_dir=False), name="static")
 
     @application.get("/", response_class=FileResponse)
@@ -51,16 +66,57 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
 
     @application.post("/api/source/events", response_model=Caption | SourceIgnored)
     async def source_event(event: SourceEvent) -> Caption | SourceIgnored:
-        return service.source_event(event)
+        return workflow.source_event(event)
 
     @application.get("/api/source/udtalk", response_model=UdtalkStatus)
     async def udtalk_status() -> UdtalkStatus:
-        return source.status.model_copy(deep=True)
+        return workflow.connections.web.status.model_copy(deep=True)
+
+    @application.get("/api/connection", response_model=ConnectionStatus)
+    async def connection() -> ConnectionStatus:
+        return workflow.connections.status()
+
+    @application.put("/api/connection", response_model=ConnectionStatus)
+    async def set_connection(settings: ConnectionSettings) -> ConnectionStatus:
+        try:
+            return await workflow.configure(settings)
+        except EditorError as error:
+            raise HTTPException(422, str(error)) from None
+
+    def authorize_receiver(signature: str) -> None:
+        if not workflow.connections.receiver.authorized(signature):
+            raise HTTPException(403, "invalid receiver token")
+        if workflow.connections.mode != "host":
+            raise HTTPException(409, "receiver is inactive")
+
+    @application.get("/closedcaption/seq", response_class=PlainTextResponse)
+    async def receiver_sequence(signature: str = "") -> str:
+        authorize_receiver(signature)
+        return str(workflow.connections.receiver.sequence)
+
+    @application.post("/closedcaption", response_class=PlainTextResponse)
+    async def receive_caption(request: Request, seq: int = Query(ge=1), uttrId: str = Query(min_length=1, max_length=256),
+                              signature: str = "", lang: str = "ja-JP") -> str:
+        authorize_receiver(signature)
+        if request.headers.get("content-type", "").split(";")[0].strip().lower() != "text/plain":
+            raise HTTPException(415, "UTF-8 plain text required")
+        body = bytearray()
+        async for part in request.stream():
+            body.extend(part)
+            if len(body) > 65536:
+                raise HTTPException(413, "caption too large")
+        try:
+            # Reading a streamed body can span a connection change.
+            authorize_receiver(signature)
+            workflow.connections.receive(seq, uttrId, lang, body.decode("utf-8"))
+        except (UnicodeDecodeError, ReceiverError) as error:
+            raise HTTPException(400, "invalid caption packet") from error
+        return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "")
 
     @application.patch("/api/captions/{caption_id}", response_model=Caption, responses={409: {"model": ConflictResponse}})
     async def patch_caption(caption_id: str, patch: CaptionPatch) -> Caption:
         try:
-            return service.patch_caption(caption_id, patch)
+            return await workflow.patch_caption(caption_id, patch)
         except CaptionNotFound as error:
             raise HTTPException(404, "caption not found") from error
         except RevisionConflict as error:
@@ -70,7 +126,7 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
     @application.put("/api/captions/{caption_id}/formatted", response_model=Caption | SourceIgnored)
     async def formatted_result(caption_id: str, result: FormattedResult) -> Caption | SourceIgnored:
         try:
-            return service.formatted_result(caption_id, result)
+            return await workflow.formatted_result(caption_id, result)
         except CaptionNotFound as error:
             raise HTTPException(404, "caption not found") from error
 
