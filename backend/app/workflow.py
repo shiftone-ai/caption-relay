@@ -23,24 +23,35 @@ class CaptionWorkflow:
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._slots = asyncio.Semaphore(2)
         self._generation = 0
+        self._ai_paused = 0
 
     def start(self) -> None:
         self.connections.start()
 
     async def stop(self) -> None:
-        await self._cancel_ai()
-        await self.connections.stop()
+        self._ai_paused += 1
+        try:
+            await self._cancel_ai()
+            await self.connections.stop()
+        finally:
+            self._ai_paused -= 1
 
     async def _cancel_ai(self) -> None:
         self._generation += 1
-        tasks = list(self._tasks.values())
-        for caption_id, task in self._tasks.items():
-            task.cancel()
-            caption = self.relay.caption(caption_id)
-            if caption.ai_request is not None:
-                self.relay.ai_status(caption_id, caption.ai_request.id, "failed", "接続が終了したため、AIの訂正を停止しました。")
-        await asyncio.gather(*tasks, return_exceptions=True)
-        self._tasks.clear()
+        self._ai_paused += 1
+        tasks = dict(self._tasks)
+        try:
+            for caption_id, task in tasks.items():
+                task.cancel()
+                caption = self.relay.caption(caption_id)
+                if caption.ai_request is not None:
+                    self.relay.ai_status(caption_id, caption.ai_request.id, "failed", "接続が終了したため、AIの訂正を停止しました。")
+            await asyncio.gather(*tasks.values(), return_exceptions=True)
+        finally:
+            for caption_id, task in tasks.items():
+                if self._tasks.get(caption_id) is task:
+                    self._tasks.pop(caption_id)
+            self._ai_paused -= 1
 
     async def configure(self, settings: ConnectionSettings) -> ConnectionStatus:
         result = await self.connections.configure(settings, self._cancel_ai)
@@ -58,7 +69,9 @@ class CaptionWorkflow:
             self._tasks.pop(result.id)
             pending.cancel()
         if result.ai_request is not None:
-            if result.ai_request.model_id not in self.provider.available:
+            if self._ai_paused:
+                self.relay.ai_status(result.id, result.ai_request.id, "failed", "接続の切り替えまたは終了中のため、AIの訂正を停止しました。")
+            elif result.ai_request.model_id not in self.provider.available:
                 self.relay.ai_status(result.id, result.ai_request.id, "unavailable", "選択したAIのAPIキーが設定されていません。")
             elif len(self._tasks) >= 64:
                 self.relay.ai_status(result.id, result.ai_request.id, "failed", "AIの処理待ちが多いため、原文を保持しています。")
