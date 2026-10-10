@@ -1,0 +1,43 @@
+{
+  "checked_on": "2026-10-11",
+  "runtime": "local FastAPI, headless Chrome, native SpeechAnalyzer; synthetic audio input",
+  "production_build_and_vite_proxy": "exercised separately against the real local API",
+  "recognition_states": [
+    "preparing",
+    "live",
+    "stopped",
+    "preparing",
+    "live",
+    "stopped"
+  ],
+  "console_errors": [],
+  "writes": [
+    {
+      "path": "/api/connection",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/api/connection",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/api/captions/{id}",
+      "method": "PATCH",
+      "status": 200
+    },
+    {
+      "path": "/api/connection",
+      "method": "PUT",
+      "status": 200
+    }
+  ],
+  "saved_caption": [
+    "明日の開始時刻は午後3時です。参加費は100円です。"
+  ],
+  "tracks_ended_after_stop": true,
+  "physical_microphone": "not tested",
+  "openai_audio_sent_seconds": 0,
+  "openai_recognition": "not tested: repository key unavailable"
+}
