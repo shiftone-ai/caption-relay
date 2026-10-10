@@ -9,8 +9,8 @@ import { presentDisplayPreview } from "./display";
 afterEach(cleanup);
 
 it("retains a manually inspected preview position through identical polling projections", () => {
-  const draw = (texts: string[]) => <viewHierarchy.Root handle={() => false}>
-    <CaptionDisplayView parameters={presentDisplayPreview({ ...defaultDisplay, history_count: 3 }, texts).display} />
+  const draw = (texts: string[], latestCaptionId = "one") => <viewHierarchy.Root handle={() => false}>
+    <CaptionDisplayView parameters={presentDisplayPreview({ ...defaultDisplay, history_count: 3 }, texts.map((text, index) => ({ text, id: latestCaptionId + index }))).display} />
   </viewHierarchy.Root>;
   const { container, rerender } = render(draw(["短い字幕"]));
   const preview = container.querySelector<HTMLDivElement>(".caption-display-captions")!;
@@ -19,5 +19,8 @@ it("retains a manually inspected preview position through identical polling proj
   rerender(draw(["短い字幕"]));
   expect(preview.scrollTop).toBe(150);
   rerender(draw(Array(3).fill("新しい長文の字幕。".repeat(12))));
+  expect(preview.scrollTop).toBe(1000);
+  preview.scrollTop = 150;
+  rerender(draw(Array(3).fill("新しい長文の字幕。".repeat(12)), "two"));
   expect(preview.scrollTop).toBe(1000);
 });

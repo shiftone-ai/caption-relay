@@ -2,9 +2,59 @@ import { defaultAi } from "../ai";
 import { createActor, waitFor } from "xstate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { operatorMachine } from "./operator";
-import { CaptionConflict, type Caption, type OperatorApi, type Snapshot } from "../domain";
+import { CaptionConflict, OperationError, type Caption, type OperatorApi, type Snapshot } from "../domain";
+import { defaultConnection } from "../connection";
 
-const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true };
+const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
+
+it("keeps subtitle and connection drafts when an editor link is rejected", async () => {
+  const adapter = api();
+  vi.mocked(adapter.setConnection).mockRejectedValue(new OperationError("編集用リンクの期限が切れています。"));
+  const actor = createActor(operatorMachine, { input: { api: adapter } }).start();
+  try {
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    actor.send({ type: "caption.edit.requested", captionId: "one" });
+    actor.send({ type: "caption.draft.changed", captionId: "one", text: "未保存の訂正" });
+    actor.send({ type: "connection.settings.toggled" });
+    actor.send({ type: "connection.mode.selected", mode: "client" });
+    expect(actor.getSnapshot().can({ type: "connection.save.requested" })).toBe(false);
+    actor.send({ type: "connection.url.changed", url: "expired-test-link" });
+    actor.send({ type: "connection.save.requested" });
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    expect(actor.getSnapshot().context.connection.mode).toBe("host");
+    expect(actor.getSnapshot().context.drafts.get("one")?.text).toBe("未保存の訂正");
+    expect(actor.getSnapshot().context.connectionDraft?.editor_url).toBe("expired-test-link");
+    expect(actor.getSnapshot().context.error).toBe("編集用リンクの期限が切れています。");
+  } finally { actor.stop(); }
+});
+
+it("restricts client saves to the current talk and retains local drafts through mode changes", async () => {
+  const adapter = api();
+  const editorCaption = { ...caption, id: "editor-speech", utterance_id: "editor-speech" };
+  const connection = { ...defaultConnection, mode: "client" as const, state: "live" as const, editable_caption_ids: [editorCaption.id] };
+  vi.mocked(adapter.setConnection).mockResolvedValue(connection);
+  const actor = createActor(operatorMachine, { input: { api: adapter } }).start();
+  try {
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    actor.send({ type: "caption.draft.changed", captionId: "one", text: "保持する下書き" });
+    vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [caption, editorCaption], connection });
+    actor.send({ type: "connection.mode.selected", mode: "client" });
+    actor.send({ type: "connection.url.changed", url: "valid-test-link" });
+    actor.send({ type: "connection.save.requested" });
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    expect(actor.getSnapshot().context.connectionDraft).toBeNull();
+    expect(actor.getSnapshot().context.drafts.get("one")?.text).toBe("保持する下書き");
+    expect(actor.getSnapshot().can({ type: "caption.save.requested", captionId: "one" })).toBe(false);
+    expect(actor.getSnapshot().can({ type: "caption.save.requested", captionId: editorCaption.id })).toBe(true);
+    expect(actor.getSnapshot().can({ type: "test.requested" })).toBe(false);
+    expect(actor.getSnapshot().can({ type: "visibility.toggle.requested" })).toBe(false);
+    expect(actor.getSnapshot().can({ type: "publication.mode.requested", mode: "auto" })).toBe(false);
+    expect(actor.getSnapshot().can({ type: "display.settings.toggled" })).toBe(false);
+    expect(actor.getSnapshot().can({ type: "display.save.requested" })).toBe(false);
+    actor.send({ type: "display.settings.toggled" });
+    expect(actor.getSnapshot().context.settingsPanel).toBeNull();
+  } finally { actor.stop(); }
+});
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -19,7 +69,7 @@ function api(): OperatorApi {
     save: vi.fn().mockResolvedValue({ ...caption, text: "修正", revision: 2, human_edited: true }),
     setVisible: vi.fn().mockResolvedValue(false),
     setPublicationMode: vi.fn().mockResolvedValue({ auto_publish: true }), setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
-    setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
+    setConnection: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
     sendTest: vi.fn().mockResolvedValue(undefined),
   };
 }
@@ -33,6 +83,41 @@ async function start(adapter = api()) {
   await waitFor(actor, state => state.matches({ ready: "idle" }));
   return actor;
 }
+
+it("owns independent disclosure states through refreshes and ignores other screens and unknown captions", async () => {
+  const actor = await start();
+  expect(actor.getSnapshot().can({ type: "display.latest.requested" })).toBe(false);
+  expect(actor.getSnapshot().can({ type: "display.fullscreen.requested" })).toBe(false);
+  expect(actor.getSnapshot().can({ type: "disclosure.toggled", id: "caption-saved:missing" })).toBe(false);
+  actor.send({ type: "disclosure.toggled", id: "preparation" });
+  actor.send({ type: "disclosure.toggled", id: "caption-saved:one" });
+  actor.send({ type: "disclosure.toggled", id: "display-speaker" });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.openedDisclosures).toEqual(new Set(["display-appearance", "preparation", "caption-saved:one"]));
+  actor.send({ type: "disclosure.toggled", id: "preparation" });
+  expect(actor.getSnapshot().context.openedDisclosures.has("preparation")).toBe(false);
+  expect(actor.getSnapshot().context.openedDisclosures.has("caption-saved:one")).toBe(true);
+});
+
+it("arbitrates a single settings panel and focus destination for close versus editor return", async () => {
+  const actor = await start();
+  actor.send({ type: "display.settings.toggled" });
+  const opened = actor.getSnapshot().context;
+  expect(opened.settingsPanel).toBe("display");
+  expect(opened.settingsFocusTarget).toEqual({ panel: "display", destination: "field" });
+  actor.send({ type: "ai.settings.toggled" });
+  expect(actor.getSnapshot().context.settingsPanel).toBe("ai");
+  expect(actor.getSnapshot().context.settingsFocusRequest).toBe(opened.settingsFocusRequest + 1);
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: false });
+  expect(actor.getSnapshot().context.settingsPanel).toBeNull();
+  expect(actor.getSnapshot().context.settingsFocusTarget).toEqual({ panel: "ai", destination: "trigger" });
+  actor.send({ type: "connection.settings.toggled" });
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  expect(actor.getSnapshot().context.settingsPanel).toBeNull();
+  expect(actor.getSnapshot().context.settingsFocusTarget).toBeNull();
+  expect(actor.getSnapshot().context.activeCaptionId).toBe("one");
+});
 
 describe("operator Mediator", () => {
   it("keeps the draft and its starting revision across a background update", async () => {
@@ -184,8 +269,7 @@ it("requires explicit AI settings save, keeps failed drafts and blocks duplicate
   actor.send({ type: "ai.strategy.selected", value: "manual" });
   actor.send({ type: "ai.preferred.selected", modelId: "claude-haiku-4-5" });
   actor.send({ type: "display.settings.toggled" });
-  expect(actor.getSnapshot().context.aiSettingsOpen).toBe(false);
-  expect(actor.getSnapshot().context.settingsOpen).toBe(true);
+  expect(actor.getSnapshot().context.settingsPanel).toBe("display");
   expect(adapter.setAi).not.toHaveBeenCalled();
   actor.send({ type: "ai.save.requested" });
   actor.send({ type: "ai.save.requested" });
@@ -314,12 +398,12 @@ it("uses guarded settings Escape without accepting other keys or IME Escape", as
   actor.send({ type: "display.settings.toggled" });
   expect(actor.getSnapshot().can({ type: "settings.keypressed", key: "Tab", isComposing: false, defaultPrevented: false })).toBe(false);
   actor.send({ type: "settings.keypressed", key: "Escape", isComposing: true, defaultPrevented: false });
-  expect(actor.getSnapshot().context.settingsOpen).toBe(true);
+  expect(actor.getSnapshot().context.settingsPanel).toBe("display");
   expect(actor.getSnapshot().can({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: true })).toBe(false);
   actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: true });
-  expect(actor.getSnapshot().context.settingsOpen).toBe(true);
+  expect(actor.getSnapshot().context.settingsPanel).toBe("display");
   actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: false });
-  expect(actor.getSnapshot().context.settingsOpen).toBe(false);
+  expect(actor.getSnapshot().context.settingsPanel).toBeNull();
 });
 
 it("dismisses a status explanation before an editor Escape and rejects its consumed workspace event", async () => {
@@ -349,7 +433,7 @@ it("selects the editor from an open settings panel while preserving its settings
   actor.send({ type: "display.field.changed", field: "font_size", value: "48" });
   const before = actor.getSnapshot().context.editorFocusRequest;
   actor.send({ type: "caption.edit.requested", captionId: "one" });
-  expect(actor.getSnapshot().context).toMatchObject({ activeCaptionId: "one", settingsOpen: false, aiSettingsOpen: false });
+  expect(actor.getSnapshot().context).toMatchObject({ activeCaptionId: "one", settingsPanel: null, settingsFocusTarget: null });
   expect(actor.getSnapshot().context.displayDraft?.font_size).toBe(48);
   expect(actor.getSnapshot().context.editorFocusRequest).toBe(before + 1);
 });

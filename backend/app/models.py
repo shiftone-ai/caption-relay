@@ -36,6 +36,7 @@ class AiModelOption(Model):
     pricing_checked_on: str = "2026-10-05"
     measured_latency_ms: float | None = None
     latency_samples: int = 0
+    configured: bool = False
 
 
 class AiRouting(Model):
@@ -43,7 +44,7 @@ class AiRouting(Model):
     models: list[AiModelOption]
     selected_model: AiModelId | None
     reason: Literal["off", "manual", "cost", "speed", "unmeasured"]
-    connected: Literal[False] = False
+    connected: bool = False
 
 
 class AiRequest(Model):
@@ -64,6 +65,7 @@ class SourceEvent(Model):
     utterance_id: str = Field(min_length=1)
     revision: int = Field(ge=1)
     text: str
+    speaker: str | None = Field(default=None, max_length=256)
     is_final: bool = True
     source_event_id: str = Field(min_length=1)
     formatted_text: str | None = None
@@ -99,6 +101,7 @@ class FormattedResult(Model):
 class CaptionPatch(Model):
     text: str
     base_revision: int = Field(ge=1)
+    base_source_revision: int | None = Field(default=None, ge=1)
 
     @field_validator("text")
     @classmethod
@@ -120,15 +123,37 @@ class Caption(Model):
     revision: int
     original: str
     text: str
+    speaker: str | None = Field(default=None, max_length=256)
     human_edited: bool = False
     published: bool
     publish_eligible: bool
     formatted_text: str | None = None
     source_final: bool = True
     public_text: str | None = None
+    public_speaker: str | None = Field(default=None, max_length=256)
     public_revision: int | None = None
     ai_request: AiRequest | None = None
     ai_result: AiResultInfo | None = None
+    ai_status: Literal["off", "queued", "running", "succeeded", "failed", "unavailable"] = "off"
+    ai_error: str | None = None
+
+
+class ConnectionSettings(Model):
+    mode: Literal["host", "client"] = "host"
+    editor_url: str | None = Field(default=None, max_length=16384)
+    zoom_text_format: Literal["plain", "speaker"] = "plain"
+
+
+class ConnectionStatus(Model):
+    mode: Literal["host", "client"] = "host"
+    state: Literal["waiting", "connecting", "live", "retrying", "failed"] = "waiting"
+    message: str = "UDトークからの字幕を待っています。"
+    receiver_path: str | None = None
+    received_events: int = 0
+    zoom_text_format: Literal["plain", "speaker"] = "plain"
+    editor_configured: bool = False
+    editable_caption_ids: list[str] = Field(default_factory=lambda: list[str]())
+    client_verified: Literal[False] = False
 
 
 class DisplaySettings(Model):
@@ -141,8 +166,10 @@ class DisplaySettings(Model):
     padding: int = Field(default=48, ge=0, le=160)
     position: Literal["top", "center", "bottom"] = "center"
     align: Literal["left", "center"] = "left"
+    display_mode: Literal["scroll", "recent"] = "scroll"
     history_count: int = Field(default=1, ge=1, le=10)
     aspect: Literal["window", "16:9"] = "window"
+    speaker_display: Literal["hidden", "inline", "above"] = "above"
 
 
 class PublicationMode(Model):
@@ -153,6 +180,7 @@ class PublicCaption(Model):
     id: str
     revision: int
     text: str
+    speaker: str | None = Field(default=None, max_length=256)
 
 
 class PublicSnapshot(Model):

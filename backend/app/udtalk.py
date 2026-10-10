@@ -5,6 +5,7 @@ ordering and completion here; publication and human edits belong to CaptionRelay
 """
 
 from copy import deepcopy
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from hashlib import sha256
 from typing import Literal
@@ -21,6 +22,7 @@ class UdtalkProtocolError(ValueError):
 class Connected(BaseModel):
     model_config = ConfigDict(strict=True, extra="ignore")
     timestamp: float = Field(ge=0, allow_inf_nan=False)
+    name: str | None = Field(default=None, max_length=256)
 
 
 class Fragment(BaseModel):
@@ -32,6 +34,7 @@ class Fragment(BaseModel):
     connected: Connected
     finalizedTimestamp: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     endOfUtterance: bool | None = None
+    detectedName: str | None = Field(default=None, max_length=256)
 
     def clock(self) -> tuple[float, float]:
         return (self.finalizedTimestamp or 0, self.connected.timestamp)
@@ -48,12 +51,23 @@ class MessageHeader(BaseModel):
     phase: str | None = None
 
 
+def speaker_from_fragments(fragments: Iterable[Fragment]) -> str | None:
+    ordered = sorted(fragments, key=lambda fragment: fragment.connected.timestamp, reverse=True)
+    for fragment in ordered:
+        if fragment.detectedName and fragment.detectedName.strip():
+            return fragment.detectedName.strip()
+    for fragment in ordered:
+        if "name" in fragment.connected.model_fields_set:
+            return (fragment.connected.name or "").strip() or None
+    return None
+
+
 @dataclass
 class Utterance:
     fragments: dict[int, Fragment] = field(default_factory=lambda: dict[int, Fragment]())
     seen: set[str] = field(default_factory=lambda: set[str]())
     revision: int = 0
-    content: tuple[str, bool, bool] | None = None
+    content: tuple[str, bool, bool, str | None] | None = None
 
 
 class UdtalkDecoder:
@@ -137,7 +151,8 @@ class UdtalkDecoder:
                 ) for fragment in active.values()
             )
             removed = all(fragment.phase == "removed" for fragment in utterance.fragments.values())
-            content = (text, final, removed)
+            speaker = speaker_from_fragments(active.values())
+            content = (text, final, removed, speaker)
             if content == utterance.content:
                 continue
             utterance.content = content
@@ -145,7 +160,7 @@ class UdtalkDecoder:
             opaque_id = sha256(f"{self._room}:{root}".encode()).hexdigest()
             events.append(SourceEvent(
                 utterance_id=f"udtalk-{opaque_id}", revision=utterance.revision,
-                text=text, is_final=final,
+                text=text, is_final=final, speaker=speaker,
                 removed=removed,
                 source_event_id=f"udtalk-{opaque_id}-{utterance.revision}",
             ))

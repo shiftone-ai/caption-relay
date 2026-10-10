@@ -4,14 +4,21 @@ import type { DisplaySettings } from "../domain";
 
 export interface CaptionDisplayParameters {
   texts: string[];
+  utterances: { id: string; text: string; speakerLabel: string | null }[];
   scrollVersion: string;
+  followLatest: boolean;
+  keyboardScrollable: boolean;
+  focusVersion: number;
   screenStyle: CSSProperties;
   frameStyle: CSSProperties;
   captionStyle: CSSProperties;
   paragraphStyle: CSSProperties;
+  speakerStyle: CSSProperties;
   aspect: DisplaySettings["aspect"];
   position: DisplaySettings["position"];
 }
+
+export interface DisplayCaption { id?: string; text: string; speaker?: string | null }
 
 export interface DisplayPreviewParameters {
   display: CaptionDisplayParameters;
@@ -37,12 +44,18 @@ const sampleTexts = [
 const verticalPosition = { top: "flex-start", center: "center", bottom: "flex-end" } as const;
 
 /** Project the same display rules for full-size output and a scaled reference viewport. */
-export function presentCaptionDisplay(settings: DisplaySettings, texts: readonly string[], referenceWidth?: number): CaptionDisplayParameters {
+export function presentCaptionDisplay(settings: DisplaySettings, captions: readonly DisplayCaption[], referenceWidth?: number): CaptionDisplayParameters {
   const pixels = (value: number) => referenceWidth ? `${value / referenceWidth * 100}cqw` : value;
-  const visibleTexts = texts.slice(-settings.history_count);
+  const visible = settings.display_mode === "scroll" ? captions : captions.slice(-settings.history_count);
+  const utterances = visible.map((caption, index) => {
+    const speaker = settings.speaker_display !== "hidden" ? caption.speaker?.trim() || null : null;
+    return { id: caption.id ?? String(index), text: caption.text,
+      speakerLabel: speaker && settings.speaker_display === "inline" ? speaker + "：" : speaker };
+  });
   return {
-    texts: visibleTexts,
-    scrollVersion: JSON.stringify([visibleTexts, settings.font, settings.font_size, settings.font_weight, settings.line_height,
+    texts: utterances.map(caption => caption.text), utterances, followLatest: true, focusVersion: 0,
+    keyboardScrollable: settings.display_mode === "scroll" && !referenceWidth,
+    scrollVersion: JSON.stringify([utterances, settings.display_mode, settings.speaker_display, settings.font, settings.font_size, settings.font_weight, settings.line_height,
       settings.padding, settings.align, settings.aspect, settings.position, referenceWidth]),
     screenStyle: { background: settings.background, color: settings.foreground },
     frameStyle: {
@@ -56,18 +69,20 @@ export function presentCaptionDisplay(settings: DisplaySettings, texts: readonly
       display: "flex", flexDirection: "column", gap: pixels(16),
     },
     paragraphStyle: { margin: 0, flexShrink: 0 },
+    speakerStyle: settings.speaker_display === "above"
+      ? { display: "block", fontSize: ".625em", fontWeight: 600, lineHeight: 1.25, marginBottom: pixels(8) }
+      : { fontWeight: 600 },
     aspect: settings.aspect,
     position: settings.position,
   };
 }
 
-export function presentDisplayPreview(settings: DisplaySettings, texts: readonly string[]): DisplayPreviewParameters {
-  const recent = texts.slice(-settings.history_count);
-  const useSaved = recent.length === settings.history_count && recent.some(text => text.length >= 60);
+export function presentDisplayPreview(settings: DisplaySettings, captions: readonly DisplayCaption[]): DisplayPreviewParameters {
+  const useSaved = captions.length > 0;
   return {
-    display: presentCaptionDisplay(settings, useSaved ? texts : sampleTexts, previewWidth),
+    display: presentCaptionDisplay(settings, useSaved ? captions : sampleTexts.map((text, index) => ({ text, speaker: index % 2 ? "登壇者" : "司会" })), previewWidth),
     viewportLabel: "基準画面 1280 × 800 px（16:10）",
     scaleLabel: (settings.aspect === "16:9" ? "表示領域 16:9" : "表示領域は画面全体") + " · 枠の幅に合わせて縮小",
-    sourceLabel: useSaved ? "保存済みの字幕で確認" : "長文の表示例で確認（配信されません）",
+    sourceLabel: useSaved ? "字幕プレビュー" : "表示例（配信されません）",
   };
 }

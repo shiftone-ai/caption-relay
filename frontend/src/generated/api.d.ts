@@ -106,6 +106,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connection */
+        get: operations["connection_api_connection_get"];
+        /** Set Connection */
+        put: operations["set_connection_api_connection_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/closedcaption/seq": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Receiver Sequence */
+        get: operations["receiver_sequence_closedcaption_seq_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/closedcaption": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive Caption */
+        post: operations["receive_caption_closedcaption_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/captions/{caption_id}": {
         parameters: {
             query?: never;
@@ -279,6 +331,11 @@ export interface components {
              * @default 0
              */
             latency_samples: number;
+            /**
+             * Configured
+             * @default false
+             */
+            configured: boolean;
         };
         /** AiRequest */
         AiRequest: {
@@ -323,9 +380,8 @@ export interface components {
             /**
              * Connected
              * @default false
-             * @constant
              */
-            connected: false;
+            connected: boolean;
         };
         /** AiSettings */
         AiSettings: {
@@ -363,6 +419,8 @@ export interface components {
             original: string;
             /** Text */
             text: string;
+            /** Speaker */
+            speaker?: string | null;
             /**
              * Human Edited
              * @default false
@@ -381,10 +439,20 @@ export interface components {
             source_final: boolean;
             /** Public Text */
             public_text?: string | null;
+            /** Public Speaker */
+            public_speaker?: string | null;
             /** Public Revision */
             public_revision?: number | null;
             ai_request?: components["schemas"]["AiRequest"] | null;
             ai_result?: components["schemas"]["AiResultInfo"] | null;
+            /**
+             * Ai Status
+             * @default off
+             * @enum {string}
+             */
+            ai_status: "off" | "queued" | "running" | "succeeded" | "failed" | "unavailable";
+            /** Ai Error */
+            ai_error?: string | null;
         };
         /** CaptionPatch */
         CaptionPatch: {
@@ -392,6 +460,8 @@ export interface components {
             text: string;
             /** Base Revision */
             base_revision: number;
+            /** Base Source Revision */
+            base_source_revision?: number | null;
         };
         /** Command */
         Command: {
@@ -414,6 +484,69 @@ export interface components {
         /** ConflictResponse */
         ConflictResponse: {
             detail: components["schemas"]["ConflictDetail"];
+        };
+        /** ConnectionSettings */
+        ConnectionSettings: {
+            /**
+             * Mode
+             * @default host
+             * @enum {string}
+             */
+            mode: "host" | "client";
+            /** Editor Url */
+            editor_url?: string | null;
+            /**
+             * Zoom Text Format
+             * @default plain
+             * @enum {string}
+             */
+            zoom_text_format: "plain" | "speaker";
+        };
+        /** ConnectionStatus */
+        ConnectionStatus: {
+            /**
+             * Mode
+             * @default host
+             * @enum {string}
+             */
+            mode: "host" | "client";
+            /**
+             * State
+             * @default waiting
+             * @enum {string}
+             */
+            state: "waiting" | "connecting" | "live" | "retrying" | "failed";
+            /**
+             * Message
+             * @default UDトークからの字幕を待っています。
+             */
+            message: string;
+            /** Receiver Path */
+            receiver_path?: string | null;
+            /**
+             * Received Events
+             * @default 0
+             */
+            received_events: number;
+            /**
+             * Zoom Text Format
+             * @default plain
+             * @enum {string}
+             */
+            zoom_text_format: "plain" | "speaker";
+            /**
+             * Editor Configured
+             * @default false
+             */
+            editor_configured: boolean;
+            /** Editable Caption Ids */
+            editable_caption_ids?: string[];
+            /**
+             * Client Verified
+             * @default false
+             * @constant
+             */
+            client_verified: false;
         };
         /** DisplaySettings */
         DisplaySettings: {
@@ -467,6 +600,12 @@ export interface components {
              */
             align: "left" | "center";
             /**
+             * Display Mode
+             * @default scroll
+             * @enum {string}
+             */
+            display_mode: "scroll" | "recent";
+            /**
              * History Count
              * @default 1
              */
@@ -477,6 +616,12 @@ export interface components {
              * @enum {string}
              */
             aspect: "window" | "16:9";
+            /**
+             * Speaker Display
+             * @default above
+             * @enum {string}
+             */
+            speaker_display: "hidden" | "inline" | "above";
         };
         /** FormattedResult */
         FormattedResult: {
@@ -499,6 +644,8 @@ export interface components {
             revision: number;
             /** Text */
             text: string;
+            /** Speaker */
+            speaker?: string | null;
         };
         /** PublicSnapshot */
         PublicSnapshot: {
@@ -540,6 +687,8 @@ export interface components {
             revision: number;
             /** Text */
             text: string;
+            /** Speaker */
+            speaker?: string | null;
             /**
              * Is Final
              * @default true
@@ -734,6 +883,124 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UdtalkStatus"];
+                };
+            };
+        };
+    };
+    connection_api_connection_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionStatus"];
+                };
+            };
+        };
+    };
+    set_connection_api_connection_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    receiver_sequence_closedcaption_seq_get: {
+        parameters: {
+            query?: {
+                signature?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    receive_caption_closedcaption_post: {
+        parameters: {
+            query: {
+                seq: number;
+                uttrId: string;
+                signature?: string;
+                lang?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

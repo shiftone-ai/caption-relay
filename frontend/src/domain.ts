@@ -5,6 +5,8 @@ export type DisplaySettings = Required<components["schemas"]["DisplaySettings"]>
 export type PublicationMode = components["schemas"]["PublicationMode"];
 export type AiSettings = Required<components["schemas"]["AiSettings"]>;
 export type AiRouting = Omit<components["schemas"]["AiRouting"], "settings"> & { settings: AiSettings };
+export type ConnectionStatus = Required<components["schemas"]["ConnectionStatus"]>;
+export type ConnectionSettings = components["schemas"]["ConnectionSettings"];
 
 export interface Snapshot {
   visible: boolean;
@@ -12,6 +14,8 @@ export interface Snapshot {
   autoPublish?: boolean;
   display?: DisplaySettings;
   ai?: AiRouting;
+  connection?: ConnectionStatus;
+  receiverUrl?: string;
 }
 
 export type PublicSnapshot = components["schemas"]["PublicSnapshot"];
@@ -19,6 +23,7 @@ export type PublicSnapshot = components["schemas"]["PublicSnapshot"];
 export interface Draft {
   text: string;
   baseRevision: number;
+  baseSourceRevision?: number;
   conflict?: string;
 }
 
@@ -37,7 +42,14 @@ export interface StatusTooltipGeometry {
   viewportHeight: number;
 }
 
+export const disclosureIds = [
+  "publication-help", "preparation", "display-speaker", "display-appearance", "display-layout", "display-help",
+  "ai-help", "ai-comparison", "connection-host-help", "connection-client-help",
+] as const;
+export type DisclosureId = typeof disclosureIds[number] | `caption-saved:${string}` | `caption-ai:${string}`;
+
 export type OperatorEvent =
+  | { type: "disclosure.toggled"; id: DisclosureId }
   | { type: "caption.draft.changed"; captionId: string; text: string }
   | { type: "caption.save.requested"; captionId: string }
   | { type: "caption.edit.requested"; captionId: string }
@@ -61,18 +73,26 @@ export type OperatorEvent =
   | { type: "ai.preferred.selected"; modelId: string }
   | { type: "ai.candidate.changed"; modelId: string; included: boolean }
   | { type: "ai.save.requested" }
+  | { type: "connection.settings.toggled" }
+  | { type: "connection.mode.selected"; mode: string }
+  | { type: "connection.url.changed"; url: string }
+  | { type: "connection.text-format.selected"; format: string }
+  | { type: "connection.save.requested" }
   | { type: "visibility.toggle.requested" }
   | { type: "test.requested" }
   | { type: "refresh.requested" };
 
 export type AudienceEvent =
+  | { type: "display.scrolled"; scrollHeight: number; clientHeight: number; scrollTop: number }
+  | { type: "display.latest.requested" }
   | { type: "display.fullscreen.requested" }
   | { type: "display.fullscreen.changed"; active: boolean }
   | { type: "stream.opened" }
   | { type: "stream.failed" }
   | { type: "stream.snapshot"; snapshot: PublicSnapshot };
 
-export type ViewEvent = OperatorEvent | Extract<AudienceEvent, { type: "display.fullscreen.requested" }>;
+export type AudienceViewEvent = Extract<AudienceEvent, { type: "display.fullscreen.requested" | "display.scrolled" | "display.latest.requested" }>;
+export type ViewEvent = OperatorEvent | AudienceViewEvent;
 
 export interface FullscreenAdapter {
   available: boolean;
@@ -89,6 +109,7 @@ export interface OperatorApi {
   setPublicationMode(mode: PublicationMode, signal: AbortSignal): Promise<PublicationMode>;
   setDisplay(settings: DisplaySettings, signal: AbortSignal): Promise<DisplaySettings>;
   setAi(settings: AiSettings, signal: AbortSignal): Promise<AiRouting>;
+  setConnection(settings: ConnectionSettings, signal: AbortSignal): Promise<ConnectionStatus>;
 }
 
 export interface AudienceApi {
@@ -100,3 +121,5 @@ export class CaptionConflict extends Error {
     super("Caption revision conflict");
   }
 }
+
+export class OperationError extends Error {}
