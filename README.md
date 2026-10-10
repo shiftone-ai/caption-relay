@@ -45,3 +45,7 @@ bash scripts/check.sh
 ```
 
 [AGENTS.md](AGENTS.md)が変更ルール、[システム構成](ARCHITECTURE.md)が実装の入口です。作業ごとの参照先は[ドキュメント一覧](docs/index.md)から選べます。
+
+## ライセンス
+
+[MITライセンス](LICENSE)で提供します。著作権表示は `Copyright (c) 2026 shiftone-ai` です。
