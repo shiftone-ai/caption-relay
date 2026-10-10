@@ -13,8 +13,8 @@ def test_native_helper_probes_without_microphone_or_api_keys():
     if not HELPER.exists():
         if not shutil.which("xcrun"):
             pytest.skip("The macOS 26 SDK is unavailable")
-        version = subprocess.run(["xcrun", "--sdk", "macosx", "--show-sdk-version"], capture_output=True, check=True).stdout
-        if int(version.split(b".")[0]) < 26:
+        sdk = subprocess.run(["xcrun", "--sdk", "macosx", "--show-sdk-version"], capture_output=True)
+        if sdk.returncode or int(sdk.stdout.split(b".")[0]) < 26:
             pytest.skip("The macOS 26 SDK is unavailable")
         pytest.fail("Build the native helper before running macOS checks")
     result = subprocess.run([str(HELPER), "--probe"], capture_output=True, timeout=10, check=True)
