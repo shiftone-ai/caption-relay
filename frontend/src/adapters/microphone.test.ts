@@ -30,7 +30,7 @@ it("rejects a failed finalization instead of reporting a successful stop and rel
     close() { this.readyState = 3; queueMicrotask(() => this.onclose()); }
   });
   const states: string[] = [];
-  const session = await createMicrophoneAdapter().start("", new AbortController().signal, state => states.push(state.state));
+  const session = await createMicrophoneAdapter().start({ deviceId: "", recognizer: "apple" }, new AbortController().signal, state => states.push(state.state));
   await expect(session.stop()).rejects.toThrow("確定できませんでした。");
   expect(states).toEqual(["live", "failed"]);
   expect(stop).toHaveBeenCalled();

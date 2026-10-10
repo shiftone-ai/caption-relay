@@ -13,7 +13,7 @@ export interface MicrophoneSession { label: string; stop(): Promise<void> }
 export interface MicrophoneAdapter {
   available: boolean;
   devices(): Promise<MicrophoneDevice[]>;
-  start(deviceId: string, signal: AbortSignal, status: (state: TranscriptionStatus) => void): Promise<MicrophoneSession>;
+  start(input: { deviceId: string; recognizer: ConnectionStatus["recognizer"] }, signal: AbortSignal, status: (state: TranscriptionStatus) => void): Promise<MicrophoneSession>;
 }
 
 export interface Snapshot {

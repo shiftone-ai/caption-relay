@@ -30,12 +30,29 @@ def test_start_without_a_repository_key_fails_without_recording_or_other_input()
     with TestClient(create_app(environment={})) as client:
         client.put("/api/connection", json={"mode": "host", "input_source": "microphone"}).raise_for_status()
         with client.websocket_connect("/api/source/audio", headers={"origin": "http://testserver"}) as audio:
-            audio.send_json({"type": "start", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
+            audio.send_json({"type": "start", "recognizer": "openai", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
             state = audio.receive_json()
             assert state["type"] == "status" and state["status"]["state"] == "failed"
             assert "キー" in state["status"]["message"]
         assert client.get("/api/connection").json()["transcription"]["state"] == "failed"
         assert client.get("/api/events").json() == []
+
+
+def test_a_stale_recognizer_choice_never_connects_to_the_new_provider(tmp_path: Path):
+    peers = []
+    async def connector(key):
+        peer = ProviderSocket()
+        peers.append(peer)
+        return peer
+    env = {"CAPTION_RELAY_OPENAI_API_KEY": secrets.token_hex(16), "CAPTION_RELAY_STT_JPY_PER_USD": "200",
+           "CAPTION_RELAY_STT_USAGE_PATH": str(tmp_path / "usage.json")}
+    with TestClient(create_app(environment=env, audio_connector=connector)) as client:
+        client.put("/api/connection", json={"input_source": "microphone", "recognizer": "openai"}).raise_for_status()
+        with client.websocket_connect("/api/source/audio", headers={"origin": "http://testserver"}) as audio:
+            audio.send_json({"type": "start", "recognizer": "apple", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
+            state = audio.receive_json()["status"]
+            assert state["state"] == "failed" and "変更" in state["message"]
+        assert peers == []
 
 
 def test_audio_reaches_the_provider_and_final_captions_reach_the_audience(tmp_path: Path):
@@ -49,7 +66,7 @@ def test_audio_reaches_the_provider_and_final_captions_reach_the_audience(tmp_pa
     with TestClient(create_app(environment=env, audio_connector=connector)) as client:
         client.put("/api/connection", json={"mode": "host", "input_source": "microphone"}).raise_for_status()
         with client.websocket_connect("/api/source/audio", headers={"origin": "http://testserver"}) as audio:
-            audio.send_json({"type": "start", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
+            audio.send_json({"type": "start", "recognizer": "openai", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
             assert audio.receive_json()["status"]["state"] == "preparing"
             assert audio.receive_json()["status"]["state"] == "live"
             for frame in range(3):
@@ -84,7 +101,7 @@ def test_a_gap_stops_audio_and_releases_the_lease_without_publishing(tmp_path: P
     with TestClient(create_app(environment=env, audio_connector=connector)) as client:
         client.put("/api/connection", json={"input_source": "microphone"}).raise_for_status()
         with client.websocket_connect("/api/source/audio", headers={"origin": "http://testserver"}) as audio:
-            audio.send_json({"type": "start", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
+            audio.send_json({"type": "start", "recognizer": "openai", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
             audio.receive_json()
             audio.receive_json()
             audio.send_bytes(struct.pack("!II", 1, 4800) + bytes(9600))
@@ -106,11 +123,11 @@ def test_switching_input_closes_recognition_and_rejects_a_second_microphone(tmp_
     with TestClient(create_app(environment=env, audio_connector=connector)) as client:
         client.put("/api/connection", json={"input_source": "microphone"}).raise_for_status()
         with client.websocket_connect("/api/source/audio", headers={"origin": "http://testserver"}) as first:
-            first.send_json({"type": "start", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
+            first.send_json({"type": "start", "recognizer": "openai", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
             assert first.receive_json()["status"]["state"] == "preparing"
             assert first.receive_json()["status"]["state"] == "live"
             with client.websocket_connect("/api/source/audio", headers={"origin": "http://testserver"}) as second:
-                second.send_json({"type": "start", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
+                second.send_json({"type": "start", "recognizer": "openai", "sample_rate": 48000, "channels": 1, "format": "pcm16"})
                 assert second.receive_json()["status"]["state"] == "failed"
             response = client.put("/api/connection", json={"input_source": "udtalk"})
             response.raise_for_status()

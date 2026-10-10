@@ -234,7 +234,7 @@ export const operatorMachine = setup({
       && context.pendingSave?.captionId !== event.captionId,
   },
   actions: {
-    startMicrophone: sendTo("microphone", ({ context }) => ({ type: "start", deviceId: context.microphoneDeviceId })),
+    startMicrophone: sendTo("microphone", ({ context }) => ({ type: "start", deviceId: context.microphoneDeviceId, recognizer: context.connection.recognizer })),
     stopMicrophone: sendTo("microphone", { type: "stop" }),
     toggleDisclosure: assign(({ context, event }) => {
       if (event.type !== "disclosure.toggled") return {};
