@@ -54,9 +54,13 @@ class CaptionWorkflow:
             self._ai_paused -= 1
 
     async def configure(self, settings: ConnectionSettings) -> ConnectionStatus:
-        result = await self.connections.configure(settings, self._cancel_ai)
-        self.relay.connection_mode(settings.mode)
-        return result
+        self._ai_paused += 1
+        try:
+            result = await self.connections.configure(settings, self._cancel_ai)
+            self.relay.connection_mode(settings.mode)
+            return result
+        finally:
+            self._ai_paused -= 1
 
     def source_event(self, event: SourceEvent, remote_edit: bool = False) -> Caption | SourceIgnored:
         result = self.relay.source_event(event, remote_edit=remote_edit)
