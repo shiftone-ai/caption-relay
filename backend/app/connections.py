@@ -25,7 +25,7 @@ class Connections:
         self.input_source: InputSource = "udtalk"
         self.recognizer: RecognizerId = "openai"
         self._environment: Mapping[str, str] = environment if environment is not None else {}
-        self.microphone = MicrophoneInput(self._environment, lambda event: accept(event, False), audio_connector,
+        self.microphone = MicrophoneInput(self._environment, self._receive_microphone, audio_connector,
             allowed=lambda provider: self.mode == "host" and self.input_source == "microphone" and self.recognizer == provider)
         self.receiver = ZoomInput()
         self.web = UdtalkWebInput(web_url, self._receive_web)
@@ -70,6 +70,14 @@ class Connections:
         if self.mode != "host" or self.input_source != "udtalk":
             return SourceIgnored(status="stale")
         return self._accept(event, False)
+
+    def _receive_microphone(self, event: SourceEvent) -> Caption | SourceIgnored:
+        if self.mode != "host" or self.input_source != "microphone":
+            return SourceIgnored(status="stale")
+        accepted = self._accept(event, False)
+        if isinstance(accepted, Caption):
+            self._status.received_events += 1
+        return accepted
 
     def _receive_editor(self, event: SourceEvent, edited: bool) -> None:
         self._accept(event, edited)

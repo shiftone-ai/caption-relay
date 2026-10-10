@@ -62,7 +62,7 @@ export function createMicrophoneAdapter(): MicrophoneAdapter {
               status(packet.status);
               if (packet.status.state === "live") finish();
               if (packet.status.state === "failed") { failure = packet.status.message; finish(new OperationError(packet.status.message)); release(); }
-              if (packet.status.state === "stopped") { stopped = true; completed?.(); }
+              if (packet.status.state === "stopped") { stopped = true; completed?.(); release(); }
             } catch { finish(new OperationError("認識の状態を確認できませんでした。")); fail("認識の状態を確認できませんでした。"); }
           };
           connection.onerror = () => { finish(new OperationError("音声認識へ接続できませんでした。")); fail("音声認識へ接続できませんでした。"); };

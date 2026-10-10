@@ -15,7 +15,7 @@ from typing import Literal
 
 from ..models import Model, RecognizerId, RecognizerOption, SourceEvent, TranscriptionStatus
 from .audio import PCMStream
-from .budget import TrialBudget
+from .budget import TrialBudget, TrialUsage
 from .openai import Connector, OpenAIRecognizer, TranscriptionError, openai_connect
 from .apple import AppleRecognizer, apple_option
 
@@ -61,11 +61,16 @@ class MicrophoneInput:
         else:
             try:
                 usage = self._budget().usage()
+                self._report_usage(usage)
                 if usage.sent_samples >= TrialBudget.MAX_SAMPLES or usage.estimated_micro_yen >= TrialBudget.MAX_MICRO_YEN:
                     reason = "試験上限に達しています。"
             except TranscriptionError as error:
                 reason = str(error)
         return [RecognizerOption(id="openai", label="OpenAI", available=not reason, message=reason), apple_option()]
+
+    def _report_usage(self, usage: TrialUsage) -> None:
+        self.status.sent_seconds = usage.sent_samples / 24000
+        self.status.estimated_yen = usage.estimated_micro_yen / 1_000_000
 
     async def stop(self) -> None:
         self._stop.set()
@@ -83,6 +88,7 @@ class MicrophoneInput:
         self._stop = asyncio.Event()
         self._closed.clear()
         recognizer: OpenAIRecognizer | AppleRecognizer | None = None
+        budget: TrialBudget | None = None
         receive: asyncio.Task[Mapping[str, object]] | None = None
         stopping: asyncio.Task[bool] | None = None
         failed: asyncio.Task[bool] | None = None
@@ -100,7 +106,8 @@ class MicrophoneInput:
             if not option.available:
                 raise TranscriptionError(option.message)
             budget = self._budget() if provider == "openai" else None
-            self.status = TranscriptionStatus(state="preparing", message="音声認識へ接続しています。")
+            self.status = TranscriptionStatus(state="preparing", message="音声認識へ接続しています。",
+                sent_seconds=self.status.sent_seconds, estimated_yen=self.status.estimated_yen)
             await self._notify(browser)
             if budget is not None:
                 recognizer = OpenAIRecognizer(self._environment["CAPTION_RELAY_OPENAI_API_KEY"], uuid4().hex,
@@ -143,9 +150,7 @@ class MicrophoneInput:
                             async with asyncio.timeout(3):
                                 await recognizer.push_audio(converted)
                         if budget is not None:
-                            usage = budget.usage()
-                            self.status.sent_seconds = usage.sent_samples / 24000
-                            self.status.estimated_yen = usage.estimated_micro_yen / 1_000_000
+                            self._report_usage(budget.usage())
                     elif isinstance(message.get("text"), str):
                         AudioStop.model_validate_json(str(message["text"]))
                         break
@@ -156,9 +161,7 @@ class MicrophoneInput:
                 await recognizer.push_audio(remainder)
             await recognizer.finish()
             if budget is not None:
-                usage = budget.usage()
-                self.status.sent_seconds = usage.sent_samples / 24000
-                self.status.estimated_yen = usage.estimated_micro_yen / 1_000_000
+                self._report_usage(budget.usage())
             self.status.state = "stopped"
             self.status.message = "マイクの認識を停止しました。"
             await self._notify(browser)
@@ -166,6 +169,11 @@ class MicrophoneInput:
             self.status.state = "stopped"
             self.status.message = "マイクの接続が終了しました。未確定の字幕を保持しています。"
         except (TranscriptionError, OSError, WebSocketException, ValueError, TimeoutError) as error:
+            if budget is not None:
+                try:
+                    self._report_usage(budget.usage())
+                except TranscriptionError:
+                    pass
             self.status.state = "failed"
             self.status.message = str(error) if isinstance(error, TranscriptionError) else "音声認識を停止しました。マイク・通信・設定を確認してください。"
             try:

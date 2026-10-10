@@ -19,7 +19,10 @@ export const microphoneActor = fromCallback<Command, { adapter?: MicrophoneAdapt
       controller = new AbortController();
       const signal = controller.signal;
       void input.adapter?.start({ deviceId: command.deviceId, recognizer: command.recognizer }, signal, status => {
-        if (current === generation) emit({ type: "microphone.state.changed", state: status.state, message: status.message });
+        if (current === generation) {
+          if (status.state === "failed" || status.state === "stopped") session = null;
+          emit({ type: "microphone.state.changed", state: status.state, message: status.message });
+        }
       }).then(async result => {
         if (current !== generation) { await result.stop(); return; }
         session = result;
