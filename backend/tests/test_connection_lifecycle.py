@@ -138,6 +138,49 @@ def test_shutdown_keeps_ai_paused_while_the_editor_departure_is_pending():
     asyncio.run(verify())
 
 
+def test_reconfiguration_pauses_ai_before_web_departure_finishes():
+    async def verify():
+        relay = CaptionRelay()
+        viewer = ViewerServer()
+        native = NativeServer()
+        departing = asyncio.Event()
+        release = asyncio.Event()
+        ai_requests = 0
+
+        async def web_handle(request):
+            if "/awayWebTalk/" in request.url.path:
+                departing.set()
+                await release.wait()
+            return viewer.handle(request)
+
+        def ai_handle(_):
+            nonlocal ai_requests
+            ai_requests += 1
+            return httpx.Response(200, json={"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "訂正文"}]}}]})
+
+        workflow = CaptionWorkflow(relay, URL, {"GEMINI_API_KEY": "test-key"}, httpx.MockTransport(ai_handle),
+                                   httpx.MockTransport(native.handle))
+        workflow.connections.web = UdtalkWebInput(URL, workflow.source_event, httpx.MockTransport(web_handle))
+        workflow.start()
+        await wait_until(lambda: workflow.connections.web.status.state == "live")
+        relay.ai_settings(AiSettings(strategy="manual"))
+        transition = asyncio.create_task(workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url())))
+        try:
+            await asyncio.wait_for(departing.wait(), 1)
+            workflow.connections.receive(1, "late", "ja-JP", "切替中の受信")
+            await asyncio.sleep(0)
+            assert ai_requests == 0
+            caption = relay.captions()[-1]
+            assert caption.original == caption.text == "切替中の受信"
+            assert caption.ai_status == "failed"
+        finally:
+            release.set()
+            await transition
+            await workflow.stop()
+        assert workflow._tasks == {}
+    asyncio.run(verify())
+
+
 @pytest.mark.parametrize("status", [401, 403, 404])
 def test_editor_permanent_http_rejection_stops_without_retry_or_private_message(status):
     async def verify():
