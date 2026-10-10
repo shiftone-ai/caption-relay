@@ -8,6 +8,11 @@ dependencies = [
   "uvicorn[standard]>=0.30",
   "httpx2>=2.13.1",
   "cryptography>=50.0.2",
+  "websockets>=17,<18",
+  "webrtcvad-wheels>=2.0.14,<3",
+  "soxr>=1.1,<2",
+  "numpy>=2,<3",
+  "anyio>=4.12,<5",
 ]
 
 [project.optional-dependencies]

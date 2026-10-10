@@ -5,7 +5,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from collections.abc import Mapping
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket
+from urllib.parse import urlsplit
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import httpx2 as httpx
@@ -19,6 +20,7 @@ from .udtalk_web import UdtalkStatus
 from .udtalk_editor import EditorError
 from .workflow import CaptionWorkflow
 from .zoom_input import ReceiverError
+from .transcription.openai import Connector, openai_connect
 
 BASE = Path(__file__).resolve().parents[2]
 FRONTEND = BASE / "frontend" / "dist"
@@ -27,10 +29,10 @@ FRONTEND = BASE / "frontend" / "dist"
 def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = None,
                environment: Mapping[str, str] | None = None,
                ai_transport: httpx.AsyncBaseTransport | None = None,
-               editor_transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
+               editor_transport: httpx.AsyncBaseTransport | None = None, audio_connector: Connector = openai_connect) -> FastAPI:
     service = relay if relay is not None else CaptionRelay()
     workflow = CaptionWorkflow(service, udtalk_url, environment if environment is not None else os.environ,
-                               ai_transport, editor_transport)
+                               ai_transport, editor_transport, audio_connector)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
@@ -66,6 +68,8 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
 
     @application.post("/api/source/events", response_model=Caption | SourceIgnored)
     async def source_event(event: SourceEvent) -> Caption | SourceIgnored:
+        if workflow.connections.input_source != "udtalk":
+            raise HTTPException(409, "マイク以外の入力は停止しています。")
         return workflow.source_event(event)
 
     @application.get("/api/source/udtalk", response_model=UdtalkStatus)
@@ -83,10 +87,21 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
         except EditorError as error:
             raise HTTPException(422, str(error)) from None
 
+    @application.websocket("/api/source/audio")
+    async def microphone_audio(socket: WebSocket) -> None:
+        origin = socket.headers.get("origin")
+        parsed = urlsplit(origin or "")
+        if (parsed.scheme not in {"http", "https"} or parsed.netloc != socket.headers.get("host")
+                or workflow.connections.mode != "host" or workflow.connections.input_source != "microphone"):
+            await socket.close(code=1008)
+            return
+        await socket.accept()
+        await workflow.connections.microphone.serve(socket, workflow.connections.recognizer)
+
     def authorize_receiver(signature: str) -> None:
         if not workflow.connections.receiver.authorized(signature):
             raise HTTPException(403, "invalid receiver token")
-        if workflow.connections.mode != "host":
+        if workflow.connections.mode != "host" or workflow.connections.input_source != "udtalk":
             raise HTTPException(409, "receiver is inactive")
 
     @application.get("/closedcaption/seq", response_class=PlainTextResponse)

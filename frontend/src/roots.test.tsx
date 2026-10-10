@@ -15,6 +15,26 @@ import { ToolbarView } from "./views/operator/toolbar";
 afterEach(cleanup);
 const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
 
+it("applies microphone input without starting recognition and explains a missing key", async () => {
+  let connection = defaultConnection;
+  const api: OperatorApi = {
+    load: vi.fn().mockImplementation(() => Promise.resolve({ visible: true, captions: [], connection })),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(),
+    setConnection: vi.fn().mockImplementation(settings => {
+      connection = { ...defaultConnection, ...settings, recognizers: [{ id: "openai", label: "OpenAI", available: false, message: "このリポジトリ用のOpenAIキーが設定されていません。" }] };
+      return Promise.resolve(connection);
+    }),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "字幕入力の接続設定" }));
+  await user.selectOptions(screen.getByRole("combobox", { name: "字幕の入力元" }), "microphone");
+  await user.click(screen.getByRole("button", { name: "接続を適用" }));
+  await waitFor(() => expect(api.setConnection).toHaveBeenCalledWith(expect.objectContaining({ input_source: "microphone", recognizer: "openai" }), expect.any(AbortSignal)));
+  expect((screen.getByRole("button", { name: "認識を開始" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText("このリポジトリ用のOpenAIキーが設定されていません。")).toBeTruthy();
+}, 20000);
+
 it("applies the explicit Zoom speaker format and retains it when settings reopen", async () => {
   let connection = { ...defaultConnection };
   const api: OperatorApi = {
@@ -27,19 +47,19 @@ it("applies the explicit Zoom speaker format and retains it when settings reopen
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "UDトークの接続設定" }));
+  await user.click(await screen.findByRole("button", { name: "字幕入力の接続設定" }));
   expect((screen.getByRole("combobox", { name: "送られる字幕" }) as HTMLSelectElement).value).toBe("plain");
   await user.selectOptions(screen.getByRole("combobox", { name: "送られる字幕" }), "speaker");
   await user.click(screen.getByRole("button", { name: "接続設定を閉じる" }));
-  await user.click(screen.getByRole("button", { name: "UDトークの接続設定" }));
+  await user.click(screen.getByRole("button", { name: "字幕入力の接続設定" }));
   expect((screen.getByRole("combobox", { name: "送られる字幕" }) as HTMLSelectElement).value).toBe("speaker");
   await user.click(screen.getByRole("button", { name: "接続を適用" }));
   await waitFor(() => expect(api.setConnection).toHaveBeenCalledWith(
-    { mode: "host", editor_url: null, zoom_text_format: "speaker" }, expect.any(AbortSignal),
+    { mode: "host", editor_url: null, zoom_text_format: "speaker", input_source: "udtalk", recognizer: "openai" }, expect.any(AbortSignal),
   ));
   await waitFor(() => expect(screen.getByRole("button", { name: "接続を適用" }).hasAttribute("disabled")).toBe(true));
   await user.click(screen.getByRole("button", { name: "接続設定を閉じる" }));
-  await user.click(screen.getByRole("button", { name: "UDトークの接続設定" }));
+  await user.click(screen.getByRole("button", { name: "字幕入力の接続設定" }));
   expect((screen.getByRole("combobox", { name: "送られる字幕" }) as HTMLSelectElement).value).toBe("speaker");
 });
 

@@ -501,6 +501,18 @@ export interface components {
              * @enum {string}
              */
             zoom_text_format: "plain" | "speaker";
+            /**
+             * Input Source
+             * @default udtalk
+             * @enum {string}
+             */
+            input_source: "udtalk" | "microphone";
+            /**
+             * Recognizer
+             * @default openai
+             * @enum {string}
+             */
+            recognizer: "openai" | "apple";
         };
         /** ConnectionStatus */
         ConnectionStatus: {
@@ -547,6 +559,21 @@ export interface components {
              * @constant
              */
             client_verified: false;
+            /**
+             * Input Source
+             * @default udtalk
+             * @enum {string}
+             */
+            input_source: "udtalk" | "microphone";
+            /**
+             * Recognizer
+             * @default openai
+             * @enum {string}
+             */
+            recognizer: "openai" | "apple";
+            transcription?: components["schemas"]["TranscriptionStatus"];
+            /** Recognizers */
+            recognizers?: components["schemas"]["RecognizerOption"][];
         };
         /** DisplaySettings */
         DisplaySettings: {
@@ -660,6 +687,20 @@ export interface components {
             /** Auto Publish */
             auto_publish: boolean;
         };
+        /** RecognizerOption */
+        RecognizerOption: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "openai" | "apple";
+            /** Label */
+            label: string;
+            /** Available */
+            available: boolean;
+            /** Message */
+            message: string;
+        };
         /** Session */
         Session: {
             /**
@@ -711,6 +752,30 @@ export interface components {
              * @enum {string}
              */
             status: "duplicate" | "stale";
+        };
+        /** TranscriptionStatus */
+        TranscriptionStatus: {
+            /**
+             * State
+             * @default stopped
+             * @enum {string}
+             */
+            state: "stopped" | "preparing" | "live" | "retrying" | "failed";
+            /**
+             * Message
+             * @default マイクの認識は停止しています。
+             */
+            message: string;
+            /**
+             * Sent Seconds
+             * @default 0
+             */
+            sent_seconds: number;
+            /**
+             * Estimated Yen
+             * @default 0
+             */
+            estimated_yen: number;
         };
         /** UdtalkStatus */
         UdtalkStatus: {
