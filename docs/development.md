@@ -1,6 +1,6 @@
 # 開発手順
 
-設定確認日：2026-10-07
+設定確認日：2026-10-10
 
 リポジトリのルートで以下のコマンドを実行する。Codex Cloud と SSH 接続の固有手順は[リモート開発](remote-development.md)を参照する。
 
@@ -46,15 +46,9 @@ npm --prefix frontend run dev
 | `OPENAI_API_KEY` | OpenAIのAPIキー | 未設定 |
 | `CAPTION_RELAY_AI_TIMEOUT_SECONDS` | AI要求全体の制限時間。0より大きく120以下 | `15` |
 
-バックエンドのポートを変更するときは、Vite の接続先も合わせる。
+バックエンドのポートを変更するときは、`CAPTION_RELAY_PORT` と Vite の `CAPTION_RELAY_API_URL` を合わせて設定する。値の記入例は [.env.example](../.env.example) を参照する。
 
 UDトークの実験用入力Adapterの設定・実機確認は[UDトークの入力接続](udtalk-input.md)を参照する。閲覧リンクは秘密として扱い、ログやPRに含めない。
-
-```bash
-CAPTION_RELAY_PORT=24685 bash scripts/dev.sh
-# 別のターミナルで実行
-CAPTION_RELAY_API_URL=http://127.0.0.1:24685 npm --prefix frontend run dev
-```
 
 [.env.example](../.env.example)が設定項目の一覧。起動スクリプトは `.env` を読み込まないため、起動するシェルの環境変数で渡す。Geminiを使う例：
 
