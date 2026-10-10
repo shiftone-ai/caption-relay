@@ -1,12 +1,12 @@
 import { memo, useEffect, useRef } from "react";
-import { ArrowDown, AudioLines, Check, Clock3, Eye, EyeOff, FileText, LoaderCircle, Pencil, PencilLine, Sparkles, Undo2, UserRoundPen } from "lucide-react";
+import { ArrowDown, Cable, Eye, EyeOff, FileText, LoaderCircle, Pencil, PencilLine, Sparkles, Undo2, UserRoundPen } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { viewHierarchy } from "../../events/hierarchy";
 import type { OperatorParameters, RowParameters } from "../../presenters/operator";
 
 const { Scope } = viewHierarchy;
 const sourceIcons = { saving: LoaderCircle, unsaved: PencilLine, human: UserRoundPen, ai: Sparkles, original: FileText };
-const publicationIcons = { hidden: EyeOff, updating: Clock3, live: Eye, published: Check, receiving: AudioLines, waiting: Clock3 };
+const publicationIcons = { hidden: EyeOff, updating: Eye, live: Eye, published: EyeOff, receiving: EyeOff, waiting: EyeOff, native: Cable };
 
 function CaptionRowContent({ row }: { row: RowParameters }) {
   const sourceTrigger = useRef<HTMLSpanElement>(null);
@@ -54,6 +54,7 @@ function CaptionRowContent({ row }: { row: RowParameters }) {
           <span id={descriptionId} className="sr-only">{row.contentDescription}</span>
           <time id={timeId} className="caption-received-time" dateTime={row.receivedAt} title={row.timeDescription} aria-label={row.timeDescription}>{row.timeLabel}</time>
           <div className="caption-text">
+            {row.speaker && <span className="caption-row-speaker">{row.speaker}</span>}
             <button className="caption-edit-text" disabled={row.editDisabled} aria-label={"編集：" + row.text}
               aria-describedby={timeId} aria-expanded={row.editing}
               onClick={() => emit({ type: "caption.edit.requested", captionId: row.id })}>{row.text}</button>
@@ -126,14 +127,14 @@ export function CaptionListView({ parameters }: { parameters: OperatorParameters
       {emit => {
         notify.current = emit;
         return <section className="caption-list" aria-label="字幕一覧">
-          <header className="caption-list-heading"><h2>保存済みの表示文</h2></header>
+          <header className="caption-list-heading"><h2>字幕一覧</h2></header>
           <div ref={viewport} className="caption-viewport" onScroll={event => {
             const node = event.currentTarget;
             emit({ type: "timeline.scrolled", scrollHeight: node.scrollHeight, clientHeight: node.clientHeight, scrollTop: node.scrollTop });
           }}>
             <div ref={content} className="caption-history-content">
               {parameters.rows.map(row => <CaptionRowView row={row} key={row.id} />)}
-              {!parameters.rows.length && <div className="caption-empty"><h2>{parameters.loading ? "字幕を読み込んでいます" : "字幕を待っています"}</h2><p>入力を受信すると、保存済みの表示文がここに並びます。字幕を選ぶと原文を確認して訂正できます。「準備」から「テスト字幕を送る」を選ぶか、入力 API から字幕を送って表示を確認できます。</p></div>}
+              {!parameters.rows.length && <div className="caption-empty"><h2>{parameters.loading ? "字幕を読み込んでいます" : "字幕を待っています"}</h2></div>}
             </div>
           </div>
           <footer className="caption-list-footer"><span>{parameters.rows.length} 件<span className="caption-follow-state"> · {parameters.followLabel}</span></span>

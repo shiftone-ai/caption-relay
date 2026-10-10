@@ -1,4 +1,4 @@
-"""Selects a model and records routing plans; provider execution is not connected yet."""
+"""Selects a model and records routing plans and provider availability."""
 
 from collections import deque
 from statistics import median
@@ -24,15 +24,23 @@ class AiRouter:
     def __init__(self) -> None:
         self._settings = AiSettings()
         self._latencies: dict[AiModelId, deque[float]] = {}
+        self._available: set[AiModelId] = set()
+
+    def set_available(self, models: set[AiModelId]) -> None:
+        self._available = set(models)
 
     def snapshot(self) -> AiRouting:
         models = [model.model_copy(deep=True) for model in MODELS]
         for model in models:
+            model.configured = model.id in self._available
             samples = self._latencies.get(model.id)
             if samples:
                 model.measured_latency_ms = median(samples)
                 model.latency_samples = len(samples)
         candidates = [model for model in models if model.id in self._settings.candidates]
+        configured = [model for model in candidates if model.configured]
+        if configured:
+            candidates = configured
         strategy = self._settings.strategy
         selected = self._settings.preferred_model
         reason = strategy
@@ -50,9 +58,11 @@ class AiRouter:
             if measured:
                 selected = min(measured, key=lambda model: (model.measured_latency_ms or 0, model.id)).id
             else:
+                if selected not in {model.id for model in candidates}:
+                    selected = candidates[0].id
                 reason = "unmeasured"
         return AiRouting(settings=self._settings.model_copy(deep=True), models=models,
-                         selected_model=selected, reason=reason)
+                         selected_model=selected, reason=reason, connected=selected in self._available)
 
     def configure(self, settings: AiSettings) -> AiRouting:
         self._settings = settings.model_copy(deep=True)

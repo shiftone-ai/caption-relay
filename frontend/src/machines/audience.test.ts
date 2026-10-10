@@ -9,6 +9,20 @@ function fullscreen(): FullscreenAdapter {
   return { available: true, isActive: () => false, subscribe: vi.fn(() => vi.fn()), setActive: vi.fn().mockResolvedValue(undefined) };
 }
 
+it("declines operator events without changing the audience or invoking its adapter", () => {
+  const adapter = fullscreen();
+  const actor = createActor(audienceMachine, { input: { api: { subscribe: () => () => {} }, fullscreen: adapter } }).start();
+  try {
+    const before = actor.getSnapshot().context;
+    for (const event of [{ type: "test.requested" } as const, { type: "disclosure.toggled", id: "preparation" } as const]) {
+      expect(actor.getSnapshot().can(event)).toBe(false);
+      actor.send(event);
+    }
+    expect(actor.getSnapshot().context).toBe(before);
+    expect(adapter.setActive).not.toHaveBeenCalled();
+  } finally { actor.stop(); }
+});
+
 it("keeps the last public caption during reconnect and closes the stream on stop", () => {
   let emit!: (event: AudienceEvent) => void;
   const close = vi.fn();
@@ -31,7 +45,7 @@ it("applies shared display settings and shows only the selected number of public
   let emit!: (event: AudienceEvent) => void;
   const actor = createActor(audienceMachine, { input: { api: { subscribe(callback) { emit = callback; return () => {}; } }, fullscreen: fullscreen() } }).start();
   emit({ type: "stream.snapshot", snapshot: {
-    visible: true, display: { ...defaultDisplay, font_size: 48, history_count: 2, background: "#ffffff" },
+    visible: true, display: { ...defaultDisplay, display_mode: "recent", font_size: 48, history_count: 2, background: "#ffffff" },
     captions: [{ id: "1", revision: 1, text: "古い文" }, { id: "2", revision: 2, text: "前の文" }, { id: "3", revision: 3, text: "最新の文" }],
   } });
   expect(presentAudience(actor.getSnapshot()).texts).toEqual(["前の文", "最新の文"]);

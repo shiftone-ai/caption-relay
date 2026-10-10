@@ -12,10 +12,10 @@ from app.udtalk import UdtalkDecoder, UdtalkProtocolError, WebMessage
 
 
 def message(text="認識文", *, identifier="speech:00", phase="finalized", clock=1.0,
-            end=True, kind=0):
+            end=True, kind=0, speaker=None, detected_name=None):
     return WebMessage(meta=json.dumps({
         "utteranceIdentifier": identifier, "phase": phase, "text": text,
-        "connected": {"timestamp": clock, "name": "private speaker"},
+        "connected": {"timestamp": clock, "name": speaker}, "detectedName": detected_name,
         "finalizedTimestamp": clock, "endOfUtterance": end, "type": kind,
         "originalText": "private original", "localeIdentifier": "ja-JP",
     }))
@@ -209,7 +209,7 @@ def test_adapter_events_use_existing_publication_and_edit_rules():
             relay.source_event(event)
         assert relay.captions()[0].text == "手修正"
         assert relay.public_snapshot().captions[0].text == "手修正"
-        assert set(relay.public_snapshot().captions[0].model_dump()) == {"id", "revision", "text"}
+        assert set(relay.public_snapshot().captions[0].model_dump()) == {"id", "revision", "text", "speaker"}
         await stream.aclose()
     asyncio.run(verify())
 
