@@ -131,6 +131,171 @@
         }
       }
     },
+    "/api/connection": {
+      "get": {
+        "summary": "Connection",
+        "operationId": "connection_api_connection_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set Connection",
+        "operationId": "set_connection_api_connection_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/closedcaption/seq": {
+      "get": {
+        "summary": "Receiver Sequence",
+        "operationId": "receiver_sequence_closedcaption_seq_get",
+        "parameters": [
+          {
+            "name": "signature",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Signature"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/closedcaption": {
+      "post": {
+        "summary": "Receive Caption",
+        "operationId": "receive_caption_closedcaption_post",
+        "parameters": [
+          {
+            "name": "seq",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Seq"
+            }
+          },
+          {
+            "name": "uttrId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "title": "Uttrid"
+            }
+          },
+          {
+            "name": "signature",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Signature"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "ja-JP",
+              "title": "Lang"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/captions/{caption_id}": {
       "patch": {
         "summary": "Patch Caption",
@@ -503,6 +668,11 @@
             "type": "integer",
             "title": "Latency Samples",
             "default": 0
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -644,7 +814,6 @@
           },
           "connected": {
             "type": "boolean",
-            "const": false,
             "title": "Connected",
             "default": false
           }
@@ -732,6 +901,18 @@
             "type": "string",
             "title": "Text"
           },
+          "speaker": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker"
+          },
           "human_edited": {
             "type": "boolean",
             "title": "Human Edited",
@@ -772,6 +953,18 @@
             ],
             "title": "Public Text"
           },
+          "public_speaker": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Speaker"
+          },
           "public_revision": {
             "anyOf": [
               {
@@ -802,6 +995,30 @@
                 "type": "null"
               }
             ]
+          },
+          "ai_status": {
+            "type": "string",
+            "enum": [
+              "off",
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "unavailable"
+            ],
+            "title": "Ai Status",
+            "default": "off"
+          },
+          "ai_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Error"
           }
         },
         "additionalProperties": false,
@@ -829,6 +1046,18 @@
             "type": "integer",
             "minimum": 1.0,
             "title": "Base Revision"
+          },
+          "base_source_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Source Revision"
           }
         },
         "additionalProperties": false,
@@ -888,6 +1117,119 @@
           "detail"
         ],
         "title": "ConflictResponse"
+      },
+      "ConnectionSettings": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "host",
+              "client"
+            ],
+            "title": "Mode",
+            "default": "host"
+          },
+          "editor_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16384
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editor Url"
+          },
+          "zoom_text_format": {
+            "type": "string",
+            "enum": [
+              "plain",
+              "speaker"
+            ],
+            "title": "Zoom Text Format",
+            "default": "plain"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConnectionSettings"
+      },
+      "ConnectionStatus": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "host",
+              "client"
+            ],
+            "title": "Mode",
+            "default": "host"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "connecting",
+              "live",
+              "retrying",
+              "failed"
+            ],
+            "title": "State",
+            "default": "waiting"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "UDトークからの字幕を待っています。"
+          },
+          "receiver_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receiver Path"
+          },
+          "received_events": {
+            "type": "integer",
+            "title": "Received Events",
+            "default": 0
+          },
+          "zoom_text_format": {
+            "type": "string",
+            "enum": [
+              "plain",
+              "speaker"
+            ],
+            "title": "Zoom Text Format",
+            "default": "plain"
+          },
+          "editor_configured": {
+            "type": "boolean",
+            "title": "Editor Configured",
+            "default": false
+          },
+          "editable_caption_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Editable Caption Ids"
+          },
+          "client_verified": {
+            "type": "boolean",
+            "const": false,
+            "title": "Client Verified",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConnectionStatus"
       },
       "DisplaySettings": {
         "properties": {
@@ -962,6 +1304,15 @@
             "title": "Align",
             "default": "left"
           },
+          "display_mode": {
+            "type": "string",
+            "enum": [
+              "scroll",
+              "recent"
+            ],
+            "title": "Display Mode",
+            "default": "scroll"
+          },
           "history_count": {
             "type": "integer",
             "maximum": 10.0,
@@ -977,6 +1328,16 @@
             ],
             "title": "Aspect",
             "default": "window"
+          },
+          "speaker_display": {
+            "type": "string",
+            "enum": [
+              "hidden",
+              "inline",
+              "above"
+            ],
+            "title": "Speaker Display",
+            "default": "above"
           }
         },
         "additionalProperties": false,
@@ -1039,6 +1400,18 @@
           "text": {
             "type": "string",
             "title": "Text"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker"
           }
         },
         "additionalProperties": false,
@@ -1137,6 +1510,18 @@
           "text": {
             "type": "string",
             "title": "Text"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker"
           },
           "is_final": {
             "type": "boolean",

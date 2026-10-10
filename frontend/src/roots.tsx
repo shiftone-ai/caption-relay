@@ -18,7 +18,7 @@ export function OperatorRoot({ api = operatorApi }: { api?: OperatorApi }) {
   const parameters = useSelector(actor, presentOperator);
   useEffect(() => parameters.hasUnsavedChanges ? protectUnsavedChanges(window) : undefined, [parameters.hasUnsavedChanges]);
   const handle = useCallback((event: ViewEvent) => {
-    if (event.type === "display.fullscreen.requested" || !actor.getSnapshot().can(event)) return false;
+    if (!actor.getSnapshot().can(event)) return false;
     actor.send(event);
     return true;
   }, [actor]);
@@ -32,7 +32,7 @@ export function AudienceRoot({ api = audienceApi, fullscreen }: { api?: Audience
   const actor = useActorRef(audienceMachine, { input: { api, fullscreen: adapter } });
   const parameters = useSelector(actor, presentAudience);
   const handle = useCallback((event: ViewEvent) => {
-    if (event.type !== "display.fullscreen.requested" || !actor.getSnapshot().can(event)) return false;
+    if (!actor.getSnapshot().can(event)) return false;
     actor.send(event);
     return true;
   }, [actor]);

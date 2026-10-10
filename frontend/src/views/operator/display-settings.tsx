@@ -1,5 +1,6 @@
-import { X } from "lucide-react";
+import { Info, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
+import { Disclosure } from "../../components/ui/disclosure";
 import { viewHierarchy } from "../../events/hierarchy";
 import type { DisplayFieldParameters, DisplayParameters } from "../../presenters/operator";
 import { CaptionDisplayView } from "../caption-display";
@@ -10,7 +11,7 @@ export function DisplayFieldView({ parameters }: { parameters: DisplayFieldParam
       {parameters.kind === "color"
         ? <input aria-label={parameters.label + "色"} type="color" value={parameters.value}
           onChange={event => emit({ type: "display.field.changed", field: parameters.field, value: event.currentTarget.value })} />
-        : <select value={parameters.value}
+        : <select data-setting-autofocus={parameters.autofocus || undefined} value={parameters.value}
           onChange={event => emit({ type: "display.field.changed", field: parameters.field, value: event.currentTarget.value })}>
           {parameters.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>}
@@ -22,21 +23,23 @@ export function DisplaySettingsView({ parameters }: { parameters: DisplayParamet
   return <viewHierarchy.Scope name="display-settings">
     {emit => <aside id="display-settings" className="display-settings" aria-label="観客画面の表示設定">
       <div className="display-settings-heading"><h2>表示設定</h2><Button variant="ghost" className="operator-icon-button" aria-label="表示設定を閉じる" intent={{ type: "display.settings.toggled" }}><X size={16} /></Button></div>
-      <p className="display-settings-description">変更はプレビューで確認できます。「表示設定を反映」で観客画面へ送ります。</p>
+      <fieldset disabled={parameters.disabled} className="display-fields display-mode-field">
+        <DisplayFieldView parameters={parameters.modeField} />
+      </fieldset>
+      <fieldset disabled={parameters.disabled} className="display-fields display-field-pair display-primary-fields">
+        {parameters.primaryFields.map(field => <DisplayFieldView key={field.field} parameters={field} />)}
+      </fieldset>
       <figure className="display-preview" aria-label="表示設定のプレビュー">
         <div className="display-sample"><CaptionDisplayView parameters={parameters.preview.display} /></div>
         <figcaption className="display-preview-labels">
-          <p>{parameters.preview.viewportLabel}</p>
-          <p>{parameters.preview.scaleLabel}</p>
-          <p>{parameters.preview.sourceLabel}</p>
+          <p title={parameters.preview.viewportLabel + " · " + parameters.preview.scaleLabel}>{parameters.preview.sourceLabel}</p>
         </figcaption>
       </figure>
-      <div className="display-settings-scroll">
+      <div className="display-settings-scroll operator-panel-scroll">
         <fieldset disabled={parameters.disabled} className="display-fields">
-          {parameters.sections.map(section => <details key={section.id} className="display-setting-group" open={section.open}>
-            <summary>{section.label}</summary>
+          {parameters.sections.map(section => <Disclosure key={section.id} parameters={section.disclosure} className="display-setting-group" summary={section.label}>
             <div className="display-setting-group-fields">
-              {section.palette && <label>配色<select data-setting-autofocus value={parameters.palette}
+              {section.palette && <label>配色<select value={parameters.palette}
                 onChange={event => emit({ type: "display.palette.selected", value: event.currentTarget.value })}>
                 {parameters.palettes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select></label>}
@@ -44,9 +47,12 @@ export function DisplaySettingsView({ parameters }: { parameters: DisplayParamet
                 {group.map(field => <DisplayFieldView key={field.field} parameters={field} />)}
               </div>)}
             </div>
-          </details>)}
+          </Disclosure>)}
         </fieldset>
-        <p className="display-settings-note">書体は観客の端末で変わります。別ディスプレイへ移して「全画面」で読みやすさを確認してください。</p>
+        <Disclosure parameters={parameters.helpDisclosure} className="panel-help" summaryLabel="表示設定の説明" summaryTitle="表示設定の説明" summary={<Info size={16} aria-hidden="true" />}>
+          <p>「表示設定を反映」で観客画面へ送ります。</p>
+          <p>プレビューは1280×800pxを縮小しています。書体は観客の端末により変わります。</p>
+        </Disclosure>
       </div>
       <div className="display-settings-actions">
         <Button className="operator-button display-save" disabled={parameters.saveDisabled} intent={{ type: "display.save.requested" }}>表示設定を反映</Button>

@@ -3,6 +3,17 @@ import { defaultDisplay } from "../display";
 import { presentCaptionDisplay, presentDisplayPreview } from "./display";
 
 const savedTexts = Array.from({ length: 12 }, (_, index) => `${index + 1}件目の字幕。` + "長い日本語の説明が画面の幅に合わせて折り返されます。".repeat(4));
+const savedCaptions = savedTexts.map((text, index) => ({ id: String(index), text }));
+
+it("retains the entire public history in scroll output and preview regardless of the recent count", () => {
+  const settings = { ...defaultDisplay, history_count: 1 };
+  expect(settings.display_mode).toBe("scroll");
+  const actual = presentCaptionDisplay(settings, savedCaptions);
+  expect(actual.texts).toEqual(savedTexts);
+  expect(presentDisplayPreview(settings, savedCaptions).display.texts).toEqual(savedTexts);
+  expect(actual.keyboardScrollable).toBe(true);
+  expect(presentDisplayPreview(settings, savedCaptions).display.keyboardScrollable).toBe(false);
+});
 
 function drawnPixels(value: number | string | undefined, width: number): number {
   if (typeof value === "number") return value;
@@ -22,8 +33,8 @@ it("scales typography, padding and utterance spacing together against the refere
     for (const padding of [0, 96]) {
       for (const line_height of [1.25, 2]) {
         const settings = { ...defaultDisplay, font_size, padding, line_height };
-        const actual = presentCaptionDisplay(settings, savedTexts);
-        const preview = presentDisplayPreview(settings, savedTexts).display;
+        const actual = presentCaptionDisplay(settings, savedCaptions);
+        const preview = presentDisplayPreview(settings, savedCaptions).display;
         for (const field of ["fontSize", "padding", "gap"] as const) {
           expect(drawnPixels(preview.captionStyle[field], 1280)).toBeCloseTo(drawnPixels(actual.captionStyle[field], 1280));
           expect(drawnPixels(preview.captionStyle[field], 256)).toBeCloseTo(drawnPixels(actual.captionStyle[field], 1280) / 5);
@@ -41,8 +52,8 @@ it("scales typography, padding and utterance spacing together against the refere
 });
 
 it("changes the number of characters and lines that fit when typography settings change", () => {
-  const small = presentDisplayPreview({ ...defaultDisplay, font_size: 24, padding: 0, line_height: 1.25 }, savedTexts).display;
-  const large = presentDisplayPreview({ ...defaultDisplay, font_size: 96, padding: 96, line_height: 2 }, savedTexts).display;
+  const small = presentDisplayPreview({ ...defaultDisplay, font_size: 24, padding: 0, line_height: 1.25 }, savedCaptions).display;
+  const large = presentDisplayPreview({ ...defaultDisplay, font_size: 96, padding: 96, line_height: 2 }, savedCaptions).display;
   const charactersPerLine = (parameters: typeof small) =>
     (256 - drawnPixels(parameters.captionStyle.padding, 256) * 2) / drawnPixels(parameters.captionStyle.fontSize, 256);
   const linesInFrame = (parameters: typeof small) =>
@@ -55,8 +66,8 @@ it("changes the number of characters and lines that fit when typography settings
 it("uses the same color, typeface, weight and alignment in audience output and preview", () => {
   for (const font of ["sans", "serif", "mono"] as const) {
     const settings = { ...defaultDisplay, font, background: "#ffffff", foreground: "#171717", font_weight: "normal" as const, align: "center" as const };
-    const actual = presentCaptionDisplay(settings, savedTexts);
-    const preview = presentDisplayPreview(settings, savedTexts).display;
+    const actual = presentCaptionDisplay(settings, savedCaptions);
+    const preview = presentDisplayPreview(settings, savedCaptions).display;
     expect(preview.screenStyle).toEqual(actual.screenStyle);
     expect(preview.screenStyle).toMatchObject({ background: "#ffffff", color: "#171717" });
     expect(preview.captionStyle.fontFamily).toBe(actual.captionStyle.fontFamily);
@@ -69,8 +80,8 @@ it("uses the same color, typeface, weight and alignment in audience output and p
 it("fits 16:9 inside either landscape or portrait containers and scales the clipping boundary", () => {
   for (const [width, height] of [[1280, 800], [800, 1280]]) {
     const settings = { ...defaultDisplay, aspect: "16:9" as const };
-    const actual = presentCaptionDisplay(settings, savedTexts);
-    const preview = presentDisplayPreview(settings, savedTexts).display;
+    const actual = presentCaptionDisplay(settings, savedCaptions);
+    const preview = presentDisplayPreview(settings, savedCaptions).display;
     const frameWidth = fittedDimension(actual.frameStyle.width, width, height, "width");
     const frameHeight = fittedDimension(actual.frameStyle.height, width, height, "height");
     expect(frameWidth).toBeLessThanOrEqual(width);
@@ -78,7 +89,7 @@ it("fits 16:9 inside either landscape or portrait containers and scales the clip
     expect(frameWidth / frameHeight).toBeCloseTo(16 / 9);
     expect(fittedDimension(preview.frameStyle.width, width / 5, height / 5, "width")).toBeCloseTo(frameWidth / 5);
     expect(fittedDimension(preview.frameStyle.height, width / 5, height / 5, "height")).toBeCloseTo(frameHeight / 5);
-    const window = presentCaptionDisplay({ ...settings, aspect: "window" }, savedTexts);
+    const window = presentCaptionDisplay({ ...settings, aspect: "window" }, savedCaptions);
     expect(fittedDimension(window.frameStyle.width, width, height, "width")).toBe(width);
     expect(fittedDimension(window.frameStyle.height, width, height, "height")).toBe(height);
   }
@@ -86,27 +97,27 @@ it("fits 16:9 inside either landscape or portrait containers and scales the clip
 
 it("puts captions at the selected vertical position without changing text projection", () => {
   const positions = ["top", "center", "bottom"] as const;
-  const displays = positions.map(position => presentDisplayPreview({ ...defaultDisplay, position }, savedTexts).display);
+  const displays = positions.map(position => presentDisplayPreview({ ...defaultDisplay, position }, savedCaptions).display);
   expect(new Set(displays.map(display => display.frameStyle.justifyContent)).size).toBe(3);
   for (let index = 0; index < positions.length; index++) {
-    expect(displays[index].frameStyle.justifyContent).toBe(presentCaptionDisplay({ ...defaultDisplay, position: positions[index] }, savedTexts).frameStyle.justifyContent);
-    expect(displays[index].texts).toEqual([savedTexts.at(-1)]);
+    expect(displays[index].frameStyle.justifyContent).toBe(presentCaptionDisplay({ ...defaultDisplay, position: positions[index] }, savedCaptions).frameStyle.justifyContent);
+    expect(displays[index].texts).toEqual(savedTexts);
   }
 });
 
 it("slices the last 1, 3 or 10 saved utterances in the same order in audience output and preview", () => {
   for (const history_count of [1, 3, 10]) {
-    const settings = { ...defaultDisplay, history_count };
-    const preview = presentDisplayPreview(settings, savedTexts);
+    const settings = { ...defaultDisplay, display_mode: "recent" as const, history_count };
+    const preview = presentDisplayPreview(settings, savedCaptions);
     expect(preview.display.texts).toEqual(savedTexts.slice(-history_count));
-    expect(preview.display.texts).toEqual(presentCaptionDisplay(settings, savedTexts).texts);
-    expect(preview.sourceLabel).toContain("保存済み");
+    expect(preview.display.texts).toEqual(presentCaptionDisplay(settings, savedCaptions).texts);
+    expect(preview.sourceLabel).toBe("字幕プレビュー");
   }
 });
 
-it("provides clearly labelled long Japanese samples when saved history cannot demonstrate the settings", () => {
+it("uses labelled samples only when no captions exist and otherwise previews the available captions", () => {
   for (const history_count of [1, 3, 10]) {
-    const preview = presentDisplayPreview({ ...defaultDisplay, history_count }, ["短い字幕"]);
+    const preview = presentDisplayPreview({ ...defaultDisplay, display_mode: "recent" as const, history_count }, []);
     expect(preview.display.texts).toHaveLength(history_count);
     expect(preview.display.texts.every(text => text.length >= 60)).toBe(true);
     expect(preview.sourceLabel).toContain("表示例");
@@ -114,5 +125,8 @@ it("provides clearly labelled long Japanese samples when saved history cannot de
     expect(preview.viewportLabel).toContain("1280 × 800");
     expect(preview.scaleLabel).toContain("縮小");
   }
-  expect(presentDisplayPreview({ ...defaultDisplay, history_count: 10 }, savedTexts.slice(-2)).sourceLabel).toContain("表示例");
+  const available = presentDisplayPreview({ ...defaultDisplay, display_mode: "recent" as const, history_count: 10 }, [{ text: "短い字幕" }]);
+  expect(available.display.texts).toEqual(["短い字幕"]);
+  expect(available.sourceLabel).toBe("字幕プレビュー");
+  expect(presentDisplayPreview({ ...defaultDisplay, display_mode: "recent" as const, history_count: 10 }, savedCaptions.slice(-2)).display.texts).toEqual(savedTexts.slice(-2));
 });

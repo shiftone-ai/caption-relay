@@ -49,7 +49,7 @@ def test_public_response_uses_only_public_fields(client: TestClient) -> None:
     public = client.get("/api/view").json()
     assert public["visible"] is True
     assert public["captions"][0]["text"] == "公開文"
-    assert set(public["captions"][0]) == {"id", "revision", "text"}
+    assert set(public["captions"][0]) == {"id", "revision", "text", "speaker"}
     assert "原文" not in client.get("/api/view").text
 
 
@@ -137,7 +137,7 @@ def test_saving_interim_update_preserves_previous_public_caption(client: TestCli
     assert saved.status_code == 200
     assert saved.json()["text"] == "人が訂正した文"
     public = client.get("/api/view").json()["captions"]
-    assert public == [{"id": "one", "revision": published["revision"], "text": "公開済みの文"}]
+    assert public == [{"id": "one", "revision": published["revision"], "text": "公開済みの文", "speaker": None}]
 
     source(client, revision=3, source_event_id="final", is_final=True, text="確定した原文")
     assert client.get("/api/view").json()["captions"][-1]["text"] == "人が訂正した文"
@@ -190,13 +190,13 @@ def test_public_api_returns_display_range_without_discarding_operator_history(cl
     assert client.get("/api/view").json()["captions"] == []
     for number in range(12):
         source(client, utterance_id=str(number), source_event_id=f"event-{number}", text=f"字幕{number}")
-    assert [caption["id"] for caption in client.get("/api/view").json()["captions"]] == ["11"]
+    assert [caption["id"] for caption in client.get("/api/view").json()["captions"]] == [str(number) for number in range(12)]
     assert len(client.get("/api/events").json()) == 12
     for count, expected in [(3, ["9", "10", "11"]), (1, ["11"]), (10, [str(number) for number in range(2, 12)])]:
-        response = client.put("/api/display", json={"history_count": count})
+        response = client.put("/api/display", json={"display_mode": "recent", "history_count": count})
         assert response.status_code == 200
         snapshot = client.get("/api/view").json()
         assert snapshot["display"]["history_count"] == count
         assert [caption["id"] for caption in snapshot["captions"]] == expected
-        assert all(set(caption) == {"id", "revision", "text"} for caption in snapshot["captions"])
+        assert all(set(caption) == {"id", "revision", "text", "speaker"} for caption in snapshot["captions"])
     assert len(client.get("/api/events").json()) == 12

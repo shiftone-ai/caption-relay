@@ -11,12 +11,13 @@ URL = "https://live.udtalk.jp/" + "a" * 64
 
 
 class ViewerServer:
-    def __init__(self, *, protected=False, malformed=False, transient=False):
+    def __init__(self, *, protected=False, malformed=False, transient=False, text="認識結果"):
         self.protected = protected
         self.malformed = malformed
         self.transient = transient
         self.polls = []
         self.departed = False
+        self.text = text
 
     def handle(self, request):
         if request.method == "GET":
@@ -41,7 +42,7 @@ class ViewerServer:
                 return httpx.Response(200, json={"status": 1, "current": 21, "number": 11,
                     "messages": [[{"meta": '{"text":"private secret"}'}]]})
             meta = {"utteranceIdentifier": "speech:00", "phase": "finalized", "type": 0,
-                "text": "認識結果", "endOfUtterance": True, "connected": {"timestamp": 1.0}}
+                "text": self.text, "endOfUtterance": True, "connected": {"timestamp": 1.0}}
             return httpx.Response(200, json={"status": 1, "current": 21, "number": 11,
                 "messages": [[{"meta": json.dumps(meta)}]]})
         if route == "awayWebTalk":
@@ -72,6 +73,23 @@ def test_web_reader_preserves_cursor_across_transient_failure_and_replay():
         finally:
             await source.stop()
         assert server.departed
+    asyncio.run(verify())
+
+
+def test_new_web_connection_accepts_updates_of_previously_received_speech():
+    async def verify():
+        relay = CaptionRelay()
+        for text in ["最初の接続の原文", "再接続後の原文"]:
+            server = ViewerServer(text=text)
+            source = UdtalkWebInput(URL, relay.source_event, httpx.MockTransport(server.handle))
+            source.start()
+            try:
+                await until(lambda: source.status.received_events == 1)
+                assert relay.captions()[-1].original == text
+            finally:
+                await source.stop()
+            assert server.departed
+        assert len(relay.captions()) == 2
     asyncio.run(verify())
 
 

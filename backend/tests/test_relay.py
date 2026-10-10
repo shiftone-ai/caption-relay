@@ -72,7 +72,7 @@ def test_snapshots_are_typed_immutable_history_and_unregister() -> None:
         second = await anext(stream)
         assert first.captions[0].text == "字幕1"
         assert second.captions[0].text == "修正"
-        assert second.model_dump()["captions"][0].keys() == {"id", "revision", "text"}
+        assert second.model_dump()["captions"][0].keys() == {"id", "revision", "text", "speaker"}
         await stream.aclose()
     asyncio.run(run())
 
@@ -92,25 +92,54 @@ def test_full_subscription_queue_resynchronizes_with_latest_snapshot() -> None:
 
 def test_public_range_follows_input_order_and_restores_older_published_captions() -> None:
     relay = CaptionRelay()
+    relay.display_settings(DisplaySettings(display_mode="recent"))
     source_caption(relay, "one", "最初の途中入力", final=False)
     source_caption(relay, "two", "先に確定した入力")
     source_caption(relay, "three", "三番目の入力")
     first = source_caption(relay, "one", "後から確定した最初の入力", revision=2)
     assert [caption.id for caption in relay.public_snapshot().captions] == ["three"]
     relay.patch_caption("one", CaptionPatch(text="最初の文の訂正", base_revision=first.revision))
-    relay.display_settings(DisplaySettings(history_count=3))
+    relay.display_settings(DisplaySettings(display_mode="recent", history_count=3))
     assert [(caption.id, caption.text) for caption in relay.public_snapshot().captions] == [
         ("one", "最初の文の訂正"), ("two", "先に確定した入力"), ("three", "三番目の入力"),
     ]
-    relay.display_settings(DisplaySettings(history_count=1))
+    relay.display_settings(DisplaySettings(display_mode="recent", history_count=1))
     assert [caption.id for caption in relay.public_snapshot().captions] == ["three"]
-    relay.display_settings(DisplaySettings(history_count=3))
+    relay.display_settings(DisplaySettings(display_mode="recent", history_count=3))
     assert [caption.id for caption in relay.public_snapshot().captions] == ["one", "two", "three"]
     assert len(relay.captions()) == 3
 
 
+def test_scroll_history_keeps_all_public_captions_and_syncs_old_corrections() -> None:
+    async def run() -> None:
+        relay = CaptionRelay()
+        first = source_caption(relay, "0", "最初の入力")
+        for number in range(1, 12):
+            source_caption(relay, str(number), f"入力{number}")
+        stream = relay.snapshots()
+        initial = await anext(stream)
+        assert initial.display.display_mode == "scroll"
+        assert [caption.id for caption in initial.captions] == [str(number) for number in range(12)]
+        relay.patch_caption("0", CaptionPatch(text="最初の文の訂正", base_revision=first.revision))
+        corrected = await anext(stream)
+        assert len(corrected.captions) == 12
+        assert corrected.captions[0].text == "最初の文の訂正"
+        relay.display_settings(DisplaySettings(display_mode="recent", history_count=2))
+        assert [caption.id for caption in (await anext(stream)).captions] == ["10", "11"]
+        relay.display_settings(DisplaySettings(display_mode="scroll", history_count=2))
+        restored = await anext(stream)
+        assert [caption.id for caption in restored.captions] == [str(number) for number in range(12)]
+        assert restored.captions[0].text == "最初の文の訂正"
+        await stream.aclose()
+        reconnected = relay.snapshots()
+        assert await anext(reconnected) == restored
+        await reconnected.aclose()
+    asyncio.run(run())
+
+
 def test_manual_first_publication_of_an_older_caption_keeps_input_order() -> None:
     relay = CaptionRelay()
+    relay.display_settings(DisplaySettings(display_mode="recent"))
     relay.publication_mode(PublicationMode(auto_publish=False))
     older = source_caption(relay, "one", "古い入力")
     newer = source_caption(relay, "two", "新しい入力")
@@ -118,7 +147,7 @@ def test_manual_first_publication_of_an_older_caption_keeps_input_order() -> Non
     relay.patch_caption("two", CaptionPatch(text="新しい文の確認", base_revision=newer.revision))
     relay.patch_caption("one", CaptionPatch(text="古い文の確認", base_revision=older.revision))
     assert [caption.id for caption in relay.public_snapshot().captions] == ["two"]
-    relay.display_settings(DisplaySettings(history_count=2))
+    relay.display_settings(DisplaySettings(display_mode="recent", history_count=2))
     assert [(caption.id, caption.text) for caption in relay.public_snapshot().captions] == [
         ("one", "古い文の確認"), ("two", "新しい文の確認"),
     ]
@@ -154,7 +183,7 @@ def test_stream_ignores_interim_and_revision_only_updates_but_keeps_latest_revis
         relay.formatted_result("one", FormattedResult(source_revision=4, text="後着のAI修正"))
         assert queue.empty()
         source_caption(relay, "two", "人の訂正")
-        assert (await anext(stream)).captions[0].id == "two"
+        assert [caption.id for caption in (await anext(stream)).captions] == ["one", "two"]
         await stream.aclose()
     asyncio.run(run())
 
@@ -162,6 +191,7 @@ def test_stream_ignores_interim_and_revision_only_updates_but_keeps_latest_revis
 def test_stream_only_notifies_changes_within_the_selected_public_range() -> None:
     async def run() -> None:
         relay = CaptionRelay()
+        relay.display_settings(DisplaySettings(display_mode="recent"))
         first = source_caption(relay, "one", "最初の入力")
         source_caption(relay, "two", "二番目の入力")
         source_caption(relay, "three", "三番目の入力")
@@ -170,14 +200,14 @@ def test_stream_only_notifies_changes_within_the_selected_public_range() -> None
         queue = next(iter(relay._subscribers))
         relay.patch_caption("one", CaptionPatch(text="過去の文の訂正", base_revision=first.revision))
         assert queue.empty()
-        relay.display_settings(DisplaySettings(history_count=3))
+        relay.display_settings(DisplaySettings(display_mode="recent", history_count=3))
         expanded = await anext(stream)
         assert [(caption.id, caption.text) for caption in expanded.captions] == [
             ("one", "過去の文の訂正"), ("two", "二番目の入力"), ("three", "三番目の入力"),
         ]
-        relay.display_settings(DisplaySettings(history_count=3))
+        relay.display_settings(DisplaySettings(display_mode="recent", history_count=3))
         assert queue.empty()
-        relay.display_settings(DisplaySettings(history_count=1))
+        relay.display_settings(DisplaySettings(display_mode="recent", history_count=1))
         assert [caption.id for caption in (await anext(stream)).captions] == ["three"]
         await stream.aclose()
     asyncio.run(run())
@@ -208,7 +238,7 @@ def test_stream_notifies_display_and_visibility_changes_without_republishing_hid
         assert queue.empty()
         source_caption(relay, "new", "表示再開後の新しい入力")
         assert [caption.id for caption in (await anext(stream)).captions] == ["new"]
-        relay.display_settings(DisplaySettings(history_count=10))
+        relay.display_settings(DisplaySettings(display_mode="recent", history_count=10))
         assert [caption.id for caption in (await anext(stream)).captions] == ["new"]
         await stream.aclose()
     asyncio.run(run())
@@ -240,7 +270,7 @@ def test_public_snapshots_are_independent_for_each_subscriber() -> None:
 def test_overflow_and_reconnect_send_complete_bounded_snapshots() -> None:
     async def run() -> None:
         relay = CaptionRelay()
-        relay.display_settings(DisplaySettings(history_count=3))
+        relay.display_settings(DisplaySettings(display_mode="recent", history_count=3))
         stream = relay.snapshots()
         await anext(stream)
         for number in range(1, 6):
