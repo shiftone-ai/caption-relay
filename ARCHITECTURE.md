@@ -12,6 +12,8 @@ Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つロ
 | [backend/app/relay.py](backend/app/relay.py) | セッション状態、入力の改版・再送判定、手修正、公開可否、購読キュー |
 | [backend/app/workflow.py](backend/app/workflow.py) | 入力、AI処理の開始・取消、訂正先への送信、保存時の改版照合 |
 | [backend/app/connections.py](backend/app/connections.py) | 接続モードと入力の開始・終了、接続変更と保存の直列化 |
+| [backend/app/transcription/](backend/app/transcription/) | ブラウザ音声の単一接続、周波数変換、提供元の認識結果と累積試験使用量 |
+| [native/speech-helper.swift](native/speech-helper.swift) | SpeechAnalyzerを呼ぶSwift子プロセス。標準入力の音声と標準出力の認識結果 |
 | [backend/app/zoom_input.py](backend/app/zoom_input.py) | Zoom形式のUTF-8字幕、明示的に選んだ名前付き形式の分離、送信番号、同一発話の訂正・取消、受信先の資格情報 |
 | [backend/app/udtalk_editor.py](backend/app/udtalk_editor.py) | 編集用URLの権限・期限、純正編集通信の参加・受信・ロック・訂正・解除 |
 | [backend/app/udtalk.py](backend/app/udtalk.py)・[udtalk_web.py](backend/app/udtalk_web.py) | UDトークWeb表示の実験用入力Adapter、断片・再送・途中／確定の変換、取得と終了処理 |
@@ -20,6 +22,7 @@ Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つロ
 | [frontend/src/roots.tsx](frontend/src/roots.tsx) | 各画面の Root、XState actor と Presenter の接続 |
 | [frontend/src/views/](frontend/src/views/) | 描画と操作イベントの通知 |
 | [frontend/src/events/](frontend/src/events/) | 親子関係とイベント伝播 |
+| [frontend/src/adapters/microphone.ts](frontend/src/adapters/microphone.ts) | マイク権限、AudioWorkletによるPCM化、音声WebSocket、録音資源の解放 |
 | [frontend/src/adapters/fullscreen.ts](frontend/src/adapters/fullscreen.ts) | 全画面のブラウザ API と変更通知 |
 | [frontend/src/machines/](frontend/src/machines/) | 操作の可否、状態遷移、副作用を裁定する Mediator |
 | [frontend/src/presenters/](frontend/src/presenters/) | 状態から描画パラメータへの変換 |
@@ -33,6 +36,9 @@ Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つロ
 flowchart LR
     ud[UDトーク] -->|Zoom形式のPOST| api
     operator[操作画面] <-->|HTTP| api
+    operator -->|音声WebSocket| microphone[マイク入力管理]
+    microphone <--> recognition[OpenAI / SwiftのApple認識]
+    recognition -->|SourceEvent| workflow
     subgraph server[単一 FastAPI プロセス]
         api[API 層] --> workflow[CaptionWorkflow]
         workflow --> relay[CaptionRelay]
@@ -49,13 +55,15 @@ flowchart LR
 
 FastAPIはPydanticモデルで入出力を検証し、入力と訂正保存を `CaptionWorkflow` へ渡す。状態遷移と公開可否は `CaptionRelay`、外部接続の寿命と送信先は `Connections` が所有する。AI要求はバックグラウンドで実行し、元の発話の更新とモード変更で終了する。保存と接続変更は同時に実行しない。訂正先への送信前後に原文・表示文の改版を照合し、古い原文で新しい発話を上書きしない。存在しない字幕と改版競合はAPI層で404・409に変換する。
 
-`create_app()`ごとに独立した状態を作る。状態を共有するデータベースや外部ストアはなく、再起動で消えるため、複数ワーカーで運用しない。字幕・接続・AI設定・測定結果をこのプロセスに保持する。各AI提供元のキーは環境変数で読み、画面へ返さない。
+`create_app()`ごとに独立した状態を作る。字幕状態を共有するデータベースはなく、再起動で消えるため、複数ワーカーで運用しない。字幕・接続・AI設定・測定結果をこのプロセスに保持する。各AI提供元のキーは環境変数で読み、画面へ返さない。マイク認識の試験使用量だけは再起動をまたぐファイルに保存する。
 
 接続の初期値は独立配信。Zoom形式の送信先はプロセス内で生成し、再起動と接続変更で更新する。従来のWeb入力Adapterは `CAPTION_RELAY_UDTALK_URL` を設定した場合に開始する。編集参加へ切り替えると両方の入力を止め、有効な編集用URLの参加を開始する。入力の変換は各Adapter、公開と手修正の判断はRelayが所有する。経路・根拠・制約は[UDトークの入力接続](docs/udtalk-input.md)を参照する。
 
 編集参加では共有URLの権限と期限を変更せず、純正Windows版で観察した通信を使う。起動時のカーソル以降の発話を受信し、同じ発話IDで編集ロックを取得して確定訂正を送る。要求の受付と純正画面への表示を区別する。実機の訂正反映は障害復旧後の確認が必要なため、画面では試験接続として扱う。編集参加で受信した字幕は観客用の公開対象にしない。
 
 `AiRouter` は指定AI・参考費用・受信した応答時間に基づいて選び、`CaptionRelay` が確定入力の改版に対する依頼IDとモデルを保存する。結果の依頼ID・モデル・入力改版が一致した場合だけ測定値とAI候補を採用する。設定の変更は既存の依頼を差し替えず、次の確定入力から使う。詳細は[AIの選択と振り分け](docs/ai-routing.md)を参照する。
+
+マイク入力は独立配信だけで利用する。`Connections`が旧入力を停止してから設定を変え、`MicrophoneInput`が録音接続と認識Adapterの寿命を所有する。切断時の解放はASGIの取消から保護し、提供元接続とSwift子プロセスを閉じてから次の入力を許可する。OpenAIの発話区切りはWebRTC VAD、周波数変換はsoxr、途中と確定の対応は各認識Adapterが所有する。詳細は[マイク入力](docs/microphone-input.md)を参照する。
 
 ## API と公開データの境界
 

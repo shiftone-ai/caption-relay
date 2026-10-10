@@ -27,7 +27,7 @@ export function ToolbarView({ parameters }: { parameters: ToolbarParameters }) {
             </div>
           </Disclosure>
           <Button variant="outline" className="operator-icon-button toolbar-visibility" aria-label={parameters.toggleLabel} title={parameters.toggleLabel} intent={{ type: "visibility.toggle.requested" }} disabled={parameters.toggleDisabled}><VisibilityIcon size={16} /></Button>
-          <Button variant="outline" className="operator-icon-button toolbar-connection" data-settings-trigger="connection" aria-label="UDトークの接続設定" title="UDトークの接続設定" aria-expanded={parameters.connectionSettingsOpen} aria-controls="connection-settings"
+          <Button variant="outline" className="operator-icon-button toolbar-connection" data-settings-trigger="connection" aria-label="字幕入力の接続設定" title="字幕入力の接続設定" aria-expanded={parameters.connectionSettingsOpen} aria-controls="connection-settings"
             intent={{ type: "connection.settings.toggled" }}><Cable size={16} /></Button>
           <Button variant="outline" className="operator-icon-button toolbar-ai" data-settings-trigger="ai" aria-label="AI設定" title={parameters.aiTitle} aria-expanded={parameters.aiSettingsOpen} aria-controls="ai-settings"
             intent={{ type: "ai.settings.toggled" }}><Bot size={16} /></Button>

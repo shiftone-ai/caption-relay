@@ -2,7 +2,7 @@
 
 確認日：2026-10-10。利用者の回答により、クラウドの初手は **OpenAI**、試験上限は **合計100円・送信合計20分以内**と決定した。端末内の候補は Apple SpeechAnalyzer とする。[ほかのクラウドの比較](2026-10-10-cloud-transcription.md)も残す。全候補の日本語精度・遅延は同一音声で未実測のため、精度の順位は付けない。
 
-実装経路と判断事項は[実行計画](../exec-plans/active/2026-10-10-switchable-transcription.md)を参照する。以下は API の調査であり、Caption Relay の実装済み機能ではない。
+実装経路と判断事項は[実行計画](../exec-plans/active/2026-10-10-switchable-transcription.md)を参照する。以下は API の調査。現行実装と確認範囲は[マイク入力](../microphone-input.md)を参照する。
 
 ## 候補の比較
 
@@ -10,7 +10,7 @@
 |---|---|---|---|
 | OpenAI `gpt-live-transcribe` | 複数言語のヒントを受け付ける。確認した現行資料には日本語別の対応一覧・評価値がなく、`ja` 指定の受理と認識は未確認。[モデル](https://developers.openai.com/api/docs/models/gpt-live-transcribe)・[手順](https://developers.openai.com/api/docs/guides/realtime-transcription) | ライブ音声の delta と commit 後の completed。delay は5段階で調整できるが、更新間隔と遅延のミリ秒値は保証されていない。[手順](https://developers.openai.com/api/docs/guides/realtime-transcription) | 音声時間 **USD 0.017/分**、60分で USD 1.02。為替・税・地域処理の追加料金を含まない。課金丸めは未確認。サーバーは WebSocket、ブラウザは WebRTC を選べる。[料金](https://developers.openai.com/api/docs/pricing)・[接続](https://developers.openai.com/api/docs/guides/voice-websockets?api=realtime) |
 | OpenAI `gpt-transcribe` | 録音または区切った音声向け。日本語の現場精度は未実測。[手順](https://developers.openai.com/api/docs/guides/speech-to-text) | Realtime でも commit 後に認識が始まる。音声を話している最中の字幕とは区別する。[手順](https://developers.openai.com/api/docs/guides/realtime-transcription) | **USD 0.0045/分**。安価なファイル処理の比較対象とし、ライブ入力の第一候補にはしない。[料金](https://developers.openai.com/api/docs/pricing) |
-| Apple `SpeechAnalyzer` + `SpeechTranscriber` | 対応は端末で `isAvailable` と `supportedLocale(equivalentTo:)` を確認する。この Mac では `ja-JP` を確認。精度は未実測。[対応 API](https://developer.apple.com/documentation/speech/speechtranscriber) | `volatileResults` で暫定結果と改版を受け取る。音声範囲と確定境界を使える。固定の更新間隔・遅延値は未確認。[結果](https://developer.apple.com/documentation/speech/speechtranscriber/result)・[暫定結果](https://developer.apple.com/documentation/speech/speechtranscriber/reportingoption/volatileresults) | macOS 26 以降の対応端末。iOS/iPadOS/macCatalyst/tvOS/visionOS も26以降、watchOS は対象外。Swift のシステム API で処理し、クラウドの従量 API 課金を使わない。機器・電力・配布の費用は別。[提供 OS](https://developer.apple.com/documentation/speech/speechanalyzer.md) |
+| Apple `SpeechAnalyzer` + `SpeechTranscriber` | 対応は端末で `isAvailable` と `supportedLocale(equivalentTo:)` を確認する。この Mac では `ja-JP` を確認。合成音声の短文では実認識を確認。会場の精度・遅延は未実測。[対応 API](https://developer.apple.com/documentation/speech/speechtranscriber) | `volatileResults` で暫定結果と改版を受け取る。音声範囲と確定境界を使える。固定の更新間隔・遅延値は未確認。[結果](https://developer.apple.com/documentation/speech/speechtranscriber/result)・[暫定結果](https://developer.apple.com/documentation/speech/speechtranscriber/reportingoption/volatileresults) | macOS 26 以降の対応端末。iOS/iPadOS/macCatalyst/tvOS/visionOS も26以降、watchOS は対象外。Swift のシステム API で処理し、クラウドの従量 API 課金を使わない。機器・電力・配布の費用は別。[提供 OS](https://developer.apple.com/documentation/speech/speechanalyzer.md) |
 | ローカル Whisper / whisper.cpp | OpenAI の公式実装は日本語を指定できる。多言語モデルを使う。会場の精度は未実測。[Whisper](https://github.com/openai/whisper) | whisper.cpp のマイク例は既定で500msごとに窓を再認識する簡易実装。API の確定イベントとは異なるため、窓の重複・改版・区切りを Adapter 側で解決する必要がある。[マイク例](https://github.com/ggml-org/whisper.cpp/blob/master/examples/stream/README.md) | ネイティブのマイク例は SDL2 が必要。モデルの導入と端末性能の確認が必要。WASM のブラウザ例もある。従量 API 課金は使わず、Whisper のコード・重みは MIT ライセンス。[ブラウザ例](https://github.com/ggml-org/whisper.cpp/blob/master/examples/stream.wasm/README.md)・[ライセンス](https://github.com/openai/whisper#license) |
 
 ## OpenAI をつなぐときの条件
@@ -25,7 +25,7 @@
 
 ## Apple の具体的な接続経路
 
-ブラウザで取得した音声を、同じ Mac 上の FastAPI から Swift 補助プログラムの標準入力へ渡す。補助プログラムは Speech.framework を呼び、音声範囲・本文・確定境界を JSON Lines で標準出力へ返す。この構成は設計判断であり、現行コードには未実装。
+ブラウザで取得した音声を、同じ Mac 上の FastAPI から Swift 補助プログラムの標準入力へ渡す。補助プログラムは Speech.framework を呼び、音声範囲・本文・確定境界を JSON Lines で標準出力へ返す。この経路を[Swift補助プログラム](../../native/speech-helper.swift)と[Apple Adapter](../../backend/app/transcription/apple.py)に実装した。
 
 Apple の公式 API は Swift の actor・AsyncSequence・音声バッファを使う。確認した資料にはブラウザから SpeechAnalyzer を直接呼ぶ API はない。Web Speech API も認識エンジンを任意指定する契約を持たないため、Apple を確実に選ぶ用途には使わない。[Apple の API](https://developer.apple.com/documentation/speech/speechanalyzer)・[ブラウザの API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition)
 
@@ -41,7 +41,7 @@ Apple の公式 API は Swift の actor・AsyncSequence・音声バッファを�
 
 ## 実機で確認した範囲
 
-macOS 26.6.2 / arm64、Apple Swift 6.4 の環境で、次のメタデータ確認だけをコンパイルして実行した。
+macOS 26.6.2 / arm64、Apple Swift 6.4 の環境で、次のメタデータ確認をコンパイルして実行した。
 
 ```swift
 import Foundation
@@ -65,7 +65,7 @@ japaneseSupported=ja-JP
 japaneseInstalled=true
 ```
 
-マイクの権限要求・録音・認識・モデルの追加ダウンロードは行っていない。この結果は他端末の対応や、日本語精度・遅延・オフライン運転の証拠にはならない。この worktree のルート・backend・frontend の `.env*`（example を除く）に設定ファイルは見つからず、他プロジェクトのキーや継承した API キーは調査・利用していない。有料呼び出しは行っていない。キーがなくても設計を進め、実接続が必要な時点で `要判断:` として止まる。
+その後、合成した日本語音声6.28秒を実時間でSwiftへ渡し、1行の確定結果と観客APIへの配信を確認した。「明日の開始時刻は午後三時です。参加費は百円です。」の数字も認識した。背景のChromeでも合成音声をマイク入力として実認識と停止後のトラック解放を確認した。物理マイク、会場の雑音、長時間運転、精度・遅延の比較は未検証。モデルの追加ダウンロードは行っていない。この結果は他端末の対応や、日本語精度・遅延・オフライン運転の証拠にはならない。この worktree のルート・backend・frontend の `.env*`（example を除く）に設定ファイルは見つからず、他プロジェクトのキーや継承した API キーは調査・利用していない。有料呼び出しは行っていない。キーがなくても設計を進め、実接続が必要な時点で `要判断:` として止まる。
 
 ## 共通のマイク入力に必要な条件
 

@@ -25,6 +25,19 @@ function start() {
   return { actor: actor.start(), api };
 }
 
+it("shows recognition failure after reloading instead of replacing it with the local stopped message", async () => {
+  const { actor, api } = start();
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  vi.mocked(api.load).mockResolvedValueOnce({ visible: true, captions: [caption], connection: {
+    ...defaultConnection, input_source: "microphone", transcription: {
+      state: "failed", message: "音声の一部が欠けたため停止しました。", sent_seconds: 12, estimated_yen: 1,
+    },
+  } });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(presentOperator(actor.getSnapshot()).connection.microphoneStatus).toBe("音声の一部が欠けたため停止しました。");
+});
+
 it("shows the current native caption without claiming local publication in client mode", async () => {
   const { actor, api } = start();
   await waitFor(actor, state => state.matches({ ready: "idle" }));

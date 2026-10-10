@@ -10,14 +10,15 @@ from .connections import Connections
 from .models import Caption, CaptionPatch, ConnectionSettings, ConnectionStatus, FormattedResult, SourceEvent, SourceIgnored
 from .relay import CaptionRelay, RevisionConflict
 from .udtalk_editor import EditorError
+from .transcription.openai import Connector, openai_connect
 
 
 class CaptionWorkflow:
     def __init__(self, relay: CaptionRelay, web_url: str | None, environment: Mapping[str, str],
                  ai_transport: httpx.AsyncBaseTransport | None = None,
-                 editor_transport: httpx.AsyncBaseTransport | None = None) -> None:
+                 editor_transport: httpx.AsyncBaseTransport | None = None, audio_connector: Connector = openai_connect) -> None:
         self.relay = relay
-        self.connections = Connections(self.source_event, web_url, editor_transport)
+        self.connections = Connections(self.source_event, web_url, editor_transport, environment, audio_connector)
         self.provider = AiProvider(environment, ai_transport)
         self.relay.ai_availability(self.provider.available)
         self._tasks: dict[str, asyncio.Task[None]] = {}

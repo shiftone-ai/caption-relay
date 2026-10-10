@@ -22,7 +22,8 @@
 | AIを選び、速度と費用を比較する | [AIの選択と振り分け](ai-routing.md) | Gemini・Claude・Codex、料金の根拠、振り分けと結果の照合 |
 | API モデルを変更する | [API の型生成](generated/README.md) | 生成元、再生成、型の一致確認 |
 | 新しい機能の要件を検討する | [v0.2 の設計案](design-v0.2.md) | 将来要件、未確定事項、受け入れ条件の案 |
-| マイク入力と音声認識の切替を設計する | [実行計画](exec-plans/active/2026-10-10-switchable-transcription.md) | OpenAI から始める決定、キーと試験上限の条件、共通入力契約、ブラウザと Swift の経路、実装・検証の順序 |
+| マイクから文字起こしする | [マイク入力](microphone-input.md) | OpenAI・Appleの準備、開始・停止、試験上限、確認範囲 |
+| マイク入力と音声認識の切替を設計する | [実行計画](exec-plans/active/2026-10-10-switchable-transcription.md) | OpenAI から始める決定、キーと試験上限の条件、実装済み経路と未確認の範囲、実接続・受け入れの残り |
 | クラウド音声認識を比較する | [クラウド候補の調査](research/2026-10-10-cloud-transcription.md) | Google・Azure・AmiVoice・AWS などの日本語対応、途中結果、料金、データの扱い |
 | OpenAI・端末内音声認識を比較する | [OpenAI・Apple・Whisper の調査](research/2026-10-10-openai-apple-transcription.md) | 現行モデルと API、Apple の対応条件と日本語モデル確認、未実測の範囲 |
 
