@@ -48,4 +48,4 @@ OpenAI はバックエンドから Realtime の transcription 接続を開き、
 
 macOS 26.6.2 / arm64、Swift 6.4 の実 API へ、合成した日本語音声6.28秒を実時間で渡した。途中更新から1行の確定字幕になり、数字を含む全文を観客APIへ配信できた。クラウドへの音声送信とモデルの追加導入は行っていない。
 
-背景の Chrome では合成音声をマイク入力として使い、実 FastAPI と Swift の認識、停止後の音声トラック解放、訂正保存と観客表示、UDトークへの切替を確認した。ビルド済み画面とVite経由の音声接続を操作した。[操作画面](assets/microphone-input/operator.png)・[狭い画面の操作](assets/microphone-input/mobile.png)・[観客表示](assets/microphone-input/audience.png)に、秘密を含まない合成字幕の確認画像を置く。物理マイク、会場の雑音、長時間運転、OpenAI の実認識、同一音声での精度・遅延比較は未検証。これらを模擬イベントのテスト成功から推定しない。
+背景の Chrome では合成音声をマイク入力として使い、実 FastAPI と Swift の認識、停止後の音声トラック解放、訂正保存と観客表示、UDトークへの切替を確認した。ビルド済み画面とVite経由の音声接続を操作した。[操作画面](assets/microphone-input/operator.png)・[狭い画面の操作](assets/microphone-input/mobile.png)・[観客表示](assets/microphone-input/audience.png)と[通信・停止の記録](assets/microphone-input/verification.json)に、秘密を含まない合成字幕の確認画像を置く。物理マイク、会場の雑音、長時間運転、OpenAI の実認識、同一音声での精度・遅延比較は未検証。これらを模擬イベントのテスト成功から推定しない。
