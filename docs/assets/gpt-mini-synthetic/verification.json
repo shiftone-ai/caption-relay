@@ -1,0 +1,673 @@
+{
+  "date": "2026-10-11",
+  "basisCommit": "2a9fbbff9b82f6ca778ab71d1550bffee6e60d57",
+  "runtime": "Single local FastAPI process, built React/XState frontend, headless Chrome, real macOS Apple SpeechAnalyzer, real OpenAI Responses",
+  "synthetic": true,
+  "physicalMicrophone": false,
+  "providerMocks": false,
+  "textReseedingAfterRecognition": false,
+  "cases": [
+    {
+      "name": "filler",
+      "result": "passed",
+      "audio": {
+        "synthetic": true,
+        "physicalMicrophone": false,
+        "tts": "macOS Kyoko",
+        "text": "えー、今日は字幕の動作確認を行います。参加者は三人です。あの、明日の会議は午後二時からです。予約は取り消しません。",
+        "sampleRate": 48000,
+        "channels": 1,
+        "seconds": 10.525083333333333
+      },
+      "checks": [
+        "voice finals automatically corrected by real GPT without text reseeding",
+        "filler removed while count, time and negation preserved",
+        "conflict keeps draft and explicit re-save succeeds",
+        "real recognition",
+        "final caption publication over SSE",
+        "browser edit/save",
+        "audience sees human edit",
+        "synthetic tracks released",
+        "audio WebSocket closed"
+      ],
+      "cloudCorrections": [
+        {
+          "model": "gpt-5.4-mini-2026-03-17",
+          "original": "えー、今日は字幕の動作確認を行います。参加者は 3人です。あの明日の会議は午後 2時からです。予約は取り消しません。",
+          "corrected": "今日は字幕の動作確認を行います。参加者は3人です。明日の会議は午後2時からです。予約は取り消しません。",
+          "usage": {
+            "request_id": "d29145d8-b92c-4c20-9e96-7d7f654bb13a",
+            "model_id": "gpt-5.4-mini-2026-03-17",
+            "elapsed_ms": 932.7691659564152,
+            "input_tokens": 195,
+            "output_tokens": 39
+          }
+        }
+      ],
+      "transcripts": [
+        {
+          "id": "mic:apple:113f375eb3e2418590a82f9448698544:1",
+          "sourceRevision": 57,
+          "original": "えー、今日は字幕の動作確認を行います。参加者は 3人です。あの明日の会議は午後 2時からです。予約は取り消しません。",
+          "text": "今日は字幕の動作確認を行います。参加者は3人です。明日の会議は午後2時からです。予約は取り消しません。",
+          "final": true
+        }
+      ],
+      "aiSettings": {
+        "strategy": "manual",
+        "preferred_model": "gpt-5.4-mini-2026-03-17",
+        "candidates": [
+          "gemini-3.1-flash-lite",
+          "claude-haiku-4-5",
+          "gpt-5.3-codex",
+          "gpt-5.4-mini-2026-03-17"
+        ]
+      },
+      "media": {
+        "getUserMediaCalls": 1,
+        "tracks": [
+          {
+            "label": "MediaStreamAudioDestinationNode",
+            "state": "ended"
+          }
+        ],
+        "started": 1,
+        "ended": 1
+      },
+      "socket": {
+        "frames": 107,
+        "bytes": 1020248,
+        "closed": true
+      },
+      "saveResponse": {
+        "status": 409,
+        "body": {
+          "detail": {
+            "message": "revision conflict",
+            "latest": {
+              "id": "mic:apple:113f375eb3e2418590a82f9448698544:1",
+              "utterance_id": "mic:apple:113f375eb3e2418590a82f9448698544:1",
+              "received_at": "2026-10-11T05:24:45.576554Z",
+              "source_revision": 57,
+              "revision": 58,
+              "original": "えー、今日は字幕の動作確認を行います。参加者は 3人です。あの明日の会議は午後 2時からです。予約は取り消しません。",
+              "text": "今日は字幕の動作確認を行います。参加者は3人です。明日の会議は午後2時からです。予約は取り消しません。",
+              "speaker": null,
+              "human_edited": false,
+              "published": true,
+              "publish_eligible": true,
+              "formatted_text": "今日は字幕の動作確認を行います。参加者は3人です。明日の会議は午後2時からです。予約は取り消しません。",
+              "source_final": true,
+              "public_text": "今日は字幕の動作確認を行います。参加者は3人です。明日の会議は午後2時からです。予約は取り消しません。",
+              "public_speaker": null,
+              "public_revision": 58,
+              "ai_request": {
+                "id": "d29145d8-b92c-4c20-9e96-7d7f654bb13a",
+                "model_id": "gpt-5.4-mini-2026-03-17",
+                "source_revision": 57
+              },
+              "ai_result": {
+                "request_id": "d29145d8-b92c-4c20-9e96-7d7f654bb13a",
+                "model_id": "gpt-5.4-mini-2026-03-17",
+                "elapsed_ms": 932.7691659564152,
+                "input_tokens": 195,
+                "output_tokens": 39
+              },
+              "ai_status": "succeeded",
+              "ai_error": null
+            }
+          }
+        }
+      },
+      "browserErrors": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 409 (Conflict)"
+      ],
+      "consoleErrorExplanation": "favicon.ico returns 404; no page error or failing app API",
+      "network": [
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "PUT",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "PUT",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/captions/mic%3Aapple%3A113f375eb3e2418590a82f9448698544%3A1",
+          "method": "PATCH",
+          "status": 409
+        },
+        {
+          "path": "/api/captions/mic%3Aapple%3A113f375eb3e2418590a82f9448698544%3A1",
+          "method": "PATCH",
+          "status": 200
+        }
+      ],
+      "serverShutdownConfirmed": true
+    },
+    {
+      "name": "meaning-boundaries",
+      "result": "passed",
+      "audio": {
+        "synthetic": true,
+        "physicalMicrophone": false,
+        "tts": "macOS Kyoko",
+        "text": "会議は午後二時三十分からです。参加者は十三人で、料金は千二百五十円です。あの建物の予約は取り消しません。",
+        "sampleRate": 48000,
+        "channels": 1,
+        "seconds": 10.7693125
+      },
+      "checks": [
+        "voice finals automatically corrected by real GPT without text reseeding",
+        "demonstrative, count, time, amount and negation preserved",
+        "operator timeline receives the completed AI correction",
+        "pricing comparison shows new model and its checked date",
+        "real recognition",
+        "final caption publication over SSE",
+        "browser edit/save",
+        "audience sees human edit",
+        "synthetic tracks released",
+        "audio WebSocket closed"
+      ],
+      "cloudCorrections": [
+        {
+          "model": "gpt-5.4-mini-2026-03-17",
+          "original": "会議は午後 2時 30分からです。参加者は 13人で料金は 1250円です。あの建物の予約は取り消しません。",
+          "corrected": "会議は午後2時30分からです。参加者は13人で、料金は1250円です。あの建物の予約は取り消しません。",
+          "usage": {
+            "request_id": "4ccee4a2-4c90-40cb-b272-fbbf8d889e24",
+            "model_id": "gpt-5.4-mini-2026-03-17",
+            "elapsed_ms": 1151.8061669776216,
+            "input_tokens": 193,
+            "output_tokens": 41
+          }
+        }
+      ],
+      "transcripts": [
+        {
+          "id": "mic:apple:34ad3fb6dbc44cb1b930b88d1ebb2ca4:1",
+          "sourceRevision": 51,
+          "original": "会議は午後 2時 30分からです。参加者は 13人で料金は 1250円です。あの建物の予約は取り消しません。",
+          "text": "会議は午後2時30分からです。参加者は13人で、料金は1250円です。あの建物の予約は取り消しません。",
+          "final": true
+        }
+      ],
+      "aiSettings": {
+        "strategy": "manual",
+        "preferred_model": "gpt-5.4-mini-2026-03-17",
+        "candidates": [
+          "gemini-3.1-flash-lite",
+          "claude-haiku-4-5",
+          "gpt-5.3-codex",
+          "gpt-5.4-mini-2026-03-17"
+        ]
+      },
+      "media": {
+        "getUserMediaCalls": 1,
+        "tracks": [
+          {
+            "label": "MediaStreamAudioDestinationNode",
+            "state": "ended"
+          }
+        ],
+        "started": 1,
+        "ended": 1
+      },
+      "socket": {
+        "frames": 109,
+        "bytes": 1039208,
+        "closed": true
+      },
+      "saveResponse": {
+        "status": 200,
+        "body": {
+          "id": "mic:apple:34ad3fb6dbc44cb1b930b88d1ebb2ca4:1",
+          "utterance_id": "mic:apple:34ad3fb6dbc44cb1b930b88d1ebb2ca4:1",
+          "received_at": "2026-10-11T05:27:20.977049Z",
+          "source_revision": 51,
+          "revision": 53,
+          "original": "会議は午後 2時 30分からです。参加者は 13人で料金は 1250円です。あの建物の予約は取り消しません。",
+          "text": "会議は午後2時30分からです。参加者は13人で、料金は1250円です。あの建物の予約は取り消しません。（合成音声による確認済み）",
+          "speaker": null,
+          "human_edited": true,
+          "published": true,
+          "publish_eligible": true,
+          "formatted_text": "会議は午後2時30分からです。参加者は13人で、料金は1250円です。あの建物の予約は取り消しません。",
+          "source_final": true,
+          "public_text": "会議は午後2時30分からです。参加者は13人で、料金は1250円です。あの建物の予約は取り消しません。（合成音声による確認済み）",
+          "public_speaker": null,
+          "public_revision": 53,
+          "ai_request": {
+            "id": "4ccee4a2-4c90-40cb-b272-fbbf8d889e24",
+            "model_id": "gpt-5.4-mini-2026-03-17",
+            "source_revision": 51
+          },
+          "ai_result": {
+            "request_id": "4ccee4a2-4c90-40cb-b272-fbbf8d889e24",
+            "model_id": "gpt-5.4-mini-2026-03-17",
+            "elapsed_ms": 1151.8061669776216,
+            "input_tokens": 193,
+            "output_tokens": 41
+          },
+          "ai_status": "succeeded",
+          "ai_error": null
+        }
+      },
+      "browserErrors": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "consoleErrorExplanation": "favicon.ico returns 404; no page error or failing app API",
+      "network": [
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "PUT",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "PUT",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/session",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/ai",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/connection",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/captions/mic%3Aapple%3A34ad3fb6dbc44cb1b930b88d1ebb2ca4%3A1",
+          "method": "PATCH",
+          "status": 200
+        }
+      ],
+      "serverShutdownConfirmed": true
+    }
+  ],
+  "openaiRequestsIncludingPromptBaselineAndUiRepeat": [
+    {
+      "run": "2026-10-11-free-gpt",
+      "request_id": "76c56da9-89f9-4793-9185-b85f7611a0c0",
+      "model_id": "gpt-5.4-mini-2026-03-17",
+      "elapsed_ms": 1875.61079103034,
+      "input_tokens": 158,
+      "output_tokens": 45
+    },
+    {
+      "run": "2026-10-11-free-gpt-corrected",
+      "request_id": "d29145d8-b92c-4c20-9e96-7d7f654bb13a",
+      "model_id": "gpt-5.4-mini-2026-03-17",
+      "elapsed_ms": 932.7691659564152,
+      "input_tokens": 195,
+      "output_tokens": 39
+    },
+    {
+      "run": "2026-10-11-free-gpt-boundaries",
+      "request_id": "ec7d3fd1-4bdd-45e6-a1ec-ac7da4e8aad0",
+      "model_id": "gpt-5.4-mini-2026-03-17",
+      "elapsed_ms": 2015.551166026853,
+      "input_tokens": 193,
+      "output_tokens": 40
+    },
+    {
+      "run": "2026-10-11-free-gpt-ui",
+      "request_id": "4ccee4a2-4c90-40cb-b272-fbbf8d889e24",
+      "model_id": "gpt-5.4-mini-2026-03-17",
+      "elapsed_ms": 1151.8061669776216,
+      "input_tokens": 193,
+      "output_tokens": 41
+    }
+  ],
+  "inputTokens": 739,
+  "outputTokens": 165,
+  "dataSharing": {
+    "approvedForSyntheticExperiments": true,
+    "dedicatedProjectSelected": true,
+    "modelInOfficialEligibleList": true,
+    "incentiveBillingConfirmed": true,
+    "reason": "One request is in Data sharing incentive tier, one in default; two are pending dashboard aggregation. Reason for default classification and final charge are not verified.",
+    "cloudAudioAddedSeconds": 0,
+    "existingCloudAudioLedgerPreserved": true,
+    "allRequestsFreeConfirmed": false,
+    "observedAt": "2026-10-11T05:31:00Z",
+    "usageDashboardModelFilter": "gpt-5.4-mini-2026-03-17",
+    "usageDashboardProjectFilter": "caption-relay-verification",
+    "usageDashboardGrouping": "Processing Tier",
+    "observedIncentiveTier": {
+      "requests": 1,
+      "inputTokens": 158,
+      "outputTokens": 45
+    },
+    "observedDefaultTier": {
+      "requests": 1,
+      "inputTokens": 195,
+      "outputTokens": 39
+    },
+    "requestsNotYetReflected": 2
+  },
+  "checks": {
+    "command": "bash scripts/check.sh",
+    "exitCode": 0,
+    "frontend": {
+      "files": 18,
+      "tests": 121
+    },
+    "backendTests": 143,
+    "pyright": "0 errors, 0 warnings, 0 informations",
+    "apiSchemaMatches": true
+  },
+  "standardPriceUsdBeforeAnyIncentive": 0.00129675
+}

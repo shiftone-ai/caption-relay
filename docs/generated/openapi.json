@@ -619,7 +619,8 @@
             "enum": [
               "gemini-3.1-flash-lite",
               "claude-haiku-4-5",
-              "gpt-5.3-codex"
+              "gpt-5.3-codex",
+              "gpt-5.4-mini-2026-03-17"
             ],
             "title": "Id"
           },
@@ -628,7 +629,8 @@
             "enum": [
               "gemini",
               "claude",
-              "codex"
+              "codex",
+              "openai"
             ],
             "title": "Provider"
           },
@@ -699,7 +701,8 @@
             "enum": [
               "gemini-3.1-flash-lite",
               "claude-haiku-4-5",
-              "gpt-5.3-codex"
+              "gpt-5.3-codex",
+              "gpt-5.4-mini-2026-03-17"
             ],
             "title": "Model Id"
           },
@@ -730,7 +733,8 @@
             "enum": [
               "gemini-3.1-flash-lite",
               "claude-haiku-4-5",
-              "gpt-5.3-codex"
+              "gpt-5.3-codex",
+              "gpt-5.4-mini-2026-03-17"
             ],
             "title": "Model Id"
           },
@@ -792,7 +796,8 @@
                 "enum": [
                   "gemini-3.1-flash-lite",
                   "claude-haiku-4-5",
-                  "gpt-5.3-codex"
+                  "gpt-5.3-codex",
+                  "gpt-5.4-mini-2026-03-17"
                 ]
               },
               {
@@ -846,7 +851,8 @@
             "enum": [
               "gemini-3.1-flash-lite",
               "claude-haiku-4-5",
-              "gpt-5.3-codex"
+              "gpt-5.3-codex",
+              "gpt-5.4-mini-2026-03-17"
             ],
             "title": "Preferred Model",
             "default": "gemini-3.1-flash-lite"
@@ -857,11 +863,12 @@
               "enum": [
                 "gemini-3.1-flash-lite",
                 "claude-haiku-4-5",
-                "gpt-5.3-codex"
+                "gpt-5.3-codex",
+                "gpt-5.4-mini-2026-03-17"
               ]
             },
             "type": "array",
-            "maxItems": 3,
+            "maxItems": 4,
             "minItems": 1,
             "title": "Candidates"
           }

@@ -15,16 +15,16 @@
 
 | 音声認識 | 必要な準備 |
 |---|---|
-| OpenAI | このリポジトリ用のキーと、課金条件を確認した円換算をバックエンドへ設定する。今回のキー未配置の検証では実接続・認識精度・遅延・請求を確認していない。 |
+| OpenAI | このリポジトリ用のキーと、課金条件を確認した円換算をバックエンドへ設定する。合成音声による実接続の結果は[確認済みの範囲](#確認済みの範囲)を参照する。 |
 | Apple | バックエンドが動く対応 Mac、macOS 26 以降、日本語モデル、macOS 26 SDK が必要。`bash scripts/setup.sh` が Swift 補助プログラムをビルドする。Linux やモデル未導入では理由を表示する。モデルを自動ダウンロードしない。 |
 
 Apple の音声認識は**接続先の Mac**で行う。ブラウザが別端末なら音声をその Mac へ転送する。Swift 補助プログラムはマイクを直接開かず、ブラウザから届いた音声を SpeechAnalyzer / SpeechTranscriber に渡す。アプリは音声をファイルへ保存しない。
 
-OpenAI はバックエンドから Realtime の transcription 接続を開き、`gpt-live-transcribe`、`languages: ["ja"]`、`delay: "low"` を要求する。設定の受理を待って送信し、WebRTC VAD で無音800msまたは発話15秒を区切りとする。VAD は16kHz・20ms単位で評価する。無音だけの区切りは確定要求しない。日本語の実認識と設定の受理は専用キーによる確認が残っている。[根拠](research/2026-10-10-openai-apple-transcription.md)
+OpenAI はバックエンドから Realtime の transcription 接続を開き、`gpt-live-transcribe`、`languages: ["ja"]`、`delay: "low"` を要求する。設定の受理を待って送信し、WebRTC VAD で無音800msまたは発話15秒を区切りとする。VAD は16kHz・20ms単位で評価する。無音だけの区切りは確定要求しない。[根拠](research/2026-10-10-openai-apple-transcription.md)
 
 ## OpenAI の試験上限と設定
 
-承認された試験は**送信合計20分・合計100円以内**。試験中はAI校正をオフにし、別の有料処理を混ぜない。キー本文をチャット、画面、ログ、Gitへ載せず、他プロジェクトのキーを使わない。通常のAI校正用 `OPENAI_API_KEY` を音声認識へ流用しない。
+音声認識の試験は**送信合計20分・合計100円以内**。音声認識中はAI校正をオフにして使用量を分ける。利用者が別途指定したGPTの試験は認識停止後に行い、[AI校正の記録](ai-routing.md#実接続での確認)へ残す。キー本文をチャット、画面、ログ、Gitへ載せず、他プロジェクトのキーを使わない。通常のAI校正用 `OPENAI_API_KEY` を音声認識へ流用しない。
 
 | 環境変数 | 用途 |
 |---|---|
@@ -52,4 +52,14 @@ macOS 26.6.2 / arm64、Swift 6.4 の実 API へ、合成した日本語音声6.2
 
 背景の Chrome では合成音声をマイク入力として使い、実 FastAPI と Swift の認識、停止後の音声トラック解放、訂正保存と観客表示、UDトークへの切替を確認した。接続設定が拒否された場合と、同じ設定の再適用で録音が続くこと、受信更新の件数が増えることも確認した。ビルド済み画面とVite経由の音声接続を操作した。
 
-[操作画面](assets/microphone-input/operator.png)・[狭い画面の操作](assets/microphone-input/mobile.png)・[観客表示](assets/microphone-input/audience.png)と[通信・停止の記録](assets/microphone-input/verification.json)に、秘密を含まない合成字幕の確認画像を置く。物理マイク、会場の雑音、長時間運転、OpenAI の実認識、同一音声での精度・遅延比較は未検証。これらを模擬イベントのテスト成功から推定しない。
+[操作画面](assets/microphone-input/operator.png)・[狭い画面の操作](assets/microphone-input/mobile.png)・[観客表示](assets/microphone-input/audience.png)と[通信・停止の記録](assets/microphone-input/verification.json)は、上記のApple認識による確認記録。
+
+2026-10-11、背景のChromeからmacOS Kyokoで合成した日本語音声9.445秒を送り、OpenAIの実認識を確認した。物理マイクは使わず、合成音声だけを返す入力とブラウザの模擬音声機器を併用した。音声はアプリのAudioWorklet・WebSocket・FastAPIを経由し、認識先の応答は模擬していない。
+
+「今日は字幕の動作確認を行います。参加者は三人です。明日の会議は午後二時からです。予約は取り消しません。」は原文と完全に一致した。確定時の改版は36で、途中結果と確定結果を同じ1行へ反映した。確定字幕の公開、画面での訂正保存、観客表示、音声トラックと認識接続の終了、文字入力への切替を確認した。開始操作から認識準備完了まで2.750秒、音声開始から停止後の確定確認まで12.361秒。後者は音声の長さと停止処理を含み、字幕の表示遅延ではない。
+
+台帳の送信累計は9.755秒、円見積もりは1.105601円。日本の消費税10%と[2026-10-09の為替](https://www.boj.or.jp/en/statistics/market/forex/fxdaily/fxlist/fx261009.pdf)を確認し、円換算200円/USDと既存の2倍の余裕を使った。請求確定額は未確認。専用プロジェクトに用途別の制限付きキーを作り、2026-10-12失効に設定した。キーはGit対象外のローカル設定にだけ保存した。
+
+[OpenAIの操作画面](assets/openai-synthetic/operator.png)・[訂正保存後](assets/openai-synthetic/edited.png)・[観客表示](assets/openai-synthetic/audience.png)・[通信と測定の記録](assets/openai-synthetic/verification.json)を参照する。物理マイク、会場の雑音、長時間運転、認識先ごとの精度・遅延の比較は未検証。短い合成音声1件の結果から一般的な認識品質を推定しない。
+
+2026-10-11にはAppleの端末内認識からGPT-5.4 Miniの自動校正まで確認した。AIを先に設定し、認識の確定結果をそのまま校正・配信へ渡した。2種類の合成音声による数字・否定・フィラーの確認と証跡は[AIの実接続記録](ai-routing.md#実接続での確認)を参照する。クラウド音声認識の累積台帳は増加させていない。

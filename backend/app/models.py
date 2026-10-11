@@ -7,15 +7,15 @@ class Model(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, validate_assignment=True)
 
 
-AiModelId = Literal["gemini-3.1-flash-lite", "claude-haiku-4-5", "gpt-5.3-codex"]
+AiModelId = Literal["gemini-3.1-flash-lite", "claude-haiku-4-5", "gpt-5.3-codex", "gpt-5.4-mini-2026-03-17"]
 
 
 class AiSettings(Model):
     strategy: Literal["off", "manual", "cost", "speed"] = "off"
     preferred_model: AiModelId = "gemini-3.1-flash-lite"
     candidates: list[AiModelId] = Field(default_factory=lambda: [
-        "gemini-3.1-flash-lite", "claude-haiku-4-5", "gpt-5.3-codex",
-    ], min_length=1, max_length=3)
+        "gemini-3.1-flash-lite", "claude-haiku-4-5", "gpt-5.3-codex", "gpt-5.4-mini-2026-03-17",
+    ], min_length=1, max_length=4)
 
     @model_validator(mode="after")
     def valid_candidates(self) -> "AiSettings":
@@ -28,7 +28,7 @@ class AiSettings(Model):
 
 class AiModelOption(Model):
     id: AiModelId
-    provider: Literal["gemini", "claude", "codex"]
+    provider: Literal["gemini", "claude", "codex", "openai"]
     label: str
     input_usd_per_million: float
     output_usd_per_million: float

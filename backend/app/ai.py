@@ -17,6 +17,10 @@ MODELS = (
     AiModelOption(id="gpt-5.3-codex", provider="codex", label="Codex · GPT-5.3-Codex",
                   input_usd_per_million=1.75, output_usd_per_million=14.0,
                   pricing_url="https://developers.openai.com/api/docs/pricing"),
+    AiModelOption(id="gpt-5.4-mini-2026-03-17", provider="openai", label="GPT-5.4 Mini",
+                  input_usd_per_million=0.75, output_usd_per_million=4.5,
+                  pricing_url="https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+                  pricing_checked_on="2026-10-11"),
 )
 
 
