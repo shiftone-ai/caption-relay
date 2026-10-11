@@ -7,8 +7,8 @@ import type { ConnectionParameters } from "../../presenters/operator";
 
 export function ConnectionSettingsView({ parameters }: { parameters: ConnectionParameters }) {
   return <viewHierarchy.Scope name="connection-settings">
-    {emit => <aside id="connection-settings" className="display-settings connection-settings" aria-label="UDトークの接続設定">
-      <div className="display-settings-heading"><h2>UDトークの接続</h2>
+    {emit => <aside id="connection-settings" className="display-settings connection-settings" aria-label="字幕入力の接続設定">
+      <div className="display-settings-heading"><h2>字幕入力の接続</h2>
         <Button variant="ghost" className="operator-icon-button" aria-label="接続設定を閉じる" intent={{ type: "connection.settings.toggled" }}><X size={16} /></Button>
       </div>
       {parameters.messageVisible && <p role="status" className="operator-error">{parameters.message}</p>}
@@ -17,6 +17,26 @@ export function ConnectionSettingsView({ parameters }: { parameters: ConnectionP
           onChange={event => emit({ type: "connection.mode.selected", mode: event.currentTarget.value })}>
           <option value="host">独立配信</option><option value="client">UDトークへ反映（試験接続）</option>
         </select></label>
+        {parameters.showEditor ? null : <label>字幕の入力元<select aria-label="字幕の入力元" value={parameters.inputSource}
+          onChange={event => emit({ type: "connection.input.selected", source: event.currentTarget.value })}>
+          <option value="udtalk">UDトーク</option><option value="microphone">マイク</option>
+        </select></label>}
+        {parameters.showMicrophone && <section className="connection-instructions">
+          <label>音声認識<select aria-label="音声認識" value={parameters.recognizer}
+            onChange={event => emit({ type: "connection.recognizer.selected", recognizer: event.currentTarget.value })}>
+            {parameters.recognizers.map(option => <option key={option.id} value={option.id} disabled={option.disabled}>{option.label}</option>)}
+          </select></label>
+          <p role="status">{parameters.recognizerMessage}</p>
+          <p>{parameters.microphoneStatus}</p>
+          <label>マイク<select aria-label="マイク" value={parameters.deviceId} disabled={parameters.deviceDisabled}
+            onChange={event => emit({ type: "microphone.device.selected", deviceId: event.currentTarget.value })}>
+            {parameters.devices.map(device => <option key={device.id} value={device.id}>{device.label}</option>)}
+          </select></label>
+          <p>{parameters.microphoneLabel}</p>
+          <Button className="operator-button" disabled={parameters.startDisabled} intent={{ type: "microphone.start.requested" }}>認識を開始</Button>
+          <Button className="operator-button" disabled={parameters.stopDisabled} intent={{ type: "microphone.stop.requested" }}>認識を停止</Button>
+          <p className="caption-hint">{parameters.usageLabel}</p>
+        </section>}
         {parameters.showReceiver && <section className="connection-instructions">
           <label>UDトークに設定する送信先<input aria-label="UDトークに設定する送信先" type="text" readOnly value={parameters.receiverUrl} autoComplete="off" /></label>
           <label>送られる字幕<select aria-label="送られる字幕" value={parameters.textFormat}

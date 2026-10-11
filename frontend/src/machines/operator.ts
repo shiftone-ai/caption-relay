@@ -1,4 +1,6 @@
-import { assign, fromPromise, setup, type SnapshotFrom } from "xstate";
+import { assign, fromPromise, sendTo, setup, type SnapshotFrom } from "xstate";
+import { microphoneActor } from "./microphone";
+import type { MicrophoneAdapter, MicrophoneDevice, TranscriptionStatus } from "../domain";
 import { CaptionConflict, OperationError, disclosureIds, type DisclosureId, type ConnectionSettings, type ConnectionStatus, type AiRouting, type AiSettings, type Caption, type DisplaySettings, type Draft, type OperatorApi, type ViewEvent, type PublicationMode, type SaveRequest, type StatusTooltipGeometry } from "../domain";
 import { changeDisplayField, defaultDisplay, selectDisplayPalette } from "../display";
 import { aiStrategies, defaultAi, knownAiModel } from "../ai";
@@ -16,6 +18,12 @@ interface StatusTooltipPosition {
 }
 
 interface OperatorContext {
+  microphone?: MicrophoneAdapter;
+  microphoneState: TranscriptionStatus["state"];
+  microphoneMessage: string;
+  microphoneLabel: string;
+  microphoneDevices: MicrophoneDevice[];
+  microphoneDeviceId: string;
   api: OperatorApi;
   visible: boolean;
   captions: Caption[];
@@ -122,7 +130,7 @@ const operations = {
     { guard: "invalidShortcutSave", actions: "invalidSave" },
   ],
   "visibility.toggle.requested": { guard: "hostMode", target: "toggling", actions: "clearError" },
-  "test.requested": { guard: "hostMode", target: "testing", actions: "clearError" },
+  "test.requested": { guard: "udtalkHostMode", target: "testing", actions: "clearError" },
   "publication.mode.requested": { guard: "validMode", target: "settingMode", actions: "prepareMode" },
   "display.save.requested": { guard: "hostMode", target: "settingDisplay", actions: "clearError" },
   "display.field.changed": { guard: "hostMode", actions: "editDisplay" },
@@ -134,6 +142,8 @@ const operations = {
   "connection.mode.selected": { guard: "validConnectionMode", actions: "editConnection" },
   "connection.url.changed": { actions: "editConnection" },
   "connection.text-format.selected": { guard: "validConnectionTextFormat", actions: "editConnection" },
+  "connection.input.selected": { guard: "validInputSource", actions: "editConnection" },
+  "connection.recognizer.selected": { guard: "validRecognizer", actions: "editConnection" },
   "connection.save.requested": { guard: "validConnectionSettings", target: "settingConnection", actions: "clearError" },
 } as const;
 
@@ -141,9 +151,10 @@ export const operatorMachine = setup({
   types: {
     context: {} as OperatorContext,
     events: {} as ViewEvent,
-    input: {} as { api: OperatorApi },
+    input: {} as { api: OperatorApi; microphone?: MicrophoneAdapter },
   },
   actors: {
+    microphone: microphoneActor,
     load: fromPromise(async ({ input, signal }: { input: OperatorApi; signal: AbortSignal }) => input.load(signal)),
     save: fromPromise(async ({ input, signal }: {
       input: { api: OperatorApi; request: SaveRequest }; signal: AbortSignal;
@@ -162,6 +173,21 @@ export const operatorMachine = setup({
       (disclosureIds.some(id => id === event.id) || ((event.id.startsWith("caption-saved:") || event.id.startsWith("caption-ai:"))
         && context.captionsById.has(event.id.slice(event.id.indexOf(":") + 1)))),
     hostMode: ({ context }) => context.connection.mode === "host",
+    canStartMicrophone: ({ context }) => Boolean(context.microphone?.available && context.connection.mode === "host"
+      && context.connection.input_source === "microphone" && !["preparing", "live", "retrying"].includes(context.microphoneState)
+      && !["preparing", "live", "retrying"].includes(context.connection.transcription.state ?? "stopped")
+      && (!context.connectionDraft || (context.connectionDraft.input_source === context.connection.input_source
+        && context.connectionDraft.recognizer === context.connection.recognizer && context.connectionDraft.mode === "host"))
+      && context.connection.recognizers.some(option => option.id === context.connection.recognizer && option.available)),
+    canStopMicrophone: ({ context }) => ["preparing", "live", "retrying"].includes(context.microphoneState),
+    canSelectMicrophone: ({ context, event }) => event.type === "microphone.device.selected"
+      && !["preparing", "live", "retrying"].includes(context.microphoneState)
+      && (event.deviceId === "" || context.microphoneDevices.some(device => device.id === event.deviceId)),
+    udtalkHostMode: ({ context }) => context.connection.mode === "host" && context.connection.input_source === "udtalk",
+    validInputSource: ({ context, event }) => event.type === "connection.input.selected" && (event.source === "udtalk"
+      || (event.source === "microphone" && (context.connectionDraft?.mode ?? context.connection.mode) === "host")),
+    validRecognizer: ({ context, event }) => event.type === "connection.recognizer.selected" && (event.recognizer === "openai" || event.recognizer === "apple")
+      && (context.connectionDraft?.mode ?? context.connection.mode) === "host",
     validConnectionMode: ({ event }) => event.type === "connection.mode.selected" && (event.mode === "host" || event.mode === "client"),
     validConnectionTextFormat: ({ event }) => event.type === "connection.text-format.selected" && (event.format === "plain" || event.format === "speaker"),
     validConnectionSettings: ({ context }) => Boolean(context.connectionDraft && (context.connectionDraft.mode === "host"
@@ -208,6 +234,8 @@ export const operatorMachine = setup({
       && context.pendingSave?.captionId !== event.captionId,
   },
   actions: {
+    startMicrophone: sendTo("microphone", ({ context }) => ({ type: "start", deviceId: context.microphoneDeviceId, recognizer: context.connection.recognizer })),
+    stopMicrophone: sendTo("microphone", { type: "stop" }),
     toggleDisclosure: assign(({ context, event }) => {
       if (event.type !== "disclosure.toggled") return {};
       const openedDisclosures = new Set(context.openedDisclosures);
@@ -271,14 +299,23 @@ export const operatorMachine = setup({
       return {};
     }),
     editConnection: assign(({ context, event }) => {
-      const current = context.connectionDraft ?? { mode: context.connection.mode, editor_url: "", zoom_text_format: context.connection.zoom_text_format };
+      const current: ConnectionSettings = context.connectionDraft ?? { mode: context.connection.mode, editor_url: "", zoom_text_format: context.connection.zoom_text_format,
+        input_source: context.connection.input_source, recognizer: context.connection.recognizer };
       if (event.type === "connection.mode.selected" && (event.mode === "host" || event.mode === "client")) {
-        const updated: ConnectionSettings = { ...current, mode: event.mode };
+        const updated: ConnectionSettings = { ...current, mode: event.mode, input_source: event.mode === "client" ? "udtalk" : current.input_source };
         return { connectionDraft: updated };
       }
       if (event.type === "connection.url.changed") return { connectionDraft: { ...current, editor_url: event.url } };
       if (event.type === "connection.text-format.selected" && (event.format === "plain" || event.format === "speaker")) {
         const updated: ConnectionSettings = { ...current, zoom_text_format: event.format };
+        return { connectionDraft: updated };
+      }
+      if (event.type === "connection.input.selected" && (event.source === "udtalk" || event.source === "microphone")) {
+        const updated: ConnectionSettings = { ...current, input_source: event.source };
+        return { connectionDraft: updated };
+      }
+      if (event.type === "connection.recognizer.selected" && (event.recognizer === "openai" || event.recognizer === "apple")) {
+        const updated: ConnectionSettings = { ...current, recognizer: event.recognizer };
         return { connectionDraft: updated };
       }
       return {};
@@ -315,6 +352,8 @@ export const operatorMachine = setup({
   id: "operator",
   initial: "loading",
   context: ({ input }) => ({
+    microphone: input.microphone, microphoneState: "stopped", microphoneMessage: "マイクの認識は停止しています。",
+    microphoneLabel: "", microphoneDevices: [], microphoneDeviceId: "",
     api: input.api, visible: true, captions: [], captionsById: new Map(), drafts: new Map(), pendingSave: null,
     error: "", errorSource: null, errorCaptionId: null, activeCaptionId: null,
     followLatest: true, latestRequest: 0, scrollTarget: "latest", editorFocusRequest: 0,
@@ -342,8 +381,15 @@ export const operatorMachine = setup({
       on: { "refresh.requested": "loading" },
     },
     ready: {
+      invoke: { id: "microphone", src: "microphone", input: ({ context }) => ({ adapter: context.microphone }) },
       initial: "idle",
       on: {
+        "microphone.start.requested": { guard: "canStartMicrophone", actions: [assign({ microphoneState: "preparing", microphoneMessage: "マイクを準備しています。" }), "startMicrophone"] },
+        "microphone.stop.requested": { guard: "canStopMicrophone", actions: "stopMicrophone" },
+        "microphone.device.selected": { guard: "canSelectMicrophone", actions: assign(({ event }) => ({ microphoneDeviceId: event.deviceId })) },
+        "microphone.devices.changed": { actions: assign(({ event }) => ({ microphoneDevices: event.devices })) },
+        "microphone.state.changed": { actions: assign(({ context, event }) => ({ microphoneState: event.state, microphoneMessage: event.message,
+          microphoneLabel: event.label ?? context.microphoneLabel })) },
         "caption.draft.changed": { guard: "canEdit", actions: "editDraft" },
         "caption.edit.requested": { guard: "canSelect", actions: "selectCaption" },
         "caption.edit.closed": { actions: "closeEditor" },
@@ -491,7 +537,12 @@ export const operatorMachine = setup({
             src: "connection", input: ({ context }) => ({ api: context.api, settings: {
               ...context.connectionDraft!, editor_url: context.connectionDraft?.mode === "client" ? context.connectionDraft.editor_url : null,
             } }),
-            onDone: { target: "refreshing", actions: assign(({ event }) => ({ connection: event.output, connectionDraft: null })) },
+            onDone: [
+              { guard: ({ context, event }) => context.connection.mode !== event.output.mode
+                || context.connection.input_source !== event.output.input_source || context.connection.recognizer !== event.output.recognizer,
+                target: "refreshing", actions: ["stopMicrophone", assign(({ event }) => ({ connection: event.output, connectionDraft: null }))] },
+              { target: "refreshing", actions: assign(({ event }) => ({ connection: event.output, connectionDraft: null })) },
+            ],
             onError: { target: "idle", actions: assign(({ event }) => ({ error: event.error instanceof OperationError
               ? event.error.message : "接続を変更できませんでした。現在の接続と下書きは保持しています。", errorSource: "command" as const })) },
           },

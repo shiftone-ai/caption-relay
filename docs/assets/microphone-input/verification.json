@@ -1,0 +1,70 @@
+{
+  "checked_on": "2026-10-11",
+  "runtime": "local FastAPI, headless Chrome, native SpeechAnalyzer; synthetic audio input",
+  "production_build_and_vite_proxy": "exercised separately against the real local API",
+  "recognition_states": [
+    "preparing",
+    "live",
+    "stopped",
+    "preparing",
+    "live",
+    "stopped"
+  ],
+  "console_errors": [],
+  "writes": [
+    {
+      "path": "/api/connection",
+      "status": 200,
+      "method": "PUT"
+    },
+    {
+      "path": "/api/connection",
+      "status": 200,
+      "method": "PUT"
+    },
+    {
+      "path": "/api/connection",
+      "status": 422,
+      "method": "PUT"
+    },
+    {
+      "path": "/api/connection",
+      "status": 200,
+      "method": "PUT"
+    },
+    {
+      "path": "/api/captions/{id}",
+      "status": 200,
+      "method": "PATCH"
+    },
+    {
+      "path": "/api/connection",
+      "status": 200,
+      "method": "PUT"
+    },
+    {
+      "path": "/api/connection",
+      "status": 200,
+      "method": "PUT"
+    }
+  ],
+  "saved_caption": [
+    "明日の開始時刻は午後3時です。参加費は100円です。"
+  ],
+  "tracks_ended_after_stop": true,
+  "physical_microphone": "not tested",
+  "openai_audio_sent_seconds": 0,
+  "openai_recognition": "not tested: repository key unavailable",
+  "recognizer_choice_matches_configuration": true,
+  "rejected_settings_kept_recording": true,
+  "unchanged_settings_kept_recording": true,
+  "accepted_switch_ended_tracks": true,
+  "accepted_microphone_updates": 41,
+  "checks": {
+    "command": "bash scripts/check.sh",
+    "exit_code": 0,
+    "frontend_tests_passed": 121,
+    "backend_tests_passed": 141,
+    "pyright_errors": 0
+  }
+}

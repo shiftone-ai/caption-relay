@@ -13,7 +13,7 @@
 | uv | [CI](../.github/workflows/ci.yml) と同じ 0.12.17 を基準とする |
 | npm | フロントエンドの依存関係をロックファイルから導入する |
 
-手動訂正と独立配信の起動に外部APIキー、データベース、コンテナは不要。AI校正は使う提供元のAPIキー、編集参加は有効なUDトークの編集用リンクが必要。
+手動訂正と独立配信の起動に外部APIキー、データベース、コンテナは不要。AI校正は使う提供元のAPIキー、編集参加は有効なUDトークの編集用リンクが必要。マイク入力は[専用の準備手順](microphone-input.md)を参照する。
 
 ## セットアップと起動
 
@@ -22,7 +22,7 @@ bash scripts/setup.sh
 bash scripts/dev.sh
 ```
 
-[setup.sh](../scripts/setup.sh) は Node.js の要件を確認し、`backend/uv.lock` と `frontend/package-lock.json` から依存関係を導入して画面をビルドする。依存関係が変わった場合も再実行する。
+[setup.sh](../scripts/setup.sh) は Node.js の要件を確認し、`backend/uv.lock` と `frontend/package-lock.json` から依存関係を導入して画面をビルドする。対応MacではmacOS 26 SDKでApple認識のSwift補助プログラムもビルドする。SDKがない環境やLinuxではAppleの準備を省略する。依存関係が変わった場合も再実行する。
 
 [dev.sh](../scripts/dev.sh) は FastAPI を `127.0.0.1:24681` で起動し、`frontend/dist/` を配信する。操作画面は `/`、観客画面は `/view/demo`。バックエンドの変更は自動で読み込む。画面を変更した場合は `npm --prefix frontend run build` で再ビルドする。
 
@@ -32,7 +32,7 @@ bash scripts/dev.sh
 npm --prefix frontend run dev
 ```
 
-操作画面は <http://127.0.0.1:24682/static/>、観客画面は <http://127.0.0.1:24682/view/demo>。Viteが `/api` と `/closedcaption` をバックエンドへ転送するため、接続設定の送信先も利用できる。終了時は各サーバーをCtrl+Cで止める。
+操作画面は <http://127.0.0.1:24682/static/>、観客画面は <http://127.0.0.1:24682/view/demo>。Viteが `/api` のHTTP・音声WebSocketと `/closedcaption` をバックエンドへ転送するため、接続設定の送信先も利用できる。終了時は各サーバーをCtrl+Cで止める。
 
 ## 環境変数
 
@@ -44,6 +44,9 @@ npm --prefix frontend run dev
 | `GEMINI_API_KEY` | GeminiのAPIキー | 未設定 |
 | `ANTHROPIC_API_KEY` | ClaudeのAPIキー | 未設定 |
 | `OPENAI_API_KEY` | OpenAIのAPIキー | 未設定 |
+| `CAPTION_RELAY_OPENAI_API_KEY` | リポジトリ専用の音声認識用OpenAIキー | 未設定 |
+| `CAPTION_RELAY_STT_JPY_PER_USD` | 音声認識の試験費用の円換算。税・地域処理を含む | 未設定 |
+| `CAPTION_RELAY_STT_USAGE_PATH` | 音声認識の累積使用量台帳 | 利用者のキャッシュ配下 |
 | `CAPTION_RELAY_AI_TIMEOUT_SECONDS` | AI要求全体の制限時間。0より大きく120以下 | `15` |
 
 バックエンドのポートを変更するときは、`CAPTION_RELAY_PORT` と Vite の `CAPTION_RELAY_API_URL` を合わせて設定する。値の記入例は [.env.example](../.env.example) を参照する。

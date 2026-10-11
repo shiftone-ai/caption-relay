@@ -27,3 +27,4 @@ uv sync --project backend --python "$(cat .python-version)" --locked --extra dev
 uv run --project backend --locked python --version
 npm --prefix frontend ci
 npm --prefix frontend run build
+bash "$ROOT/scripts/build-speech-helper.sh"
