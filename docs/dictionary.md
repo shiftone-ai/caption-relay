@@ -8,7 +8,7 @@
 2. 必要なら読みと誤認識されやすい表記を入力する。誤認識の表記は1行1件、5件まで。
 3. 「辞書を保存」で反映する。音声認識中に変更した場合は、停止して開始すると認識にも反映する。
 
-各欄は80文字以内、単語は100件まで、全体は10,000文字以内。空白だけの表記、改行・制御文字・`<`・`>`、重複する表記を拒否する。表記の重複は全角/半角や大文字/小文字の差を無視して確認する。
+各欄は80文字以内、単語は100件まで、全体は10,000文字以内。空白だけの表記、改行・制御文字・`<`・`>`、重複する表記を拒否する。表記の重複は全角/半角や大文字/小文字の差を無視して確認する。「Straße / STRASSE」のようなUnicodeの表記も保存前に重複と判断する。画面の文字変換表はサーバーのPythonから生成し、[生成結果の検証](generated/README.md)で一致を確認する。
 
 「有効」を外すと、保存後の認識・校正では参照しなくなる。削除や編集は保存するまで適用しない。パネルを閉じたり字幕を更新取得したりしても下書きを保つ。「保存済みに戻す」は入力中の辞書を破棄し、接続先から読み直す。
 
@@ -44,6 +44,8 @@ Deepgramの認識ヒントとUDトークの単語登録を参考にした機能�
 - [辞書API・保存・要求時点のテスト](../backend/tests/test_dictionary.py)、[Swift認識のテスト](../backend/tests/test_speech_helper.py)、[操作状態](../frontend/src/machines/operator.test.ts)、[画面の操作](../frontend/src/roots.test.tsx)。
 
 2026-10-11に実ブラウザと実APIで追加・編集・無効化・削除・保存・再読込・再起動・2画面の保存競合を確認した。[辞書画面](assets/dictionary-synthetic/dictionary-desktop.png)、[狭い画面](assets/dictionary-synthetic/dictionary-mobile.png)、[競合時の下書き](assets/dictionary-synthetic/dictionary-conflict.png)、[検証記録](assets/dictionary-synthetic/verification.json)を参照する。
+
+レビュー修正後にも、実ブラウザでUnicodeの重複を保存前に拒否し、100件登録済みのパネルを開くと編集欄へフォーカスが移ることを確認した。Tabで読みへ進み、Escapeで元のボタンへ戻れる。[100件時のフォーカス](assets/dictionary-synthetic/dictionary-full-focus.png)、[重複の表示](assets/dictionary-synthetic/dictionary-unicode-duplicate.png)、[修正後の検証記録](assets/dictionary-synthetic/verification-review-fixes.json)、[全体チェックの出力](assets/dictionary-synthetic/checks.txt)を参照する。
 
 物理マイクを使わず、macOSの合成音声を音声入力へ渡した。Appleの原文「キャプシヨンリレー」「星見大科学間」を、実際のGPT-5.4 Miniが「Caption Relay」「星見台科学館」へ校正した。OpenAIの原文「キャプシオンリレー」も登録表記へ校正し、人数の13人/十三人と否定を保持した。両方で観客画面のSSE表示と音声資源の解放を確認した。
 

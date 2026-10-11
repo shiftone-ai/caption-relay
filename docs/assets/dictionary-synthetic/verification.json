@@ -266,5 +266,7 @@
   "consoleErrorExplanation": "favicon.ico 404; dictionary 409 is the deliberately exercised concurrent-save rejection",
   "serverShutdownConfirmed": true,
   "billing": "API calls may be billed. This run did not verify incentive classification or final invoice.",
-  "checksOutput": "frontend: 18 files / 125 tests; backend: 160 tests; pyright: 0 errors, 0 warnings, 0 informations; API generation matches; build succeeded"
+  "checksOutput": "frontend: 18 files / 126 tests; backend: 164 tests; pyright: 0 errors, 0 warnings, 0 informations; API generation and dictionary case folding match; build succeeded",
+  "recognitionVerifiedCommit": "f6441f1f90dcc9f06f1dafae43663b57316164b7",
+  "reviewFixesVerification": "verification-review-fixes.json"
 }

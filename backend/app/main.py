@@ -13,7 +13,7 @@ import httpx2 as httpx
 
 from .models import (
     AiRouting, AiSettings, Caption, CaptionPatch, Command, ConflictDetail, ConflictResponse, PublicSnapshot,
-    ConnectionSettings, ConnectionStatus, DictionarySnapshot, DictionaryUpdate, DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
+    ConnectionSettings, ConnectionStatus, DictionaryError, DictionarySnapshot, DictionaryUpdate, DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
 )
 from .dictionary import DictionaryConflict, DictionaryStorageError, WordDictionary, dictionary_path
 from .relay import CaptionNotFound, CaptionRelay, RevisionConflict
@@ -171,7 +171,8 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
     async def get_dictionary() -> DictionarySnapshot:
         return workflow.dictionary.snapshot()
 
-    @application.put("/api/dictionary", response_model=DictionarySnapshot)
+    @application.put("/api/dictionary", response_model=DictionarySnapshot,
+                     responses={409: {"model": DictionaryError}, 503: {"model": DictionaryError}})
     async def set_dictionary(update: DictionaryUpdate) -> DictionarySnapshot:
         try:
             return workflow.dictionary.update(update)

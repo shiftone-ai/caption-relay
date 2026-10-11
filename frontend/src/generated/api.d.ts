@@ -593,6 +593,11 @@ export interface components {
             /** Recognizers */
             recognizers?: components["schemas"]["RecognizerOption"][];
         };
+        /** DictionaryError */
+        DictionaryError: {
+            /** Detail */
+            detail: string;
+        };
         /** DictionarySnapshot */
         DictionarySnapshot: {
             /** Entries */
@@ -1395,6 +1400,15 @@ export interface operations {
                     "application/json": components["schemas"]["DictionarySnapshot"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1402,6 +1416,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryError"];
                 };
             };
         };

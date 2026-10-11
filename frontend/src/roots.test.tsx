@@ -46,6 +46,23 @@ it("edits a dictionary through Root and restores focus when the panel closes", a
   await waitFor(() => expect(document.activeElement).toBe(trigger));
 }, 20000);
 
+it("focuses an editable word when the dictionary is full and restores its trigger", async () => {
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [], dictionary: { revision: 1,
+      entries: Array.from({ length: 100 }, (_, index) => ({ term: `単語${index}`, reading: "", variants: [], enabled: true })) } }),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  const trigger = await screen.findByRole("button", { name: "単語辞書" });
+  await waitFor(() => expect((trigger as HTMLButtonElement).disabled).toBe(false));
+  await user.click(trigger);
+  expect((screen.getByRole("button", { name: "単語を追加" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(document.activeElement).toBe(screen.getByLabelText("1件目の表記"));
+  await user.keyboard("{Escape}");
+  expect(document.activeElement).toBe(trigger);
+});
+
 it("applies microphone input without starting recognition and explains a missing key", async () => {
   let connection = defaultConnection;
   const api: OperatorApi = {

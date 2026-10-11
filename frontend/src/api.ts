@@ -6,7 +6,7 @@ async function request<T>(path: string, signal: AbortSignal, options: RequestIni
   const response = await fetch(path, { ...options, signal });
   if (!response.ok) {
     if (response.status === 409) {
-      const data = await response.json() as components["schemas"]["ConflictResponse"];
+      const data = await response.json() as components["schemas"]["ConflictResponse"] | components["schemas"]["DictionaryError"];
       if (typeof data.detail === "string") throw new OperationError(data.detail);
       if (data.detail && typeof data.detail === "object" && data.detail.latest) throw new CaptionConflict(data.detail.latest);
     } else if (response.status === 502) {
