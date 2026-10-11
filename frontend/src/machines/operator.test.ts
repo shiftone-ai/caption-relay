@@ -350,6 +350,11 @@ it("owns AI candidate invariants even when UI restrictions are bypassed", async 
   actor.send({ type: "ai.strategy.selected", value: "invalid" });
   expect(actor.getSnapshot().context.aiDraft).toMatchObject({ preferred_model: "claude-haiku-4-5", strategy: "off" });
   expect(actor.getSnapshot().context.aiDraft?.candidates.filter(id => id === "claude-haiku-4-5")).toHaveLength(1);
+  actor.send({ type: "ai.candidate.changed", modelId: "gpt-5.4-mini-2026-03-17", included: false });
+  actor.send({ type: "ai.preferred.selected", modelId: "gpt-5.4-mini-2026-03-17" });
+  actor.send({ type: "ai.candidate.changed", modelId: "gpt-5.4-mini-2026-03-17", included: false });
+  expect(actor.getSnapshot().context.aiDraft?.preferred_model).toBe("gpt-5.4-mini-2026-03-17");
+  expect(actor.getSnapshot().context.aiDraft?.candidates.filter(id => id === "gpt-5.4-mini-2026-03-17")).toHaveLength(1);
 });
 
 it("interprets display fields and palettes without publishing until saved", async () => {

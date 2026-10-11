@@ -15,6 +15,7 @@ from app.models import SourceEvent, AiSettings, CaptionPatch
     ("gemini-3.1-flash-lite", {"GEMINI_API_KEY": "test-key"}, {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "本文です。"}]}}], "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5}}, "generativelanguage.googleapis.com"),
     ("claude-haiku-4-5", {"ANTHROPIC_API_KEY": "test-key"}, {"content": [{"type": "text", "text": "本文です。"}], "stop_reason": "end_turn", "usage": {"input_tokens": 10, "output_tokens": 5}}, "api.anthropic.com"),
     ("gpt-5.3-codex", {"OPENAI_API_KEY": "test-key"}, {"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "本文です。"}]}], "usage": {"input_tokens": 10, "output_tokens": 5}}, "api.openai.com"),
+    ("gpt-5.4-mini-2026-03-17", {"OPENAI_API_KEY": "test-key"}, {"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "本文です。"}]}], "usage": {"input_tokens": 10, "output_tokens": 5}}, "api.openai.com"),
 ])
 def test_provider_uses_real_protocol_and_parses_only_completed_text(model, environment, reply, host):
     def handle(request):
@@ -24,6 +25,9 @@ def test_provider_uses_real_protocol_and_parses_only_completed_text(model, envir
         assert request.headers[expected_header] == ("Bearer test-key" if host == "api.openai.com" else "test-key")
         body = json.loads(request.content)
         assert "えー、本文です。" in str(body)
+        if host == "api.openai.com":
+            assert body["model"] == model
+            assert body["store"] is False
         return httpx.Response(200, json=reply)
     async def verify():
         provider = AiProvider(environment, httpx.MockTransport(handle))

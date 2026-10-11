@@ -1,6 +1,6 @@
 # クラウド文字起こしの比較（2026-10-10）
 
-**最初の接続先は利用者の回答により OpenAI と決定した。** OpenAI と端末内の候補は[別の調査](2026-10-10-openai-apple-transcription.md)、接続経路・リポジトリ専用キーの条件・合計100円と送信20分の試験上限は[実行計画](../exec-plans/active/2026-10-10-switchable-transcription.md)に記載する。この文書はほかのクラウドを比較する資料として残す。
+**最初の接続先は利用者の回答により OpenAI と決定した。** OpenAI と端末内の候補は[別の調査](2026-10-10-openai-apple-transcription.md)、接続経路・リポジトリ専用キーの条件・合計100円と送信20分の試験上限は[マイク入力](../microphone-input.md)に記載する。この文書はほかのクラウドを比較する資料として残す。
 
 AmiVoice API の日本語 E2E 汎用エンジンには、発話開始・途中結果・認識完了のイベントと保存なしの接続先がある。これは字幕入力との適合性を調べた結果であり、精度が他社より高いという結論ではない。[エンジン](https://docs.amivoice.com/amivoice-api/manual/engines)、[イベント](https://docs.amivoice.com/amivoice-api/manual/websocket-interface-command-and-response/)、[ログ保存](https://docs.amivoice.com/amivoice-api/manual/log-retention/)
 

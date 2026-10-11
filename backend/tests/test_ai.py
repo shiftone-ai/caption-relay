@@ -9,6 +9,25 @@ from app.models import AiSettings
 GEMINI = "gemini-3.1-flash-lite"
 CLAUDE = "claude-haiku-4-5"
 CODEX = "gpt-5.3-codex"
+GPT_MINI = "gpt-5.4-mini-2026-03-17"
+
+
+def test_openai_key_enables_mini_for_manual_and_cost_routes() -> None:
+    with TestClient(create_app(environment={"OPENAI_API_KEY": "test-key"})) as client:
+        initial = client.get("/api/ai").json()
+        assert initial["settings"]["strategy"] == "off"
+        assert initial["selected_model"] is None
+        assert {model["id"] for model in initial["models"] if model["configured"]} == {CODEX, GPT_MINI}
+        assert len(initial["settings"]["candidates"]) == 4
+        candidates = initial["settings"]["candidates"]
+        saved = client.put("/api/ai", json=settings("manual", GPT_MINI, candidates))
+        assert saved.status_code == 200
+        assert saved.json()["selected_model"] == GPT_MINI
+        assert saved.json()["connected"] is True
+        assert client.get("/api/ai").json()["settings"]["preferred_model"] == GPT_MINI
+        routed = client.put("/api/ai", json=settings("cost", CODEX, [CODEX, GPT_MINI])).json()
+        assert routed["selected_model"] == GPT_MINI
+        assert routed["reason"] == "cost"
 
 
 def test_unmeasured_speed_route_uses_a_configured_candidate_when_preferred_key_is_missing() -> None:
