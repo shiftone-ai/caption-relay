@@ -46,6 +46,7 @@ def test_dictionary_survives_restart_and_rejects_stale_saves_without_exposing_wo
 @pytest.mark.parametrize("entries", [
     [{"term": "   "}], [{"term": "line\nbreak"}], [{"term": "<term>"}], [{"term": "x" * 81}],
     [{"term": "ABC"}, {"term": "ＡＢＣ"}], [{"term": "term", "enabled": "true"}],
+    [{"term": "Straße"}, {"term": "STRASSE"}], [{"term": "ΟΣ"}, {"term": "ος"}], [{"term": "Ꭰ"}, {"term": "ꭰ"}],
     [{"term": "term", "variants": ["a", "a"]}], [{"term": "term", "variants": [" "]}],
     [{"term": "term", "variants": [str(i) for i in range(6)]}],
     [{"term": str(i)} for i in range(101)],
@@ -85,6 +86,14 @@ def test_corrupt_dictionary_is_reported_without_overwriting_it(tmp_path: Path):
     with pytest.raises(DictionaryStorageError, match="読み込めません"):
         WordDictionary(path)
     assert path.read_text() == "invalid"
+
+
+def test_dictionary_contract_models_conflicts_and_storage_errors():
+    schema = create_app(environment={}).openapi()
+    responses = schema["paths"]["/api/dictionary"]["put"]["responses"]
+    for status in ("409", "503"):
+        assert responses[status]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/DictionaryError"
+    assert schema["components"]["schemas"]["DictionaryError"]["properties"]["detail"]["type"] == "string"
 
 
 def test_queued_ai_uses_the_dictionary_at_reception_and_excludes_disabled_words():

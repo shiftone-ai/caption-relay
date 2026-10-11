@@ -53,6 +53,10 @@ class DictionaryUpdate(DictionarySettings):
     base_revision: int = Field(ge=0)
 
 
+class DictionaryError(Model):
+    detail: str
+
+
 AiModelId = Literal["gemini-3.1-flash-lite", "claude-haiku-4-5", "gpt-5.3-codex", "gpt-5.4-mini-2026-03-17"]
 
 

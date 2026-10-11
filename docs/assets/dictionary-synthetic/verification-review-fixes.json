@@ -1,0 +1,36 @@
+{
+  "verifiedOn": "2026-10-11",
+  "runtime": "Built frontend, headless Chrome and real FastAPI",
+  "physicalMicrophone": false,
+  "recognitionStarted": false,
+  "checks": [
+    "At 100 entries, Add is disabled, opening focuses the first editable term, Tab reaches its reading, and Escape restores the toolbar trigger",
+    "Straße / STRASSE is reported as a duplicate in the real browser before any save request",
+    "A corrected draft saves through the real API and the served OpenAPI declares the 409 / 503 error model"
+  ],
+  "browserErrors": [],
+  "dictionaryRequests": [
+    {
+      "status": 200,
+      "request": {
+        "base_revision": 2,
+        "entries": [
+          {
+            "term": "Straße",
+            "reading": "",
+            "enabled": true,
+            "variants": []
+          },
+          {
+            "term": "別の単語",
+            "reading": "",
+            "enabled": true,
+            "variants": []
+          }
+        ]
+      }
+    }
+  ],
+  "result": "passed",
+  "serverShutdownConfirmed": true
+}

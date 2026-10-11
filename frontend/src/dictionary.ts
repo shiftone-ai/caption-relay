@@ -1,4 +1,5 @@
 import type { DictionarySnapshot, DictionaryUpdate, DictionaryWord } from "./domain";
+import { dictionaryCaseFolding } from "./generated/dictionary-case-folding";
 
 export const emptyDictionary: DictionarySnapshot = { revision: 0, entries: [] };
 export interface DictionaryDraft {
@@ -32,7 +33,7 @@ export function dictionaryValidation(draft: DictionaryDraft): string {
     if (values.some(value => /[\x00-\x1f\x7f<>]/.test(value))) return `${label}に改行や < > は使えません。誤認識の表記は1行ずつ入力してください。`;
     if (word.variants.length > 5) return `${label}の誤認識の表記は5件以内で入力してください。`;
     if (new Set(word.variants).size !== word.variants.length) return `${label}の誤認識の表記が重複しています。`;
-    const key = word.term.normalize("NFKC").toLowerCase();
+    const key = Array.from(word.term.normalize("NFKC"), character => dictionaryCaseFolding[character] ?? character).join("");
     if (terms.has(key)) return `${label}の表記は登録済みです。同じ表記は一度だけ登録してください。`;
     terms.add(key);
     total += values.reduce((sum, value) => sum + Array.from(value).length, 0);

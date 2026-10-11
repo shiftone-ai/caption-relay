@@ -126,6 +126,12 @@ it("rejects blank and duplicate dictionary terms before sending a request", asyn
   actor.send({ type: "dictionary.word.changed", index: 1, field: "term", value: "ＡＢＣ" });
   actor.send({ type: "dictionary.save.requested" });
   expect(actor.getSnapshot().context.dictionaryError).toContain("登録済み");
+  for (const [first, second] of [["Straße", "STRASSE"], ["ΟΣ", "ος"], ["Ꭰ", "ꭰ"]]) {
+    actor.send({ type: "dictionary.word.changed", index: 0, field: "term", value: first });
+    actor.send({ type: "dictionary.word.changed", index: 1, field: "term", value: second });
+    actor.send({ type: "dictionary.save.requested" });
+    expect(actor.getSnapshot().context.dictionaryError).toContain("登録済み");
+  }
   expect(adapter.setDictionary).not.toHaveBeenCalled();
   expect(actor.getSnapshot().can({ type: "dictionary.word.removed", index: -1 })).toBe(false);
   expect(actor.getSnapshot().can({ type: "dictionary.word.changed", index: 2, field: "term", value: "unknown" })).toBe(false);

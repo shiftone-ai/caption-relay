@@ -337,7 +337,7 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
   return {
     panelFocus: context.settingsFocusTarget ? {
       selector: context.settingsFocusTarget.destination === "field"
-        ? `#${context.settingsFocusTarget.panel}-settings [data-setting-autofocus], #${context.settingsFocusTarget.panel}-settings select:not(:disabled)`
+        ? `#${context.settingsFocusTarget.panel}-settings [data-setting-autofocus]:not(:disabled), #${context.settingsFocusTarget.panel}-settings select:not(:disabled)`
         : `[data-settings-trigger="${context.settingsFocusTarget.panel}"]`,
       version: context.settingsFocusRequest,
     } : null,
