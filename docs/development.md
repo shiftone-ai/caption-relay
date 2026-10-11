@@ -1,6 +1,6 @@
 # 開発手順
 
-設定確認日：2026-10-10
+設定確認日：2026-10-11
 
 リポジトリのルートで以下のコマンドを実行する。Codex Cloud と SSH 接続の固有手順は[リモート開発](remote-development.md)を参照する。
 
@@ -48,6 +48,7 @@ npm --prefix frontend run dev
 | `CAPTION_RELAY_STT_JPY_PER_USD` | 音声認識の試験費用の円換算。税・地域処理を含む | 未設定 |
 | `CAPTION_RELAY_STT_USAGE_PATH` | 音声認識の累積使用量台帳 | 利用者のキャッシュ配下 |
 | `CAPTION_RELAY_AI_TIMEOUT_SECONDS` | AI要求全体の制限時間。0より大きく120以下 | `15` |
+| `CAPTION_RELAY_DICTIONARY_PATH` | [単語辞書](dictionary.md)の保存先ファイル | `$XDG_DATA_HOME/caption-relay/dictionary.json`。未設定なら `~/.local/share/caption-relay/dictionary.json` |
 
 バックエンドのポートを変更するときは、`CAPTION_RELAY_PORT` と Vite の `CAPTION_RELAY_API_URL` を合わせて設定する。値の記入例は [.env.example](../.env.example) を参照する。
 

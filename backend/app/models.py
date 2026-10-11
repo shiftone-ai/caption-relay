@@ -1,10 +1,56 @@
-from typing import Literal
+from typing import Annotated, Literal
+import unicodedata
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Model(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, validate_assignment=True)
+
+
+WordText = Annotated[str, Field(min_length=1, max_length=80, pattern=r"^[^\x00-\x1f\x7f<>]+$")]
+
+
+class DictionaryWord(Model):
+    term: WordText
+    reading: str = Field(default="", max_length=80, pattern=r"^[^\x00-\x1f\x7f<>]*$")
+    variants: list[WordText] = Field(default_factory=list, max_length=5)
+    enabled: bool = True
+
+    @field_validator("term", "reading")
+    @classmethod
+    def trim_word(cls, value: str) -> str:
+        value = unicodedata.normalize("NFC", value.strip())
+        return value
+
+    @model_validator(mode="after")
+    def valid_word(self) -> "DictionaryWord":
+        if not self.term or any(not value.strip() or value != value.strip() for value in self.variants):
+            raise ValueError("辞書の表記を空欄にしたり、前後に空白を含めたりできません。")
+        if len(set(self.variants)) != len(self.variants):
+            raise ValueError("誤認識の表記が重複しています。")
+        return self
+
+
+class DictionarySettings(Model):
+    entries: list[DictionaryWord] = Field(default_factory=lambda: list[DictionaryWord](), max_length=100)
+
+    @model_validator(mode="after")
+    def unique_terms(self) -> "DictionarySettings":
+        keys = [unicodedata.normalize("NFKC", entry.term).casefold() for entry in self.entries]
+        if len(set(keys)) != len(keys):
+            raise ValueError("同じ表記は一度だけ登録してください。")
+        if sum(len(entry.term) + len(entry.reading) + sum(map(len, entry.variants)) for entry in self.entries) > 10000:
+            raise ValueError("辞書は合計10,000文字以内で登録してください。")
+        return self
+
+
+class DictionarySnapshot(DictionarySettings):
+    revision: int = Field(default=0, ge=0)
+
+
+class DictionaryUpdate(DictionarySettings):
+    base_revision: int = Field(ge=0)
 
 
 AiModelId = Literal["gemini-3.1-flash-lite", "claude-haiku-4-5", "gpt-5.3-codex", "gpt-5.4-mini-2026-03-17"]

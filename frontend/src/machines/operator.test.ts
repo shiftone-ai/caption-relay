@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { operatorMachine } from "./operator";
 import { CaptionConflict, OperationError, type Caption, type OperatorApi, type Snapshot } from "../domain";
 import { defaultConnection } from "../connection";
+import { presentOperator } from "../presenters/operator";
 
 const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
 
@@ -69,7 +70,7 @@ function api(): OperatorApi {
     save: vi.fn().mockResolvedValue({ ...caption, text: "修正", revision: 2, human_edited: true }),
     setVisible: vi.fn().mockResolvedValue(false),
     setPublicationMode: vi.fn().mockResolvedValue({ auto_publish: true }), setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
-    setConnection: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
+    setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
     sendTest: vi.fn().mockResolvedValue(undefined),
   };
 }
@@ -83,6 +84,72 @@ async function start(adapter = api()) {
   await waitFor(actor, state => state.matches({ ready: "idle" }));
   return actor;
 }
+
+it("retains dictionary drafts through refresh and panel changes and saves a bounded payload", async () => {
+  const adapter = api();
+  const pending = deferred<Awaited<ReturnType<OperatorApi["setDictionary"]>>>();
+  vi.mocked(adapter.setDictionary).mockReturnValue(pending.promise);
+  const actor = await start(adapter);
+  actor.send({ type: "dictionary.settings.toggled" });
+  actor.send({ type: "dictionary.word.added" });
+  actor.send({ type: "dictionary.word.changed", index: 0, field: "term", value: " Caption Relay " });
+  actor.send({ type: "dictionary.word.changed", index: 0, field: "reading", value: "きゃぷしょんりれー" });
+  actor.send({ type: "dictionary.word.changed", index: 0, field: "variantsText", value: "キャプションリレー\n\nキャプション リレー\n" });
+  actor.send({ type: "dictionary.word.enabled", index: 0, enabled: false });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  actor.send({ type: "ai.settings.toggled" });
+  actor.send({ type: "dictionary.settings.toggled" });
+  expect(presentOperator(actor.getSnapshot()).hasUnsavedChanges).toBe(true);
+  expect(presentOperator(actor.getSnapshot()).dictionary.entries[0].variantsText).toContain("\n\n");
+  actor.send({ type: "dictionary.save.requested" });
+  await waitFor(actor, state => state.matches({ ready: "settingDictionary" }));
+  expect(adapter.setDictionary).toHaveBeenCalledWith({ base_revision: 0, entries: [{
+    term: "Caption Relay", reading: "きゃぷしょんりれー", variants: ["キャプションリレー", "キャプション リレー"], enabled: false,
+  }] }, expect.any(AbortSignal));
+  expect(actor.getSnapshot().can({ type: "dictionary.word.added" })).toBe(false);
+  expect(presentOperator(actor.getSnapshot()).dictionary.disabled).toBe(true);
+  pending.resolve({ revision: 1, entries: [{ term: "Caption Relay", reading: "きゃぷしょんりれー", variants: ["キャプションリレー"], enabled: false }] });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.dictionaryDraft).toBeNull();
+  expect(presentOperator(actor.getSnapshot()).hasUnsavedChanges).toBe(false);
+});
+
+it("rejects blank and duplicate dictionary terms before sending a request", async () => {
+  const adapter = api();
+  const actor = await start(adapter);
+  actor.send({ type: "dictionary.word.added" });
+  actor.send({ type: "dictionary.save.requested" });
+  expect(actor.getSnapshot().context.dictionaryError).toContain("表記を入力");
+  actor.send({ type: "dictionary.word.changed", index: 0, field: "term", value: "ABC" });
+  actor.send({ type: "dictionary.word.added" });
+  actor.send({ type: "dictionary.word.changed", index: 1, field: "term", value: "ＡＢＣ" });
+  actor.send({ type: "dictionary.save.requested" });
+  expect(actor.getSnapshot().context.dictionaryError).toContain("登録済み");
+  expect(adapter.setDictionary).not.toHaveBeenCalled();
+  expect(actor.getSnapshot().can({ type: "dictionary.word.removed", index: -1 })).toBe(false);
+  expect(actor.getSnapshot().can({ type: "dictionary.word.changed", index: 2, field: "term", value: "unknown" })).toBe(false);
+});
+
+it("keeps a conflicting dictionary draft until the operator explicitly reloads the saved dictionary", async () => {
+  const adapter = api();
+  vi.mocked(adapter.setDictionary).mockRejectedValue(new OperationError("別の画面で辞書が更新されました。"));
+  const actor = await start(adapter);
+  actor.send({ type: "dictionary.word.added" });
+  actor.send({ type: "dictionary.word.changed", index: 0, field: "term", value: "保持する表記" });
+  actor.send({ type: "dictionary.save.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [], dictionary: { revision: 2, entries: [{ term: "別画面の表記", reading: "", variants: [], enabled: true }] } });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.dictionaryDraft?.baseRevision).toBe(0);
+  expect(presentOperator(actor.getSnapshot()).dictionary.entries[0].term).toBe("保持する表記");
+  expect(presentOperator(actor.getSnapshot()).dictionary.error).toContain("別の画面");
+  actor.send({ type: "dictionary.draft.discarded" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(presentOperator(actor.getSnapshot()).dictionary.entries[0].term).toBe("別画面の表記");
+  expect(presentOperator(actor.getSnapshot()).dictionary.error).toBe("");
+});
 
 it("keeps microphone recognition running while editing and stops it before input changes", async () => {
   const adapter = api();

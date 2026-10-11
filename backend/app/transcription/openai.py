@@ -109,7 +109,8 @@ async def openai_connect(key: str) -> RealtimeSocket:
 
 class OpenAIRecognizer:
     def __init__(self, key: str, generation: str, accept: Callable[[SourceEvent], object], budget: "TrialBudget",
-                 *, connector: Connector = openai_connect, detector: "VoiceDetector | None" = None) -> None:
+                 *, connector: Connector = openai_connect, detector: "VoiceDetector | None" = None,
+                 keywords: list[str] | None = None) -> None:
         from .audio import SpeechTurns
         self._key, self._connector, self._budget = key, connector, budget
         self._accept = accept
@@ -124,6 +125,7 @@ class OpenAIRecognizer:
         self.failed = asyncio.Event()
         self.error = ""
         self._closing = False
+        self._keywords = list(keywords or [])
 
     async def start(self) -> None:
         try:
@@ -131,7 +133,8 @@ class OpenAIRecognizer:
                 self._socket = await self._connector(self._key)
                 await self._send({"type": "session.update", "session": {"type": "transcription", "audio": {"input": {
                     "format": {"type": "audio/pcm", "rate": 24000},
-                    "transcription": {"model": "gpt-live-transcribe", "languages": ["ja"], "delay": "low"},
+                    "transcription": {"model": "gpt-live-transcribe", "languages": ["ja"], "delay": "low",
+                                      **({"keywords": self._keywords} if self._keywords else {})},
                     "turn_detection": None,
                 }}}})
                 for _ in range(32):

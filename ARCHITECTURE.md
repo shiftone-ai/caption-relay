@@ -1,6 +1,6 @@
 # システム構成
 
-実装確認日：2026-10-10
+実装確認日：2026-10-11
 
 Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つローカル PoC。React の操作画面は HTTP で取得・更新し、観客画面は SSE で公開字幕を受け取る。現在の振る舞いは[現行 PoC の仕様](docs/current-behavior.md)、起動方法は[開発手順](docs/development.md)を参照する。
 
@@ -18,6 +18,7 @@ Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つロ
 | [backend/app/udtalk_editor.py](backend/app/udtalk_editor.py) | 編集用URLの権限・期限、純正編集通信の参加・受信・ロック・訂正・解除 |
 | [backend/app/udtalk.py](backend/app/udtalk.py)・[udtalk_web.py](backend/app/udtalk_web.py) | UDトークWeb表示の実験用入力Adapter、断片・再送・途中／確定の変換、取得と終了処理 |
 | [backend/app/ai.py](backend/app/ai.py)・[ai_provider.py](backend/app/ai_provider.py) | AI候補・料金・キーの有無、振り分け、応答時間の集計、提供元へのHTTP要求と完了結果の検証 |
+| [backend/app/dictionary.py](backend/app/dictionary.py) | 単語辞書の改版、ローカルファイル保存、認識・AI要求ごとの辞書の取得 |
 | [backend/app/models.py](backend/app/models.py) | 入力・応答・内部状態・公開字幕の Pydantic モデル |
 | [frontend/src/roots.tsx](frontend/src/roots.tsx) | 各画面の Root、XState actor と Presenter の接続 |
 | [frontend/src/views/](frontend/src/views/) | 描画と操作イベントの通知 |
@@ -55,7 +56,7 @@ flowchart LR
 
 FastAPIはPydanticモデルで入出力を検証し、入力と訂正保存を `CaptionWorkflow` へ渡す。状態遷移と公開可否は `CaptionRelay`、外部接続の寿命と送信先は `Connections` が所有する。AI要求はバックグラウンドで実行し、元の発話の更新とモード変更で終了する。保存と接続変更は同時に実行しない。訂正先への送信前後に原文・表示文の改版を照合し、古い原文で新しい発話を上書きしない。存在しない字幕と改版競合はAPI層で404・409に変換する。
 
-`create_app()`ごとに独立した状態を作る。字幕状態を共有するデータベースはなく、再起動で消えるため、複数ワーカーで運用しない。字幕・接続・AI設定・測定結果をこのプロセスに保持する。各AI提供元のキーは環境変数で読み、画面へ返さない。マイク認識の試験使用量だけは再起動をまたぐファイルに保存する。
+`create_app()`ごとに独立した字幕状態を作る。字幕状態を共有するデータベースはなく、再起動で消えるため、複数ワーカーで運用しない。字幕・接続・AI設定・測定結果をこのプロセスに保持する。各AI提供元のキーは環境変数で読み、画面へ返さない。通常起動では単語辞書とマイク認識の試験使用量を再起動をまたぐファイルに保存する。テスト用の `create_app()` は辞書を注入しない限りメモリ上に保持する。詳細は[単語辞書](docs/dictionary.md)を参照する。
 
 接続の初期値は独立配信。Zoom形式の送信先はプロセス内で生成し、再起動と接続変更で更新する。従来のWeb入力Adapterは `CAPTION_RELAY_UDTALK_URL` を設定した場合に開始する。編集参加へ切り替えると両方の入力を止め、有効な編集用URLの参加を開始する。入力の変換は各Adapter、公開と手修正の判断はRelayが所有する。経路・根拠・制約は[UDトークの入力接続](docs/udtalk-input.md)を参照する。
 
