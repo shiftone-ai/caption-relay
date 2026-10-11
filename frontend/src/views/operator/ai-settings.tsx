@@ -39,13 +39,13 @@ export function AiSettingsView({ parameters }: { parameters: AiParameters }) {
               <thead><tr><th scope="col">AI</th><th scope="col">入力<br />出力</th><th scope="col">参考<br />1,000件</th><th scope="col">応答時間</th></tr></thead>
               <tbody>{parameters.models.map(model => <tr key={model.id}>
                 <td><div className="ai-model-title"><span><strong>{model.provider}</strong><small>{model.variant}</small></span>
-                  <a className="ai-pricing-link" href={model.pricingUrl} target="_blank" rel="noopener noreferrer" aria-label={model.provider + "の公式料金"} title={model.provider + "の公式料金"}><ExternalLink size={12} aria-hidden="true" /></a></div></td>
+                  <a className="ai-pricing-link" href={model.pricingUrl} target="_blank" rel="noopener noreferrer" aria-label={model.provider + "の公式料金（" + model.checkedOn + "確認）"} title={model.provider + "の公式料金（" + model.checkedOn + "確認）"}><ExternalLink size={12} aria-hidden="true" /></a></div></td>
                 <td><span className="ai-money">{model.inputPrice}</span><span className="ai-money">{model.outputPrice}</span></td>
                 <td>{model.sampleCost}</td><td>{model.latency}</td>
               </tr>)}</tbody>
               </table>
             </div>
-            <p className="caption-hint">参考費用は1件あたり入力200・出力100トークン。キャッシュ・追加機能・税は含みません。料金確認日：{parameters.models[0]?.checkedOn}。</p>
+            <p className="caption-hint">参考費用は1件あたり入力200・出力100トークン。キャッシュ・追加機能・税は含みません。各AIの料金確認日は公式料金リンクに表示しています。</p>
             <p className="caption-hint">API利用の比較です。Codex・Claudeの月額契約とは異なります。</p>
             <p className="caption-hint">応答時間は受信した結果の直近20件の中央値です。</p>
           </Disclosure>

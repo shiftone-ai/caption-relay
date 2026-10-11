@@ -305,12 +305,12 @@ export interface components {
              * Id
              * @enum {string}
              */
-            id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex";
+            id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17";
             /**
              * Provider
              * @enum {string}
              */
-            provider: "gemini" | "claude" | "codex";
+            provider: "gemini" | "claude" | "codex" | "openai";
             /** Label */
             label: string;
             /** Input Usd Per Million */
@@ -345,7 +345,7 @@ export interface components {
              * Model Id
              * @enum {string}
              */
-            model_id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex";
+            model_id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17";
             /** Source Revision */
             source_revision: number;
         };
@@ -357,7 +357,7 @@ export interface components {
              * Model Id
              * @enum {string}
              */
-            model_id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex";
+            model_id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17";
             /** Elapsed Ms */
             elapsed_ms: number;
             /** Input Tokens */
@@ -371,7 +371,7 @@ export interface components {
             /** Models */
             models: components["schemas"]["AiModelOption"][];
             /** Selected Model */
-            selected_model: ("gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex") | null;
+            selected_model: ("gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17") | null;
             /**
              * Reason
              * @enum {string}
@@ -396,9 +396,9 @@ export interface components {
              * @default gemini-3.1-flash-lite
              * @enum {string}
              */
-            preferred_model: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex";
+            preferred_model: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17";
             /** Candidates */
-            candidates?: ("gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex")[];
+            candidates?: ("gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17")[];
         };
         /** Caption */
         Caption: {

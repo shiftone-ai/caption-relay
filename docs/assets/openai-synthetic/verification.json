@@ -1,0 +1,174 @@
+{
+  "checked_on": "2026-10-11",
+  "commit": "2a9fbbff9b82f6ca778ab71d1550bffee6e60d57",
+  "result": "passed",
+  "synthetic_audio_only": true,
+  "physical_microphone": false,
+  "provider_mocks": false,
+  "browser": "headless Google Chrome",
+  "audio": {
+    "synthetic": true,
+    "physical_microphone": false,
+    "tts": "macOS Kyoko",
+    "text": "今日は字幕の動作確認を行います。参加者は三人です。明日の会議は午後二時からです。予約は取り消しません。",
+    "seconds": 9.4451875,
+    "sample_rate": 48000,
+    "channels": 1
+  },
+  "openai_stt": {
+    "checks": [
+      "real recognition",
+      "final caption publication over SSE",
+      "browser edit/save",
+      "audience sees human edit",
+      "synthetic tracks released",
+      "audio WebSocket closed"
+    ],
+    "transcripts": [
+      {
+        "id": "mic:openai:b2b1b68713784993a0f2337c24c1b502:1",
+        "sourceRevision": 36,
+        "original": "今日は字幕の動作確認を行います。参加者は三人です。明日の会議は午後二時からです。予約は取り消しません。",
+        "text": "今日は字幕の動作確認を行います。参加者は三人です。明日の会議は午後二時からです。予約は取り消しません。",
+        "final": true
+      }
+    ],
+    "transcription": {
+      "state": "stopped",
+      "message": "マイクの認識を停止しました。",
+      "sent_seconds": 9.754666666666667,
+      "estimated_yen": 1.105601
+    },
+    "latency": {
+      "startToLiveMs": 2750,
+      "speechStartToFinalStopMs": 12361
+    },
+    "socket": {
+      "frames": 98,
+      "bytes": 937232,
+      "closed": true
+    },
+    "media": {
+      "getUserMediaCalls": 1,
+      "tracks": [
+        {
+          "label": "MediaStreamAudioDestinationNode",
+          "state": "ended"
+        }
+      ],
+      "started": 1,
+      "ended": 1
+    },
+    "saveResponse": {
+      "status": 200,
+      "body": {
+        "id": "mic:openai:b2b1b68713784993a0f2337c24c1b502:1",
+        "utterance_id": "mic:openai:b2b1b68713784993a0f2337c24c1b502:1",
+        "received_at": "2026-10-11T05:07:54.911554Z",
+        "source_revision": 36,
+        "revision": 37,
+        "original": "今日は字幕の動作確認を行います。参加者は三人です。明日の会議は午後二時からです。予約は取り消しません。",
+        "text": "今日は字幕の動作確認を行います。参加者は三人です。明日の会議は午後二時からです。予約は取り消しません。（合成音声による確認済み）",
+        "speaker": null,
+        "human_edited": true,
+        "published": true,
+        "publish_eligible": true,
+        "formatted_text": null,
+        "source_final": true,
+        "public_text": "今日は字幕の動作確認を行います。参加者は三人です。明日の会議は午後二時からです。予約は取り消しません。（合成音声による確認済み）",
+        "public_speaker": null,
+        "public_revision": 37,
+        "ai_request": null,
+        "ai_result": null,
+        "ai_status": "off",
+        "ai_error": null
+      }
+    }
+  },
+  "gpt": {
+    "submission": "recognized text submitted as a new final source event after STT stopped",
+    "result": "succeeded",
+    "model": "gpt-5.3-codex",
+    "original": "今日は字幕の動作確認を行います。参加者は三人です。明日の会議は午後二時からです。予約は取り消しません。",
+    "corrected": "今日は字幕の動作確認を行います。参加者は三人です。明日の会議は午後二時からです。予約は取り消しません。",
+    "usage": {
+      "request_id": "b3961aae-1cdd-4dfb-bf1a-544292617fc4",
+      "model_id": "gpt-5.3-codex",
+      "elapsed_ms": 2144.825999974273,
+      "input_tokens": 151,
+      "output_tokens": 39
+    },
+    "nominal_usd": 0.00081025,
+    "estimated_yen_at_200_per_usd": 0.16205,
+    "correction_quality": "not assessed; output equals already punctuated input"
+  },
+  "api_statuses": [
+    200
+  ],
+  "browser_errors": [],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "console_followup": {
+    "path": "/favicon.ico",
+    "status": 404,
+    "confirmation": {
+      "nonSuccessResponses": [],
+      "consoleErrors": [
+        {
+          "message": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "path": "/favicon.ico"
+        }
+      ],
+      "providerRequests": 0
+    }
+  },
+  "cost_basis": {
+    "checked_on": "2026-10-11",
+    "residency": "Global",
+    "tier": "Standard",
+    "billing": "prepaid_credit_available",
+    "auto_reload": "off",
+    "invoice_tax_percent": 10,
+    "fx_usd_jpy_offer": 158.34,
+    "fx_date": "2026-10-09",
+    "fx_source": "https://www.boj.or.jp/en/statistics/market/forex/fxdaily/fxlist/fx261009.pdf",
+    "conservative_jpy_per_usd": 200,
+    "stt_usd_per_minute": 0.017,
+    "stt_pricing_source": "https://developers.openai.com/api/docs/pricing",
+    "stt_cumulative_cap_seconds": 1200,
+    "stt_cap_yen": 100,
+    "stt_guard_yen": 90,
+    "stt_estimate_multiplier": 2,
+    "key_expiration": "2026-10-12",
+    "key_permissions": {
+      "stt": [
+        "api.model.realtime.request"
+      ],
+      "gpt": [
+        "api.responses.read",
+        "api.responses.write"
+      ]
+    }
+  },
+  "cleanup": {
+    "server_stopped": true,
+    "audio_tracks_ended": true,
+    "audio_websocket_closed": true
+  },
+  "gemini": "skipped_at_user_request",
+  "unverified": [
+    "physical microphone",
+    "venue noise",
+    "long-running sessions",
+    "comparative quality and latency",
+    "final invoiced charges"
+  ],
+  "validation": {
+    "command": "bash scripts/check.sh",
+    "frontend_tests_passed": 121,
+    "backend_tests_passed": 141,
+    "typecheck": "0 errors, 0 warnings, 0 informations",
+    "api_types": "match"
+  }
+}
