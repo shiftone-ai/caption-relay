@@ -138,10 +138,30 @@ class Caption(Model):
     ai_error: str | None = None
 
 
+RecognizerId = Literal["openai", "apple"]
+InputSource = Literal["udtalk", "microphone"]
+
+
+class RecognizerOption(Model):
+    id: RecognizerId
+    label: str
+    available: bool
+    message: str
+
+
+class TranscriptionStatus(Model):
+    state: Literal["stopped", "preparing", "live", "retrying", "failed"] = "stopped"
+    message: str = "マイクの認識は停止しています。"
+    sent_seconds: float = 0.0
+    estimated_yen: float = 0.0
+
+
 class ConnectionSettings(Model):
     mode: Literal["host", "client"] = "host"
     editor_url: str | None = Field(default=None, max_length=16384)
     zoom_text_format: Literal["plain", "speaker"] = "plain"
+    input_source: InputSource = "udtalk"
+    recognizer: RecognizerId = "openai"
 
 
 class ConnectionStatus(Model):
@@ -154,6 +174,10 @@ class ConnectionStatus(Model):
     editor_configured: bool = False
     editable_caption_ids: list[str] = Field(default_factory=lambda: list[str]())
     client_verified: Literal[False] = False
+    input_source: InputSource = "udtalk"
+    recognizer: RecognizerId = "openai"
+    transcription: TranscriptionStatus = Field(default_factory=TranscriptionStatus)
+    recognizers: list[RecognizerOption] = Field(default_factory=list[RecognizerOption])
 
 
 class DisplaySettings(Model):

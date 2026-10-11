@@ -7,6 +7,14 @@ export type AiSettings = Required<components["schemas"]["AiSettings"]>;
 export type AiRouting = Omit<components["schemas"]["AiRouting"], "settings"> & { settings: AiSettings };
 export type ConnectionStatus = Required<components["schemas"]["ConnectionStatus"]>;
 export type ConnectionSettings = components["schemas"]["ConnectionSettings"];
+export type TranscriptionStatus = Required<components["schemas"]["TranscriptionStatus"]>;
+export interface MicrophoneDevice { id: string; label: string }
+export interface MicrophoneSession { label: string; stop(): Promise<void> }
+export interface MicrophoneAdapter {
+  available: boolean;
+  devices(): Promise<MicrophoneDevice[]>;
+  start(input: { deviceId: string; recognizer: ConnectionStatus["recognizer"] }, signal: AbortSignal, status: (state: TranscriptionStatus) => void): Promise<MicrophoneSession>;
+}
 
 export interface Snapshot {
   visible: boolean;
@@ -77,7 +85,14 @@ export type OperatorEvent =
   | { type: "connection.mode.selected"; mode: string }
   | { type: "connection.url.changed"; url: string }
   | { type: "connection.text-format.selected"; format: string }
+  | { type: "connection.input.selected"; source: string }
+  | { type: "connection.recognizer.selected"; recognizer: string }
   | { type: "connection.save.requested" }
+  | { type: "microphone.start.requested" }
+  | { type: "microphone.stop.requested" }
+  | { type: "microphone.device.selected"; deviceId: string }
+  | { type: "microphone.state.changed"; state: TranscriptionStatus["state"]; message: string; label?: string }
+  | { type: "microphone.devices.changed"; devices: MicrophoneDevice[] }
   | { type: "visibility.toggle.requested" }
   | { type: "test.requested" }
   | { type: "refresh.requested" };

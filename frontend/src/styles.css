@@ -355,7 +355,7 @@ button, textarea { font: inherit; }
   .audience-screen .audience-fullscreen:focus-visible { outline-color: CanvasText; }
 }
 .operator-connection-status { margin: 0; padding: 4px 24px; color: #525252; font-size: 12px; line-height: 16px; border-bottom: 1px solid #e5e5e5; }
-.connection-fields { flex: 1; overflow-y: auto; min-height: 0; }
+.connection-fields { flex: 1; overflow-y: auto; min-height: 0; align-content: start; }
 .connection-instructions { display: grid; gap: 16px; font-size: 14px; line-height: 24px; }
 .connection-instructions ol { padding-left: 24px; }
 .connection-instructions input { min-width: 0; width: 100%; padding: 8px; border: 1px solid #d4d4d4; border-radius: 4px; background: white; }
@@ -369,7 +369,6 @@ button, textarea { font: inherit; }
   .toolbar-visibility { grid-column: 5 / 7; }
   .operator-mode { grid-column: 1 / 5; }
   .operator-mode-help { grid-column: 4; }
-  .connection-fields { overflow: visible; flex: none; }
 }
 @media (max-width: 420px) {
   .operator-header { grid-template-columns: repeat(5, minmax(0, 1fr)); }

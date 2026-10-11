@@ -84,6 +84,62 @@ async function start(adapter = api()) {
   return actor;
 }
 
+it("keeps microphone recognition running while editing and stops it before input changes", async () => {
+  const adapter = api();
+  const connection = { ...defaultConnection, input_source: "microphone" as const,
+    recognizers: [{ id: "openai" as const, label: "OpenAI", available: true, message: "" }] };
+  vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [caption], connection });
+  const stop = vi.fn().mockResolvedValue(undefined);
+  const microphone = { available: true, devices: vi.fn().mockResolvedValue([]),
+    start: vi.fn().mockResolvedValue({ label: "試験マイク", stop }) };
+  const actor = createActor(operatorMachine, { input: { api: adapter, microphone } }).start();
+  try {
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    expect(actor.getSnapshot().can({ type: "microphone.start.requested" })).toBe(true);
+    actor.send({ type: "microphone.start.requested" });
+    await waitFor(actor, state => state.context.microphoneState === "live");
+    actor.send({ type: "caption.edit.requested", captionId: "one" });
+    actor.send({ type: "caption.draft.changed", captionId: "one", text: "認識中の訂正" });
+    expect(actor.getSnapshot().context.drafts.get("one")?.text).toBe("認識中の訂正");
+    expect(actor.getSnapshot().can({ type: "microphone.start.requested" })).toBe(false);
+    actor.send({ type: "connection.input.selected", source: "udtalk" });
+    vi.mocked(adapter.setConnection).mockResolvedValue(defaultConnection);
+    actor.send({ type: "connection.save.requested" });
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    expect(stop).toHaveBeenCalledOnce();
+  } finally { actor.stop(); }
+}, 20000);
+
+it("keeps the working microphone when an editor connection is rejected", async () => {
+  const adapter = api();
+  const connection = { ...defaultConnection, input_source: "microphone" as const,
+    recognizers: [{ id: "openai" as const, label: "OpenAI", available: true, message: "" }] };
+  vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [caption], connection });
+  vi.mocked(adapter.setConnection).mockRejectedValue(new OperationError("編集用リンクの期限が切れています。"));
+  const stop = vi.fn().mockResolvedValue(undefined);
+  const microphone = { available: true, devices: vi.fn().mockResolvedValue([]), start: vi.fn().mockResolvedValue({ label: "試験マイク", stop }) };
+  const actor = createActor(operatorMachine, { input: { api: adapter, microphone } }).start();
+  try {
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    actor.send({ type: "microphone.start.requested" });
+    await waitFor(actor, state => state.context.microphoneState === "live");
+    actor.send({ type: "connection.mode.selected", mode: "client" });
+    actor.send({ type: "connection.url.changed", url: "invalid-test-link" });
+    actor.send({ type: "connection.save.requested" });
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    expect(actor.getSnapshot().context.error).toContain("期限");
+    expect(actor.getSnapshot().context.microphoneState).toBe("live");
+    expect(stop).not.toHaveBeenCalled();
+    actor.send({ type: "connection.mode.selected", mode: "host" });
+    actor.send({ type: "connection.input.selected", source: "microphone" });
+    vi.mocked(adapter.setConnection).mockResolvedValue(connection);
+    actor.send({ type: "connection.save.requested" });
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    expect(actor.getSnapshot().context.microphoneState).toBe("live");
+    expect(stop).not.toHaveBeenCalled();
+  } finally { actor.stop(); }
+}, 20000);
+
 it("owns independent disclosure states through refreshes and ignores other screens and unknown captions", async () => {
   const actor = await start();
   expect(actor.getSnapshot().can({ type: "display.latest.requested" })).toBe(false);

@@ -11,6 +11,7 @@ frontend/dist/
 .coverage
 htmlcov/
 coverage/
+.cache/
 # Local design reviews, generated proposals, and browser evidence.
 .impeccable/critique/
 .impeccable/screenshots/

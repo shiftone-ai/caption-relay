@@ -11,10 +11,13 @@ import { AudienceView } from "./views/audience";
 import { createFullscreenAdapter } from "./adapters/fullscreen";
 import { protectUnsavedChanges } from "./adapters/unsaved-changes";
 import { observeOperatorKeys } from "./adapters/operator-keyboard";
+import { createMicrophoneAdapter } from "./adapters/microphone";
+import type { MicrophoneAdapter } from "./domain";
 import type { AudienceApi, FullscreenAdapter, OperatorApi, ViewEvent } from "./domain";
 
-export function OperatorRoot({ api = operatorApi }: { api?: OperatorApi }) {
-  const actor = useActorRef(operatorMachine, { input: { api } });
+export function OperatorRoot({ api = operatorApi, microphone }: { api?: OperatorApi; microphone?: MicrophoneAdapter }) {
+  const input = useMemo(() => microphone ?? createMicrophoneAdapter(), [microphone]);
+  const actor = useActorRef(operatorMachine, { input: { api, microphone: input } });
   const parameters = useSelector(actor, presentOperator);
   useEffect(() => parameters.hasUnsavedChanges ? protectUnsavedChanges(window) : undefined, [parameters.hasUnsavedChanges]);
   const handle = useCallback((event: ViewEvent) => {

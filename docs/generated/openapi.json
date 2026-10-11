@@ -1149,6 +1149,24 @@
             ],
             "title": "Zoom Text Format",
             "default": "plain"
+          },
+          "input_source": {
+            "type": "string",
+            "enum": [
+              "udtalk",
+              "microphone"
+            ],
+            "title": "Input Source",
+            "default": "udtalk"
+          },
+          "recognizer": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "apple"
+            ],
+            "title": "Recognizer",
+            "default": "openai"
           }
         },
         "additionalProperties": false,
@@ -1225,6 +1243,34 @@
             "const": false,
             "title": "Client Verified",
             "default": false
+          },
+          "input_source": {
+            "type": "string",
+            "enum": [
+              "udtalk",
+              "microphone"
+            ],
+            "title": "Input Source",
+            "default": "udtalk"
+          },
+          "recognizer": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "apple"
+            ],
+            "title": "Recognizer",
+            "default": "openai"
+          },
+          "transcription": {
+            "$ref": "#/components/schemas/TranscriptionStatus"
+          },
+          "recognizers": {
+            "items": {
+              "$ref": "#/components/schemas/RecognizerOption"
+            },
+            "type": "array",
+            "title": "Recognizers"
           }
         },
         "additionalProperties": false,
@@ -1462,6 +1508,39 @@
         ],
         "title": "PublicationMode"
       },
+      "RecognizerOption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "apple"
+            ],
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "available",
+          "message"
+        ],
+        "title": "RecognizerOption"
+      },
       "Session": {
         "properties": {
           "name": {
@@ -1577,6 +1656,40 @@
           "status"
         ],
         "title": "SourceIgnored"
+      },
+      "TranscriptionStatus": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "stopped",
+              "preparing",
+              "live",
+              "retrying",
+              "failed"
+            ],
+            "title": "State",
+            "default": "stopped"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "マイクの認識は停止しています。"
+          },
+          "sent_seconds": {
+            "type": "number",
+            "title": "Sent Seconds",
+            "default": 0.0
+          },
+          "estimated_yen": {
+            "type": "number",
+            "title": "Estimated Yen",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TranscriptionStatus"
       },
       "UdtalkStatus": {
         "properties": {

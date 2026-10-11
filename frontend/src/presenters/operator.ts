@@ -1,4 +1,4 @@
-import type { AiSettings, Caption, DisclosureId, DisplaySettings } from "../domain";
+import type { AiSettings, Caption, DisclosureId, DisplaySettings, ConnectionSettings } from "../domain";
 import { aiProviderNames, aiStrategies } from "../ai";
 import { displayChoices, displayPalettes } from "../display";
 import type { OperatorSnapshot } from "../machines/operator";
@@ -120,6 +120,19 @@ export interface ConnectionParameters {
   disabled: boolean;
   saveDisabled: boolean;
   receivedLabel: string;
+  inputSource: string;
+  recognizer: string;
+  recognizers: { id: string; label: string; disabled: boolean }[];
+  showMicrophone: boolean;
+  recognizerMessage: string;
+  microphoneStatus: string;
+  startDisabled: boolean;
+  stopDisabled: boolean;
+  microphoneLabel: string;
+  deviceId: string;
+  devices: { id: string; label: string }[];
+  deviceDisabled: boolean;
+  usageLabel: string;
 }
 
 export interface DisplayFieldParameters {
@@ -226,7 +239,10 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
   const selectedAi = context.ai.models.find(model => model.id === context.ai.selected_model);
   const aiDirty = JSON.stringify(aiDraft) !== JSON.stringify(context.ai.settings);
   const aiDisabled = !snapshot.can({ type: "ai.save.requested" });
-  const connectionDraft = context.connectionDraft ?? { mode: context.connection.mode, editor_url: "", zoom_text_format: context.connection.zoom_text_format };
+  const connectionDraft: ConnectionSettings = context.connectionDraft ?? { mode: context.connection.mode, editor_url: "", zoom_text_format: context.connection.zoom_text_format,
+    input_source: context.connection.input_source, recognizer: context.connection.recognizer };
+  const microphoneStatus = context.microphoneState === "stopped" && context.connection.transcription.state !== "stopped"
+    ? context.connection.transcription.message : context.microphoneMessage;
   const unreadIds = new Set(context.unreadIds);
   const firstUnreadId = context.captions.find(caption => unreadIds.has(caption.id))?.id ?? null;
   const liveText = clientMode ? currentCaption?.text ?? "" : currentCaption?.public_text ?? currentCaption?.text ?? "";
@@ -331,7 +347,8 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     returnToEditorDisabled: !snapshot.can({ type: "timeline.editing.requested" }),
     hasUnsavedChanges: rows.some(row => row.dirty) || aiDirty || JSON.stringify(displayDraft) !== JSON.stringify(context.display)
       || Boolean(context.connectionDraft && (context.connectionDraft.mode !== context.connection.mode || context.connectionDraft.editor_url?.trim()
-        || context.connectionDraft.zoom_text_format !== context.connection.zoom_text_format)),
+        || context.connectionDraft.zoom_text_format !== context.connection.zoom_text_format
+        || context.connectionDraft.input_source !== context.connection.input_source || context.connectionDraft.recognizer !== context.connection.recognizer)),
     liveText, liveLabel,
     scrollToLatest: context.followLatest,
     scrollVersion: String(context.latestRequest), scrollTarget: context.scrollTarget, scrollCaptionId: context.activeCaptionId,
@@ -379,17 +396,33 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
       clientHelpDisclosure: presentDisclosure("connection-client-help", context.openedDisclosures),
       mode: connectionDraft.mode ?? "host",
       modeLabel: clientMode ? "UDトークへ反映" : "独立配信",
-      stateLabel: { waiting: "受信待ち", connecting: "接続中", live: "受信中", retrying: "再試行中", failed: "接続停止" }[context.connection.state],
+      stateLabel: context.connection.input_source === "microphone" ? microphoneStatus
+        : { waiting: "受信待ち", connecting: "接続中", live: "受信中", retrying: "再試行中", failed: "接続停止" }[context.connection.state],
       message: context.connection.message,
       messageVisible: context.connection.state === "failed" || context.connection.state === "retrying",
       receiverUrl: context.receiverUrl,
       editorUrl: connectionDraft.editor_url ?? "",
       textFormat: connectionDraft.zoom_text_format ?? "plain",
-      showReceiver: connectionDraft.mode !== "client",
+      showReceiver: connectionDraft.mode !== "client" && (connectionDraft.input_source ?? context.connection.input_source) !== "microphone",
       showEditor: connectionDraft.mode === "client",
       disabled: !snapshot.can({ type: "connection.mode.selected", mode: "host" }),
       saveDisabled: !snapshot.can({ type: "connection.save.requested" }),
       receivedLabel: `受信した更新：${context.connection.received_events}件`,
+      inputSource: connectionDraft.input_source ?? context.connection.input_source,
+      recognizer: connectionDraft.recognizer ?? context.connection.recognizer,
+      recognizers: context.connection.recognizers.length ? context.connection.recognizers.map(option => ({ id: option.id, label: option.label, disabled: !option.available }))
+        : [{ id: "openai", label: "OpenAI", disabled: false }, { id: "apple", label: "Apple", disabled: true }],
+      showMicrophone: connectionDraft.mode !== "client" && (connectionDraft.input_source ?? context.connection.input_source) === "microphone",
+      recognizerMessage: context.connection.recognizers.find(option => option.id === (connectionDraft.recognizer ?? context.connection.recognizer))?.message ?? "接続を適用すると利用条件を確認できます。",
+      microphoneStatus,
+      startDisabled: !snapshot.can({ type: "microphone.start.requested" }),
+      stopDisabled: !snapshot.can({ type: "microphone.stop.requested" }),
+      microphoneLabel: context.microphoneLabel ? `使用するマイク：${context.microphoneLabel}` : "",
+      deviceId: context.microphoneDeviceId,
+      devices: [{ id: "", label: "既定のマイク" }, ...context.microphoneDevices],
+      deviceDisabled: !snapshot.can({ type: "microphone.device.selected", deviceId: context.microphoneDeviceId }),
+      usageLabel: connectionDraft.recognizer === "apple" ? "音声は接続先のMacで認識します。クラウドへ送りません。"
+        : `試験の送信累計：${Math.ceil((context.connection.transcription.sent_seconds ?? 0) / 60)}分 · 費用見積もり：${Math.ceil(context.connection.transcription.estimated_yen ?? 0)}円（上限100円・20分）`,
     },
   };
 }
