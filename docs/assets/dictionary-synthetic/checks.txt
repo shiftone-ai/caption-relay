@@ -1,0 +1,6 @@
+bash scripts/check.sh: exit 0
+Frontend: 18 files, 125 tests passed
+Backend: 160 tests passed
+Pyright: 0 errors, 0 warnings, 0 informations
+API contract: matches
+Frontend typecheck and build: passed

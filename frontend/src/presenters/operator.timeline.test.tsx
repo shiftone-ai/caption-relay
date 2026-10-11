@@ -24,7 +24,7 @@ async function start(captions = [caption]) {
     setVisible: vi.fn().mockResolvedValue(false), sendTest: vi.fn().mockResolvedValue(undefined),
     setPublicationMode: vi.fn().mockResolvedValue({ auto_publish: true }),
     setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
-    setConnection: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
+    setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
   };
   const actor = createActor(operatorMachine, { input: { api } }).start();
   actors.push(actor);

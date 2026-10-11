@@ -7,7 +7,8 @@ import httpx2 as httpx
 
 from .ai_provider import AiFailure, AiProvider, AiUnavailable
 from .connections import Connections
-from .models import Caption, CaptionPatch, ConnectionSettings, ConnectionStatus, FormattedResult, SourceEvent, SourceIgnored
+from .dictionary import WordDictionary
+from .models import Caption, CaptionPatch, ConnectionSettings, ConnectionStatus, DictionarySnapshot, FormattedResult, SourceEvent, SourceIgnored
 from .relay import CaptionRelay, RevisionConflict
 from .udtalk_editor import EditorError
 from .transcription.openai import Connector, openai_connect
@@ -16,9 +17,12 @@ from .transcription.openai import Connector, openai_connect
 class CaptionWorkflow:
     def __init__(self, relay: CaptionRelay, web_url: str | None, environment: Mapping[str, str],
                  ai_transport: httpx.AsyncBaseTransport | None = None,
-                 editor_transport: httpx.AsyncBaseTransport | None = None, audio_connector: Connector = openai_connect) -> None:
+                 editor_transport: httpx.AsyncBaseTransport | None = None, audio_connector: Connector = openai_connect,
+                 dictionary: WordDictionary | None = None) -> None:
         self.relay = relay
-        self.connections = Connections(self.source_event, web_url, editor_transport, environment, audio_connector)
+        self.dictionary = dictionary if dictionary is not None else WordDictionary()
+        self.connections = Connections(self.source_event, web_url, editor_transport, environment, audio_connector,
+                                       keywords=self.dictionary.keywords)
         self.provider = AiProvider(environment, ai_transport)
         self.relay.ai_availability(self.provider.available)
         self._tasks: dict[str, asyncio.Task[None]] = {}
@@ -81,16 +85,16 @@ class CaptionWorkflow:
             elif len(self._tasks) >= 64:
                 self.relay.ai_status(result.id, result.ai_request.id, "failed", "AIの処理待ちが多いため、原文を保持しています。")
             else:
-                self._tasks[result.id] = asyncio.create_task(self._correct(result, self._generation))
+                self._tasks[result.id] = asyncio.create_task(self._correct(result, self._generation, self.dictionary.snapshot()))
         return self.relay.caption(result.id)
 
-    async def _correct(self, caption: Caption, generation: int) -> None:
+    async def _correct(self, caption: Caption, generation: int, dictionary: DictionarySnapshot) -> None:
         plan = caption.ai_request
         assert plan is not None
         try:
             async with self._slots:
                 self.relay.ai_status(caption.id, plan.id, "running")
-                result = await self.provider.correct(plan, caption.original)
+                result = await self.provider.correct(plan, caption.original, dictionary)
                 if generation == self._generation:
                     await self.formatted_result(caption.id, result)
         except (AiFailure, AiUnavailable, EditorError, RevisionConflict) as error:

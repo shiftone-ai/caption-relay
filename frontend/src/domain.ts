@@ -8,6 +8,9 @@ export type AiRouting = Omit<components["schemas"]["AiRouting"], "settings"> & {
 export type ConnectionStatus = Required<components["schemas"]["ConnectionStatus"]>;
 export type ConnectionSettings = components["schemas"]["ConnectionSettings"];
 export type TranscriptionStatus = Required<components["schemas"]["TranscriptionStatus"]>;
+export type DictionaryWord = Required<components["schemas"]["DictionaryWord"]>;
+export type DictionarySnapshot = Omit<Required<components["schemas"]["DictionarySnapshot"]>, "entries"> & { entries: DictionaryWord[] };
+export type DictionaryUpdate = Omit<Required<components["schemas"]["DictionaryUpdate"]>, "entries"> & { entries: DictionaryWord[] };
 export interface MicrophoneDevice { id: string; label: string }
 export interface MicrophoneSession { label: string; stop(): Promise<void> }
 export interface MicrophoneAdapter {
@@ -24,6 +27,7 @@ export interface Snapshot {
   ai?: AiRouting;
   connection?: ConnectionStatus;
   receiverUrl?: string;
+  dictionary?: DictionarySnapshot;
 }
 
 export type PublicSnapshot = components["schemas"]["PublicSnapshot"];
@@ -81,6 +85,13 @@ export type OperatorEvent =
   | { type: "ai.preferred.selected"; modelId: string }
   | { type: "ai.candidate.changed"; modelId: string; included: boolean }
   | { type: "ai.save.requested" }
+  | { type: "dictionary.settings.toggled" }
+  | { type: "dictionary.word.added" }
+  | { type: "dictionary.word.changed"; index: number; field: "term" | "reading" | "variantsText"; value: string }
+  | { type: "dictionary.word.enabled"; index: number; enabled: boolean }
+  | { type: "dictionary.word.removed"; index: number }
+  | { type: "dictionary.save.requested" }
+  | { type: "dictionary.draft.discarded" }
   | { type: "connection.settings.toggled" }
   | { type: "connection.mode.selected"; mode: string }
   | { type: "connection.url.changed"; url: string }
@@ -125,6 +136,7 @@ export interface OperatorApi {
   setDisplay(settings: DisplaySettings, signal: AbortSignal): Promise<DisplaySettings>;
   setAi(settings: AiSettings, signal: AbortSignal): Promise<AiRouting>;
   setConnection(settings: ConnectionSettings, signal: AbortSignal): Promise<ConnectionStatus>;
+  setDictionary(settings: DictionaryUpdate, signal: AbortSignal): Promise<DictionarySnapshot>;
 }
 
 export interface AudienceApi {

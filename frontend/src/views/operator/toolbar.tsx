@@ -1,4 +1,4 @@
-import { Bot, Cable, Eye, EyeOff, FlaskConical, Info, Monitor, Settings2 } from "lucide-react";
+import { BookOpen, Bot, Cable, Eye, EyeOff, FlaskConical, Info, Monitor, Settings2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Disclosure } from "../../components/ui/disclosure";
 import { viewHierarchy } from "../../events/hierarchy";
@@ -31,6 +31,8 @@ export function ToolbarView({ parameters }: { parameters: ToolbarParameters }) {
             intent={{ type: "connection.settings.toggled" }}><Cable size={16} /></Button>
           <Button variant="outline" className="operator-icon-button toolbar-ai" data-settings-trigger="ai" aria-label="AI設定" title={parameters.aiTitle} aria-expanded={parameters.aiSettingsOpen} aria-controls="ai-settings"
             intent={{ type: "ai.settings.toggled" }}><Bot size={16} /></Button>
+          <Button variant="outline" className="operator-icon-button toolbar-dictionary" data-settings-trigger="dictionary" aria-label="単語辞書" title="単語辞書" aria-expanded={parameters.dictionarySettingsOpen} aria-controls="dictionary-settings"
+            disabled={parameters.dictionarySettingsDisabled} intent={{ type: "dictionary.settings.toggled" }}><BookOpen size={16} /></Button>
           <Button variant="outline" className="operator-icon-button toolbar-display" data-settings-trigger="display" aria-label="表示設定" title="表示設定" disabled={!parameters.localOutput} aria-expanded={parameters.settingsOpen} aria-controls="display-settings"
             intent={{ type: "display.settings.toggled" }}><Settings2 size={16} /></Button>
           {parameters.localOutput && <a className="operator-output-link" aria-label="観客画面" title="観客画面を開く" href="/view/demo" target="_blank" rel="noopener noreferrer"><Monitor size={16} aria-hidden="true" /></a>}

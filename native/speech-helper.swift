@@ -27,11 +27,20 @@ func readExact(_ count: Int) throws -> Data? {
 
 @available(macOS 26.0, *)
 func recognize(locale: Locale) async throws {
+    guard let header = try readExact(4) else { throw InputError.invalid }
+    let length = header.reduce(0) { ($0 << 8) | Int($1) }
+    guard length > 0, length <= 32768, let data = try readExact(length),
+          let config = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let keywords = config["keywords"] as? [String], keywords.count <= 100,
+          keywords.allSatisfy({ !$0.isEmpty && $0.count <= 80 }) else { throw InputError.invalid }
     let transcriber = SpeechTranscriber(locale: locale, preset: .progressiveTranscription)
     guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber]),
           let inputFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 24000, channels: 1, interleaved: false),
           let converter = AVAudioConverter(from: inputFormat, to: format) else { throw InputError.invalid }
     let analyzer = SpeechAnalyzer(modules: [transcriber])
+    let context = AnalysisContext()
+    context.contextualStrings[.general] = keywords
+    try await analyzer.setContext(context)
     try await analyzer.prepareToAnalyze(in: format)
     let (sequence, continuation) = AsyncThrowingStream<AnalyzerInput, Error>.makeStream(bufferingPolicy: .bufferingOldest(50))
     let results = Task {
