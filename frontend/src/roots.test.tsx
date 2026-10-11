@@ -15,11 +15,59 @@ import { ToolbarView } from "./views/operator/toolbar";
 afterEach(cleanup);
 const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
 
+it("edits a dictionary through Root and restores focus when the panel closes", async () => {
+  let resolveLoad!: (value: Snapshot) => void;
+  const initialLoad = new Promise<Snapshot>(resolve => { resolveLoad = resolve; });
+  const api: OperatorApi = {
+    load: vi.fn().mockReturnValue(initialLoad),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(), setConnection: vi.fn(),
+    setDictionary: vi.fn().mockImplementation(update => Promise.resolve({ revision: update.base_revision + 1, entries: update.entries })),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  const trigger = await screen.findByRole("button", { name: "単語辞書" });
+  expect((trigger as HTMLButtonElement).disabled).toBe(true);
+  await act(async () => { resolveLoad({ visible: true, captions: [] }); });
+  await waitFor(() => expect((trigger as HTMLButtonElement).disabled).toBe(false));
+  await user.click(trigger);
+  const add = screen.getByRole("button", { name: "単語を追加" });
+  await waitFor(() => expect(document.activeElement).toBe(add));
+  await user.click(add);
+  await user.type(screen.getByLabelText("1件目の表記"), "Caption Relay");
+  fireEvent.change(screen.getByLabelText("1件目の読み"), { target: { value: "きゃぷしょんりれー" } });
+  fireEvent.change(screen.getByLabelText("1件目の誤認識の表記"), { target: { value: "キャプションリレー" } });
+  await user.click(screen.getByLabelText("1件目を有効にする"));
+  await user.click(screen.getByRole("button", { name: "辞書を保存" }));
+  await screen.findByText("辞書を保存しました。");
+  expect(api.setDictionary).toHaveBeenCalledWith({ base_revision: 0, entries: [{ term: "Caption Relay", reading: "きゃぷしょんりれー", variants: ["キャプションリレー"], enabled: false }] }, expect.any(AbortSignal));
+  await user.click(screen.getByRole("button", { name: "1件目を削除" }));
+  expect(screen.queryByLabelText("1件目の表記")).toBeNull();
+  await user.click(screen.getByRole("button", { name: "単語辞書を閉じる" }));
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
+}, 20000);
+
+it("focuses an editable word when the dictionary is full and restores its trigger", async () => {
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [], dictionary: { revision: 1,
+      entries: Array.from({ length: 100 }, (_, index) => ({ term: `単語${index}`, reading: "", variants: [], enabled: true })) } }),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  const trigger = await screen.findByRole("button", { name: "単語辞書" });
+  await waitFor(() => expect((trigger as HTMLButtonElement).disabled).toBe(false));
+  await user.click(trigger);
+  expect((screen.getByRole("button", { name: "単語を追加" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(document.activeElement).toBe(screen.getByLabelText("1件目の表記"));
+  await user.keyboard("{Escape}");
+  expect(document.activeElement).toBe(trigger);
+});
+
 it("applies microphone input without starting recognition and explains a missing key", async () => {
   let connection = defaultConnection;
   const api: OperatorApi = {
     load: vi.fn().mockImplementation(() => Promise.resolve({ visible: true, captions: [], connection })),
-    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
     setConnection: vi.fn().mockImplementation(settings => {
       connection = { ...defaultConnection, ...settings, recognizers: [{ id: "openai", label: "OpenAI", available: false, message: "このリポジトリ用のOpenAIキーが設定されていません。" }] };
       return Promise.resolve(connection);
@@ -39,7 +87,7 @@ it("applies the explicit Zoom speaker format and retains it when settings reopen
   let connection = { ...defaultConnection };
   const api: OperatorApi = {
     load: vi.fn().mockImplementation(() => Promise.resolve({ visible: true, captions: [caption], connection })),
-    save: vi.fn(), setVisible: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(), sendTest: vi.fn(),
+    save: vi.fn(), setVisible: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(), sendTest: vi.fn(),
     setConnection: vi.fn().mockImplementation(settings => {
       connection = { ...connection, zoom_text_format: settings.zoom_text_format };
       return Promise.resolve(connection);
@@ -68,7 +116,7 @@ it("bubbles UI events to the actor and preserves the focused input across pollin
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
     save: vi.fn().mockResolvedValue({ ...caption, revision: 2 }),
     setVisible: vi.fn().mockResolvedValue(false), setPublicationMode: vi.fn().mockResolvedValue({ auto_publish: true }), setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
-    setConnection: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
+    setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
     sendTest: vi.fn().mockResolvedValue(undefined),
   };
   render(<OperatorRoot api={api} />);
@@ -113,7 +161,7 @@ it("keeps only the selected editor open and retains drafts when switching rows",
     setVisible: vi.fn().mockResolvedValue(false),
     setPublicationMode: vi.fn().mockResolvedValue({ auto_publish: true }),
     setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
-    setConnection: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
+    setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
     sendTest: vi.fn().mockResolvedValue(undefined),
   };
   render(<OperatorRoot api={api} />);
@@ -155,7 +203,7 @@ it("keeps status explanations available to pointer and keyboard and dismisses Es
     load: vi.fn().mockResolvedValueOnce({ visible: true, captions: [caption] })
       .mockReturnValue(new Promise<Snapshot>(done => { resolve = done; })),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
-    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -195,7 +243,7 @@ it("dismisses a hovered explanation with Escape before closing the focused capti
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
-    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -222,7 +270,7 @@ it("dismisses a hovered explanation before closing the focused settings panel", 
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
-    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -256,7 +304,7 @@ it("measures status explanations through the Root and repositions them after scr
     const api: OperatorApi = {
       load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
       save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
-      setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+      setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
     };
     const { container } = render(<OperatorRoot api={api} />);
     const user = userEvent.setup();
@@ -297,7 +345,7 @@ it("handles Escape from the toolbar and removes the Root keyboard subscription o
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
-    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   const user = userEvent.setup();
   const firstRoot = render(<OperatorRoot api={api} />);
@@ -326,7 +374,7 @@ it("shows blank-caption validation beside the input and requires explicit saving
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
-    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -345,7 +393,7 @@ it("focuses the opened setting, switches panels and returns to its toolbar contr
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
-    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -377,7 +425,7 @@ it("does not reset setting focus after a background refresh", async () => {
     load: vi.fn().mockResolvedValueOnce({ visible: true, captions: [caption] })
       .mockReturnValue(new Promise<Snapshot>(done => { resolve = done; })),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
-    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -397,7 +445,7 @@ it("does not reset setting focus after a background refresh", async () => {
 it("renders independent Mediator disclosures and retains their state across panel switches", async () => {
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
-    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(), setConnection: vi.fn(),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(), setConnection: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -428,7 +476,7 @@ it("returns from settings to the draft editor and focuses it through both return
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
-    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -454,7 +502,7 @@ it("keeps the monitor and correction draft available while viewing latest input 
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, autoPublish: false, captions: [caption] }),
     save: vi.fn().mockImplementation(request => Promise.resolve({ ...caption, text: request.text, revision: 2, human_edited: true })),
-    setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -486,7 +534,7 @@ it("reveals test sending in preparation and explains its publication consequence
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [] }),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn().mockResolvedValue(undefined),
-    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -505,7 +553,7 @@ it("protects dirty human drafts from page exit and releases the guard after disc
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
     save: vi.fn().mockImplementation(request => Promise.resolve({ ...caption, text: request.text, revision: 2, human_edited: true })),
-    setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
   };
   const { unmount } = render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -576,7 +624,7 @@ const ai: AiParameters & { preferredLabel: string; preferredHint: string; select
 it("switches between scroll and recent output and saves the relevant display settings", async () => {
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }),
-    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
     setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
   };
   render(<OperatorRoot api={api} />);
@@ -674,7 +722,7 @@ it("hides inactive AI choices and retains them when AI is enabled again", async 
         input_usd_per_million: 1, output_usd_per_million: 1, pricing_url: model.pricingUrl, pricing_checked_on: model.checkedOn,
         configured: false, latency_samples: 0 })),
     } }),
-    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setConnection: vi.fn(), setAi: vi.fn(), setDisplay: vi.fn(),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(), setDisplay: vi.fn(),
   };
   render(<OperatorRoot api={api} />);
   const user = userEvent.setup();
@@ -696,7 +744,7 @@ const toolbar: ToolbarParameters & { preparationHint: string } = {
   helpDisclosure: { id: "publication-help", open: false }, preparationDisclosure: { id: "preparation", open: false },
   visibilityIcon: "hide",
   testDisabled: false, toggleDisabled: false, toggleLabel: "字幕を隠す", mode: "auto", modeDisabled: false,
-  settingsOpen: false, aiSettingsOpen: false, connectionSettingsOpen: false, localOutput: true, aiTitle: "AI設定", preparationHint: "自動公開中のため、テスト字幕は観客画面にも表示されます。",
+  settingsOpen: false, aiSettingsOpen: false, dictionarySettingsOpen: false, dictionarySettingsDisabled: false, connectionSettingsOpen: false, localOutput: true, aiTitle: "AI設定", preparationHint: "自動公開中のため、テスト字幕は観客画面にも表示されます。",
 };
 
 it("distinguishes the saved AI route from the draft fallback choice and exposes its explanation", async () => {

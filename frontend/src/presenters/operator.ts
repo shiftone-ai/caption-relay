@@ -4,6 +4,7 @@ import { displayChoices, displayPalettes } from "../display";
 import type { OperatorSnapshot } from "../machines/operator";
 import { presentDisplayPreview, type DisplayCaption, type DisplayPreviewParameters } from "./display";
 import { presentDisclosure, type DisclosureParameters } from "./disclosure";
+import { draftDictionary } from "../dictionary";
 
 const receivedTime = new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" });
 const receivedDateTime = new Intl.DateTimeFormat("ja-JP", {
@@ -76,6 +77,8 @@ export interface ToolbarParameters {
   modeDisabled: boolean;
   settingsOpen: boolean;
   aiSettingsOpen: boolean;
+  dictionarySettingsOpen: boolean;
+  dictionarySettingsDisabled: boolean;
   aiTitle: string;
   connectionSettingsOpen: boolean;
   localOutput: boolean;
@@ -102,6 +105,20 @@ export interface AiParameters {
   selectionNote: string;
   models: { id: AiSettings["preferred_model"]; provider: string; label: string; variant: string; inputPrice: string; outputPrice: string;
     sampleCost: string; latency: string; selected: boolean; disabled: boolean; pricingUrl: string; checkedOn: string }[];
+}
+
+export interface DictionaryParameters {
+  entries: { index: number; term: string; reading: string; variantsText: string; enabled: boolean }[];
+  countLabel: string;
+  empty: boolean;
+  disabled: boolean;
+  addDisabled: boolean;
+  saveDisabled: boolean;
+  discardDisabled: boolean;
+  saveHint: string;
+  error: string;
+  notice: string;
+  recognitionHint: string;
 }
 
 export interface ConnectionParameters {
@@ -212,6 +229,7 @@ export interface OperatorParameters {
   loading: boolean;
   displaySettings: DisplayParameters;
   ai: AiParameters;
+  dictionary: DictionaryParameters;
   connection: ConnectionParameters;
 }
 
@@ -236,6 +254,9 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     ? (context.display.display_mode === "scroll" ? publishedCaptions : publishedCaptions.slice(-context.display.history_count)).map(caption => caption.id) : []);
   const displayDraft = context.displayDraft ?? context.display;
   const aiDraft = context.aiDraft ?? context.ai.settings;
+  const dictionaryDraft = context.dictionaryDraft ?? draftDictionary(context.dictionary);
+  const dictionaryDirty = JSON.stringify(dictionaryDraft.entries) !== JSON.stringify(draftDictionary(context.dictionary).entries);
+  const dictionaryDisabled = !snapshot.can({ type: "dictionary.save.requested" });
   const selectedAi = context.ai.models.find(model => model.id === context.ai.selected_model);
   const aiDirty = JSON.stringify(aiDraft) !== JSON.stringify(context.ai.settings);
   const aiDisabled = !snapshot.can({ type: "ai.save.requested" });
@@ -316,7 +337,7 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
   return {
     panelFocus: context.settingsFocusTarget ? {
       selector: context.settingsFocusTarget.destination === "field"
-        ? `#${context.settingsFocusTarget.panel}-settings [data-setting-autofocus], #${context.settingsFocusTarget.panel}-settings select:not(:disabled)`
+        ? `#${context.settingsFocusTarget.panel}-settings [data-setting-autofocus]:not(:disabled), #${context.settingsFocusTarget.panel}-settings select:not(:disabled)`
         : `[data-settings-trigger="${context.settingsFocusTarget.panel}"]`,
       version: context.settingsFocusRequest,
     } : null,
@@ -334,6 +355,8 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
       modeDisabled: !snapshot.can({ type: "publication.mode.requested", mode: context.autoPublish ? "manual" : "auto" }),
       settingsOpen: !clientMode && context.settingsPanel === "display",
       aiSettingsOpen: context.settingsPanel === "ai",
+      dictionarySettingsOpen: context.settingsPanel === "dictionary",
+      dictionarySettingsDisabled: !snapshot.can({ type: "dictionary.settings.toggled" }),
       aiTitle: "AI設定 · " + (selectedAi?.label ?? "AIなし"),
       connectionSettingsOpen: context.settingsPanel === "connection",
       localOutput: !clientMode,
@@ -345,7 +368,7 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     unreadAnnouncement: context.unreadIds.length ? `新着の字幕が${context.unreadIds.length}件あります。` : "",
     latestLabel: context.unreadIds.length ? `最新へ · 新着 ${context.unreadIds.length} 件` : "最新へ",
     returnToEditorDisabled: !snapshot.can({ type: "timeline.editing.requested" }),
-    hasUnsavedChanges: rows.some(row => row.dirty) || aiDirty || JSON.stringify(displayDraft) !== JSON.stringify(context.display)
+    hasUnsavedChanges: rows.some(row => row.dirty) || aiDirty || dictionaryDirty || JSON.stringify(displayDraft) !== JSON.stringify(context.display)
       || Boolean(context.connectionDraft && (context.connectionDraft.mode !== context.connection.mode || context.connectionDraft.editor_url?.trim()
         || context.connectionDraft.zoom_text_format !== context.connection.zoom_text_format
         || context.connectionDraft.input_source !== context.connection.input_source || context.connectionDraft.recognizer !== context.connection.recognizer)),
@@ -358,6 +381,19 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     displaySettings: presentDisplay(displayDraft, context.display, !snapshot.can({ type: "display.save.requested" }),
       context.captions.map(caption => ({ id: caption.id,
         text: caption.public_text ?? caption.text, speaker: caption.published ? caption.public_speaker : caption.speaker })), context.openedDisclosures),
+    dictionary: {
+      entries: dictionaryDraft.entries.map((word, index) => ({ ...word, index })),
+      countLabel: `${dictionaryDraft.entries.length} / 100件`, empty: dictionaryDraft.entries.length === 0,
+      disabled: dictionaryDisabled,
+      addDisabled: !snapshot.can({ type: "dictionary.word.added" }),
+      saveDisabled: dictionaryDisabled || !dictionaryDirty,
+      discardDisabled: !snapshot.can({ type: "dictionary.draft.discarded" }) || (!dictionaryDirty && !context.dictionaryError),
+      saveHint: snapshot.matches({ ready: "settingDictionary" }) ? "保存中" : dictionaryDirty ? "未保存" : "",
+      error: context.dictionaryError, notice: context.dictionaryNotice,
+      recognitionHint: context.connection.input_source === "microphone"
+        ? "表記は次に音声認識を開始したときから使います。読みと誤認識の表記はAI校正で参照します。"
+        : "UDトークからの入力ではAI校正で参照します。自前の音声入力では認識にも使います。",
+    },
     ai: {
       helpDisclosure: presentDisclosure("ai-help", context.openedDisclosures),
       comparisonDisclosure: presentDisclosure("ai-comparison", context.openedDisclosures),

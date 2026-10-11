@@ -17,7 +17,7 @@ function start() {
     save: vi.fn().mockReturnValue(new Promise<Caption>(() => {})),
     setVisible: vi.fn().mockReturnValue(new Promise<boolean>(() => {})),
     setPublicationMode: vi.fn().mockResolvedValue({ auto_publish: true }), setDisplay: vi.fn().mockImplementation(settings => Promise.resolve(settings)),
-    setConnection: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
+    setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn().mockImplementation(settings => Promise.resolve({ ...defaultAi, settings })),
     sendTest: vi.fn().mockReturnValue(new Promise<void>(() => {})),
   };
   const actor = createActor(operatorMachine, { input: { api } });

@@ -17,7 +17,7 @@ from .zoom_input import ZoomInput
 class Connections:
     def __init__(self, accept: Callable[[SourceEvent, bool], Caption | SourceIgnored], web_url: str | None,
                  editor_transport: httpx.AsyncBaseTransport | None = None, environment: Mapping[str, str] | None = None,
-                 audio_connector: Connector = openai_connect) -> None:
+                 audio_connector: Connector = openai_connect, *, keywords: Callable[[], list[str]] = lambda: []) -> None:
         self._accept = accept
         self._web_url = web_url
         self._editor_transport = editor_transport
@@ -26,7 +26,8 @@ class Connections:
         self.recognizer: RecognizerId = "openai"
         self._environment: Mapping[str, str] = environment if environment is not None else {}
         self.microphone = MicrophoneInput(self._environment, self._receive_microphone, audio_connector,
-            allowed=lambda provider: self.mode == "host" and self.input_source == "microphone" and self.recognizer == provider)
+            allowed=lambda provider: self.mode == "host" and self.input_source == "microphone" and self.recognizer == provider,
+            keywords=keywords)
         self.receiver = ZoomInput()
         self.web = UdtalkWebInput(web_url, self._receive_web)
         self.editor: UdtalkEditor | None = None

@@ -1,0 +1,272 @@
+{
+  "verifiedOn": "2026-10-11",
+  "runtime": "Built React/XState frontend, headless Chrome, real FastAPI, native SpeechAnalyzer and OpenAI Realtime/Responses APIs",
+  "audio": {
+    "synthetic": true,
+    "tts": "macOS Kyoko",
+    "physicalMicrophone": false,
+    "providerMocks": false,
+    "text": "今日はきゃぷしょんりれーを使います。ほしみだいかがくかんの参加者は十三人です。予約は取り消しません。"
+  },
+  "result": "passed",
+  "checks": [
+    "browser add/edit/disable/delete and validation; real API save; page reload",
+    "two real operator pages protect a concurrent save and retain the unsaved draft",
+    "mobile scrolling reaches form fields and save controls",
+    "server restart preserves the saved dictionary and revision",
+    "apple: recognition session accepted dictionary hints; synthetic audio, real GPT correction, preserved count/negation and audience SSE",
+    "openai: recognition session accepted dictionary hints; synthetic audio, real GPT correction, preserved count/negation and audience SSE"
+  ],
+  "dictionary": {
+    "entries": [
+      {
+        "term": "Caption Relay",
+        "reading": "キャプションリレー",
+        "variants": [
+          "キャプションリレー",
+          "キャプション リレー"
+        ],
+        "enabled": true
+      },
+      {
+        "term": "星見台科学館",
+        "reading": "ほしみだいかがくかん",
+        "variants": [
+          "星見台 科学館"
+        ],
+        "enabled": true
+      },
+      {
+        "term": "未使用の架空製品",
+        "reading": "みしようのかくうせいひん",
+        "variants": [],
+        "enabled": false
+      }
+    ],
+    "revision": 2
+  },
+  "dictionaryRequests": [
+    {
+      "status": 200,
+      "request": {
+        "base_revision": 0,
+        "entries": [
+          {
+            "term": "Caption Relay",
+            "reading": "きゃぷしょんりれー",
+            "enabled": true,
+            "variants": [
+              "キャプションリレー",
+              "キャプション リレー"
+            ]
+          },
+          {
+            "term": "星見台科学館",
+            "reading": "ほしみだいかがくかん",
+            "enabled": true,
+            "variants": [
+              "星見台 科学館"
+            ]
+          },
+          {
+            "term": "未使用の架空製品",
+            "reading": "みしようのかくうせいひん",
+            "enabled": false,
+            "variants": []
+          }
+        ]
+      }
+    },
+    {
+      "status": 200,
+      "request": {
+        "base_revision": 1,
+        "entries": [
+          {
+            "term": "Caption Relay",
+            "reading": "キャプションリレー",
+            "enabled": true,
+            "variants": [
+              "キャプションリレー",
+              "キャプション リレー"
+            ]
+          },
+          {
+            "term": "星見台科学館",
+            "reading": "ほしみだいかがくかん",
+            "enabled": true,
+            "variants": [
+              "星見台 科学館"
+            ]
+          },
+          {
+            "term": "未使用の架空製品",
+            "reading": "みしようのかくうせいひん",
+            "enabled": false,
+            "variants": []
+          }
+        ]
+      }
+    },
+    {
+      "status": 409,
+      "request": {
+        "base_revision": 1,
+        "entries": [
+          {
+            "term": "Caption Relay",
+            "reading": "未保存の読み",
+            "enabled": true,
+            "variants": [
+              "キャプションリレー",
+              "キャプション リレー"
+            ]
+          },
+          {
+            "term": "星見台科学館",
+            "reading": "ほしみだいかがくかん",
+            "enabled": true,
+            "variants": [
+              "星見台 科学館"
+            ]
+          },
+          {
+            "term": "未使用の架空製品",
+            "reading": "みしようのかくうせいひん",
+            "enabled": false,
+            "variants": []
+          }
+        ]
+      }
+    }
+  ],
+  "finalCaptions": [
+    {
+      "recognizer": "apple",
+      "original": "今日はキャプシヨンリレーを使います。星見大科学間の参加者は 13人です。予約は取り消しません。",
+      "text": "今日はCaption Relayを使います。星見台科学館の参加者は13人です。予約は取り消しません。",
+      "ai": {
+        "request_id": "23be6962-1a5a-41d1-9f35-ff81c3ac9e06",
+        "model_id": "gpt-5.4-mini-2026-03-17",
+        "elapsed_ms": 940.8476250246167,
+        "input_tokens": 386,
+        "output_tokens": 31
+      }
+    },
+    {
+      "recognizer": "openai",
+      "original": "今日はキャプシオンリレーを使います。星見台科学館の参加者は十三人です。予約は取り消しません。",
+      "text": "今日はCaption Relayを使います。星見台科学館の参加者は十三人です。予約は取り消しません。",
+      "ai": {
+        "request_id": "fc1115b3-4019-47df-8a2d-771662a6ec70",
+        "model_id": "gpt-5.4-mini-2026-03-17",
+        "elapsed_ms": 619.5935410214588,
+        "input_tokens": 384,
+        "output_tokens": 31
+      }
+    }
+  ],
+  "earlierCapturedQualityTrials": [
+    {
+      "recognizer": "apple",
+      "original": "今日はキャプシヨンリレーを使います。星見大科学間の参加者は 13人です。予約は取り消しません。",
+      "text": "今日はCaption Relayを使います。星見台科学館の参加者は13人です。予約は取り消しません。",
+      "ai": {
+        "request_id": "7768e035-d632-40ba-9f1c-bae2a41ed496",
+        "model_id": "gpt-5.4-mini-2026-03-17",
+        "elapsed_ms": 1437.7442080294713,
+        "input_tokens": 386,
+        "output_tokens": 31
+      }
+    },
+    {
+      "recognizer": "apple",
+      "original": "今日はキャプシヨンリレーを使います。星見大科学間の参加者は 13人です。予約は取り消しません。",
+      "text": "今日はCaption Relayを使います。星見台科学館の参加者は13人です。予約は取り消しません。",
+      "ai": {
+        "request_id": "d65f67cd-7677-4801-927f-ee2c2d20a596",
+        "model_id": "gpt-5.4-mini-2026-03-17",
+        "elapsed_ms": 1154.2271659709513,
+        "input_tokens": 386,
+        "output_tokens": 31
+      }
+    },
+    {
+      "recognizer": "openai",
+      "original": "今日はキャプシオンリレーを使います。星見台科学館の参加者は十三人です。予約は取り消しません。",
+      "text": "今日はCaption Relayを使います。星見台科学館の参加者は十三人です。予約は取り消しません。",
+      "ai": {
+        "request_id": "f2738049-a3e6-4cae-9412-323b506e107c",
+        "model_id": "gpt-5.4-mini-2026-03-17",
+        "elapsed_ms": 650.0927499728277,
+        "input_tokens": 384,
+        "output_tokens": 31
+      }
+    },
+    {
+      "recognizer": "apple",
+      "original": "今日はディアプシ 4リレーを使います。星見大科学間の参加者は 13人です。予約は取り消しません。",
+      "text": "今日はディアプシ4リレーを使います。星見台科学館の参加者は13人です。予約は取り消しません。",
+      "ai": {
+        "request_id": "a1d34357-3365-445a-a92e-6381c53a5c69",
+        "model_id": "gpt-5.4-mini-2026-03-17",
+        "elapsed_ms": 1364.7999170934781,
+        "input_tokens": 387,
+        "output_tokens": 36
+      }
+    }
+  ],
+  "quality": [
+    {
+      "recognizer": "apple",
+      "productSpellingPreserved": true,
+      "registeredVenuePreserved": true
+    },
+    {
+      "recognizer": "openai",
+      "productSpellingPreserved": true,
+      "registeredVenuePreserved": true
+    }
+  ],
+  "limitation": "One earlier OpenAI trial failed the exact product-spelling assertion before the raw text was recorded. A later Apple trial produced ディアプシ4リレー, which GPT conservatively retained; the venue, count and negation were preserved. Dictionary hints do not guarantee recognition or correction accuracy. This is not a comparative quality benchmark.",
+  "media": [
+    {
+      "streams": [
+        [
+          {
+            "label": "MediaStreamAudioDestinationNode",
+            "state": "ended"
+          }
+        ]
+      ],
+      "getUserMediaCalls": 1
+    },
+    {
+      "streams": [
+        [
+          {
+            "label": "MediaStreamAudioDestinationNode",
+            "state": "ended"
+          }
+        ],
+        [
+          {
+            "label": "MediaStreamAudioDestinationNode",
+            "state": "ended"
+          }
+        ]
+      ],
+      "getUserMediaCalls": 2
+    }
+  ],
+  "browserErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "consoleErrorExplanation": "favicon.ico 404; dictionary 409 is the deliberately exercised concurrent-save rejection",
+  "serverShutdownConfirmed": true,
+  "billing": "API calls may be billed. This run did not verify incentive classification or final invoice.",
+  "checksOutput": "frontend: 18 files / 126 tests; backend: 164 tests; pyright: 0 errors, 0 warnings, 0 informations; API generation and dictionary case folding match; build succeeded",
+  "recognitionVerifiedCommit": "f6441f1f90dcc9f06f1dafae43663b57316164b7",
+  "reviewFixesVerification": "verification-review-fixes.json"
+}
