@@ -13,8 +13,9 @@ import httpx2 as httpx
 
 from .models import (
     AiRouting, AiSettings, Caption, CaptionPatch, Command, ConflictDetail, ConflictResponse, PublicSnapshot,
-    ConnectionSettings, ConnectionStatus, DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
+    ConnectionSettings, ConnectionStatus, DictionaryError, DictionarySnapshot, DictionaryUpdate, DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
 )
+from .dictionary import DictionaryConflict, DictionaryStorageError, WordDictionary, dictionary_path
 from .relay import CaptionNotFound, CaptionRelay, RevisionConflict
 from .udtalk_web import UdtalkStatus
 from .udtalk_editor import EditorError
@@ -29,10 +30,11 @@ FRONTEND = BASE / "frontend" / "dist"
 def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = None,
                environment: Mapping[str, str] | None = None,
                ai_transport: httpx.AsyncBaseTransport | None = None,
-               editor_transport: httpx.AsyncBaseTransport | None = None, audio_connector: Connector = openai_connect) -> FastAPI:
+               editor_transport: httpx.AsyncBaseTransport | None = None, audio_connector: Connector = openai_connect,
+               dictionary: WordDictionary | None = None) -> FastAPI:
     service = relay if relay is not None else CaptionRelay()
     workflow = CaptionWorkflow(service, udtalk_url, environment if environment is not None else os.environ,
-                               ai_transport, editor_transport, audio_connector)
+                               ai_transport, editor_transport, audio_connector, dictionary)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
@@ -165,6 +167,20 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
     async def ai_settings(settings: AiSettings) -> AiRouting:
         return service.ai_settings(settings)
 
+    @application.get("/api/dictionary", response_model=DictionarySnapshot)
+    async def get_dictionary() -> DictionarySnapshot:
+        return workflow.dictionary.snapshot()
+
+    @application.put("/api/dictionary", response_model=DictionarySnapshot,
+                     responses={409: {"model": DictionaryError}, 503: {"model": DictionaryError}})
+    async def set_dictionary(update: DictionaryUpdate) -> DictionarySnapshot:
+        try:
+            return workflow.dictionary.update(update)
+        except DictionaryConflict as error:
+            raise HTTPException(409, str(error)) from None
+        except DictionaryStorageError as error:
+            raise HTTPException(503, str(error)) from None
+
     @application.get("/api/view", response_model=PublicSnapshot)
     async def public_view() -> PublicSnapshot:
         return service.public_snapshot()
@@ -179,4 +195,4 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
     return application
 
 
-app = create_app(udtalk_url=os.environ.get("CAPTION_RELAY_UDTALK_URL"))
+app = create_app(udtalk_url=os.environ.get("CAPTION_RELAY_UDTALK_URL"), dictionary=WordDictionary(dictionary_path(os.environ)))

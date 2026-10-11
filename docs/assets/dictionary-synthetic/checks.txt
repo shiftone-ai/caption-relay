@@ -1,0 +1,7 @@
+bash scripts/check.sh: exit 0
+Frontend: 18 files, 126 tests passed
+Backend: 164 tests passed
+Pyright: 0 errors, 0 warnings, 0 informations
+API contract: matches
+Dictionary case folding: matches backend Python
+Frontend typecheck and build: passed

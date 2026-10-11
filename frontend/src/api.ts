@@ -1,4 +1,4 @@
-import { CaptionConflict, OperationError, type ConnectionStatus, type AiRouting, type AudienceApi, type Caption, type DisplaySettings, type OperatorApi, type PublicSnapshot } from "./domain";
+import { CaptionConflict, OperationError, type ConnectionStatus, type AiRouting, type AudienceApi, type Caption, type DisplaySettings, type OperatorApi, type PublicSnapshot, type DictionarySnapshot } from "./domain";
 import { defaultDisplay } from "./display";
 import type { components } from "./generated/api";
 
@@ -6,11 +6,12 @@ async function request<T>(path: string, signal: AbortSignal, options: RequestIni
   const response = await fetch(path, { ...options, signal });
   if (!response.ok) {
     if (response.status === 409) {
-      const data = await response.json() as components["schemas"]["ConflictResponse"];
+      const data = await response.json() as components["schemas"]["ConflictResponse"] | components["schemas"]["DictionaryError"];
+      if (typeof data.detail === "string") throw new OperationError(data.detail);
       if (data.detail && typeof data.detail === "object" && data.detail.latest) throw new CaptionConflict(data.detail.latest);
     } else if (response.status === 502) {
       throw new OperationError(await response.text());
-    } else if (response.status === 422) {
+    } else if (response.status === 422 || response.status === 503) {
       const data = await response.json() as { detail?: unknown };
       if (typeof data.detail === "string") throw new OperationError(data.detail);
     }
@@ -25,14 +26,15 @@ const json = (method: string, data: unknown): RequestInit => ({
 
 export const operatorApi: OperatorApi = {
   async load(signal) {
-    const [session, captions, ai, connection] = await Promise.all([
+    const [session, captions, ai, connection, dictionary] = await Promise.all([
       request<components["schemas"]["Session"]>("/api/session", signal),
       request<Caption[]>("/api/events", signal),
       request<AiRouting>("/api/ai", signal),
       request<ConnectionStatus>("/api/connection", signal),
+      request<DictionarySnapshot>("/api/dictionary", signal),
     ]);
     return { visible: session.visible, captions, autoPublish: session.auto_publish ?? true,
-      display: { ...defaultDisplay, ...session.display }, ai, connection,
+      display: { ...defaultDisplay, ...session.display }, ai, connection, dictionary,
       receiverUrl: connection.receiver_path ? new URL(connection.receiver_path, window.location.origin).href : "" };
   },
   save(draft, signal) {
@@ -64,6 +66,9 @@ export const operatorApi: OperatorApi = {
   },
   async setConnection(settings, signal) {
     return request<ConnectionStatus>("/api/connection", signal, json("PUT", settings));
+  },
+  async setDictionary(settings, signal) {
+    return request<DictionarySnapshot>("/api/dictionary", signal, json("PUT", settings));
   },
 };
 

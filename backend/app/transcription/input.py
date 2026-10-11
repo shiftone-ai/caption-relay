@@ -34,11 +34,13 @@ class AudioStop(Model):
 
 class MicrophoneInput:
     def __init__(self, environment: Mapping[str, str], accept: Callable[[SourceEvent], object],
-                 connector: Connector = openai_connect, *, allowed: Callable[[RecognizerId], bool] = lambda _: True) -> None:
+                 connector: Connector = openai_connect, *, allowed: Callable[[RecognizerId], bool] = lambda _: True,
+                 keywords: Callable[[], list[str]] = lambda: []) -> None:
         self._environment = environment
         self._accept = accept
         self._connector = connector
         self._allowed = allowed
+        self._keywords = keywords
         self.status = TranscriptionStatus()
         self._active = False
         self._stop = asyncio.Event()
@@ -109,11 +111,12 @@ class MicrophoneInput:
             self.status = TranscriptionStatus(state="preparing", message="音声認識へ接続しています。",
                 sent_seconds=self.status.sent_seconds, estimated_yen=self.status.estimated_yen)
             await self._notify(browser)
+            keywords = self._keywords()
             if budget is not None:
                 recognizer = OpenAIRecognizer(self._environment["CAPTION_RELAY_OPENAI_API_KEY"], uuid4().hex,
-                                               self._accept, budget, connector=self._connector)
+                                               self._accept, budget, connector=self._connector, keywords=keywords)
             else:
-                recognizer = AppleRecognizer(uuid4().hex, self._accept)
+                recognizer = AppleRecognizer(uuid4().hex, self._accept, keywords=keywords)
             await recognizer.start()
             if self._stop.is_set():
                 return

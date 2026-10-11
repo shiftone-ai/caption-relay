@@ -261,6 +261,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dictionary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Dictionary */
+        get: operations["get_dictionary_api_dictionary_get"];
+        /** Set Dictionary */
+        put: operations["set_dictionary_api_dictionary_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/view": {
         parameters: {
             query?: never;
@@ -574,6 +592,45 @@ export interface components {
             transcription?: components["schemas"]["TranscriptionStatus"];
             /** Recognizers */
             recognizers?: components["schemas"]["RecognizerOption"][];
+        };
+        /** DictionaryError */
+        DictionaryError: {
+            /** Detail */
+            detail: string;
+        };
+        /** DictionarySnapshot */
+        DictionarySnapshot: {
+            /** Entries */
+            entries?: components["schemas"]["DictionaryWord"][];
+            /**
+             * Revision
+             * @default 0
+             */
+            revision: number;
+        };
+        /** DictionaryUpdate */
+        DictionaryUpdate: {
+            /** Entries */
+            entries?: components["schemas"]["DictionaryWord"][];
+            /** Base Revision */
+            base_revision: number;
+        };
+        /** DictionaryWord */
+        DictionaryWord: {
+            /** Term */
+            term: string;
+            /**
+             * Reading
+             * @default
+             */
+            reading: string;
+            /** Variants */
+            variants?: string[];
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
         };
         /** DisplaySettings */
         DisplaySettings: {
@@ -1297,6 +1354,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dictionary_api_dictionary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionarySnapshot"];
+                };
+            };
+        };
+    };
+    set_dictionary_api_dictionary_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DictionaryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionarySnapshot"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryError"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryError"];
                 };
             };
         };

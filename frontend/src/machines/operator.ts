@@ -5,9 +5,11 @@ import { CaptionConflict, OperationError, disclosureIds, type DisclosureId, type
 import { changeDisplayField, defaultDisplay, selectDisplayPalette } from "../display";
 import { aiStrategies, defaultAi, knownAiModel } from "../ai";
 import { defaultConnection } from "../connection";
+import { dictionaryUpdate, dictionaryValidation, draftDictionary, emptyDictionary, type DictionaryDraft } from "../dictionary";
+import type { DictionarySnapshot, DictionaryUpdate } from "../domain";
 
 type StatusTarget = { captionId: string; kind: "source" | "publication" };
-type SettingsPanel = "display" | "ai" | "connection";
+type SettingsPanel = "display" | "ai" | "connection" | "dictionary";
 
 interface StatusTooltipPosition {
   top: number;
@@ -54,6 +56,10 @@ interface OperatorContext {
   displayDraft: DisplaySettings | null;
   ai: AiRouting;
   aiDraft: AiSettings | null;
+  dictionary: DictionarySnapshot;
+  dictionaryDraft: DictionaryDraft | null;
+  dictionaryError: string;
+  dictionaryNotice: string;
   connection: ConnectionStatus;
   receiverUrl: string;
   connectionDraft: ConnectionSettings | null;
@@ -139,6 +145,15 @@ const operations = {
   "ai.preferred.selected": { guard: "validAiModel", actions: "editAi" },
   "ai.candidate.changed": { guard: "canChangeAiCandidate", actions: "editAi" },
   "ai.save.requested": { target: "settingAi", actions: "clearError" },
+  "dictionary.word.added": { guard: "canAddWord", actions: "addWord" },
+  "dictionary.word.changed": { guard: "knownWord", actions: "editWord" },
+  "dictionary.word.enabled": { guard: "knownWord", actions: "editWord" },
+  "dictionary.word.removed": { guard: "knownWord", actions: "removeWord" },
+  "dictionary.draft.discarded": { target: "refreshing", actions: "discardDictionary" },
+  "dictionary.save.requested": [
+    { guard: "validDictionary", target: "settingDictionary", actions: "clearDictionaryMessage" },
+    { actions: "invalidDictionary" },
+  ],
   "connection.mode.selected": { guard: "validConnectionMode", actions: "editConnection" },
   "connection.url.changed": { actions: "editConnection" },
   "connection.text-format.selected": { guard: "validConnectionTextFormat", actions: "editConnection" },
@@ -166,9 +181,14 @@ export const operatorMachine = setup({
     mode: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; mode: PublicationMode }; signal: AbortSignal }) => input.api.setPublicationMode(input.mode, signal)),
     display: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; settings: DisplaySettings }; signal: AbortSignal }) => input.api.setDisplay(input.settings, signal)),
     ai: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; settings: AiSettings }; signal: AbortSignal }) => input.api.setAi(input.settings, signal)),
+    dictionary: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; settings: DictionaryUpdate }; signal: AbortSignal }) => input.api.setDictionary(input.settings, signal)),
     connection: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; settings: ConnectionSettings }; signal: AbortSignal }) => input.api.setConnection(input.settings, signal)),
   },
   guards: {
+    canAddWord: ({ context }) => (context.dictionaryDraft ?? draftDictionary(context.dictionary)).entries.length < 100,
+    knownWord: ({ context, event }) => (event.type === "dictionary.word.changed" || event.type === "dictionary.word.enabled" || event.type === "dictionary.word.removed")
+      && Number.isInteger(event.index) && event.index >= 0 && event.index < (context.dictionaryDraft ?? draftDictionary(context.dictionary)).entries.length,
+    validDictionary: ({ context }) => !dictionaryValidation(context.dictionaryDraft ?? draftDictionary(context.dictionary)),
     knownDisclosure: ({ context, event }) => event.type === "disclosure.toggled" &&
       (disclosureIds.some(id => id === event.id) || ((event.id.startsWith("caption-saved:") || event.id.startsWith("caption-ai:"))
         && context.captionsById.has(event.id.slice(event.id.indexOf(":") + 1)))),
@@ -234,6 +254,25 @@ export const operatorMachine = setup({
       && context.pendingSave?.captionId !== event.captionId,
   },
   actions: {
+    discardDictionary: assign({ dictionaryDraft: null, dictionaryError: "", dictionaryNotice: "保存済みの辞書に戻しました。" }),
+    clearDictionaryMessage: assign({ dictionaryError: "", dictionaryNotice: "" }),
+    addWord: assign(({ context }) => {
+      const draft = context.dictionaryDraft ?? draftDictionary(context.dictionary);
+      return { dictionaryDraft: { ...draft, entries: [...draft.entries, { term: "", reading: "", variantsText: "", enabled: true }] }, dictionaryError: "", dictionaryNotice: "" };
+    }),
+    editWord: assign(({ context, event }) => {
+      const draft = context.dictionaryDraft ?? draftDictionary(context.dictionary);
+      if (event.type !== "dictionary.word.changed" && event.type !== "dictionary.word.enabled") return {};
+      const entries = draft.entries.map((word, index) => index !== event.index ? word : event.type === "dictionary.word.enabled"
+        ? { ...word, enabled: event.enabled } : { ...word, [event.field]: event.value });
+      return { dictionaryDraft: { ...draft, entries }, dictionaryError: "", dictionaryNotice: "" };
+    }),
+    removeWord: assign(({ context, event }) => {
+      if (event.type !== "dictionary.word.removed") return {};
+      const draft = context.dictionaryDraft ?? draftDictionary(context.dictionary);
+      return { dictionaryDraft: { ...draft, entries: draft.entries.filter((_, index) => index !== event.index) }, dictionaryError: "", dictionaryNotice: "" };
+    }),
+    invalidDictionary: assign(({ context }) => ({ dictionaryError: dictionaryValidation(context.dictionaryDraft ?? draftDictionary(context.dictionary)), dictionaryNotice: "" })),
     startMicrophone: sendTo("microphone", ({ context }) => ({ type: "start", deviceId: context.microphoneDeviceId, recognizer: context.connection.recognizer })),
     stopMicrophone: sendTo("microphone", { type: "stop" }),
     toggleDisclosure: assign(({ context, event }) => {
@@ -363,6 +402,7 @@ export const operatorMachine = setup({
     requestedMode: { auto_publish: true },
     display: defaultDisplay, displayDraft: null,
     ai: defaultAi, aiDraft: null,
+    dictionary: emptyDictionary, dictionaryDraft: null, dictionaryError: "", dictionaryNotice: "",
     connection: defaultConnection, receiverUrl: "", connectionDraft: null,
   }),
   on: { "disclosure.toggled": { guard: "knownDisclosure", actions: "toggleDisclosure" } },
@@ -418,6 +458,7 @@ export const operatorMachine = setup({
         ],
         "display.settings.toggled": { guard: "hostMode", actions: assign(({ context }) => toggleSettings(context, "display")) },
         "ai.settings.toggled": { actions: assign(({ context }) => toggleSettings(context, "ai")) },
+        "dictionary.settings.toggled": { actions: assign(({ context }) => toggleSettings(context, "dictionary")) },
         "connection.settings.toggled": { actions: assign(({ context }) => toggleSettings(context, "connection")) },
       },
       states: {
@@ -530,6 +571,14 @@ export const operatorMachine = setup({
             src: "ai", input: ({ context }) => ({ api: context.api, settings: context.aiDraft ?? context.ai.settings }),
             onDone: { target: "idle", actions: assign(({ event }) => ({ ai: event.output, aiDraft: null })) },
             onError: { target: "idle", actions: assign({ error: "AI設定を保存できませんでした。設定内容は保持しています。", errorSource: "command" }) },
+          },
+        },
+        settingDictionary: {
+          invoke: {
+            src: "dictionary", input: ({ context }) => ({ api: context.api, settings: dictionaryUpdate(context.dictionaryDraft ?? draftDictionary(context.dictionary)) }),
+            onDone: { target: "idle", actions: assign(({ event }) => ({ dictionary: event.output, dictionaryDraft: null, dictionaryError: "", dictionaryNotice: "辞書を保存しました。" })) },
+            onError: { target: "idle", actions: assign(({ event }) => ({ dictionaryError: event.error instanceof OperationError
+              ? event.error.message : "辞書を保存できませんでした。入力内容は保持しています。", dictionaryNotice: "" })) },
           },
         },
         settingConnection: {

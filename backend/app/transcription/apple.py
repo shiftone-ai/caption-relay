@@ -8,6 +8,7 @@ from pathlib import Path
 import platform
 import struct
 import subprocess
+import json
 
 from pydantic import Field, model_validator
 
@@ -121,7 +122,7 @@ def apple_option() -> RecognizerOption:
 
 
 class AppleRecognizer:
-    def __init__(self, generation: str, accept: Callable[[SourceEvent], object]) -> None:
+    def __init__(self, generation: str, accept: Callable[[SourceEvent], object], *, keywords: list[str] | None = None) -> None:
         self._accept = accept
         self._transcripts = AppleTranscripts(generation)
         self._process: asyncio.subprocess.Process | None = None
@@ -129,11 +130,16 @@ class AppleRecognizer:
         self._closing = False
         self.failed = asyncio.Event()
         self.error = ""
+        self._keywords = list(keywords or [])
 
     async def start(self) -> None:
         try:
             self._process = await asyncio.create_subprocess_exec(str(HELPER), stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, limit=262144)
+            assert self._process.stdin is not None
+            config = json.dumps({"keywords": self._keywords}, ensure_ascii=False).encode("utf-8")
+            self._process.stdin.write(struct.pack("!I", len(config)) + config)
+            await self._process.stdin.drain()
             assert self._process.stdout is not None
             async with asyncio.timeout(10):
                 packet = PACKET.validate_json(await self._process.stdout.readline())
