@@ -1,0 +1,23 @@
+{
+  "verified_on": "2026-10-24",
+  "source": "実ブラウザのローカル操作画面。字幕と背景は合成の確認用データ。",
+  "initial_width": 384,
+  "dragged_width": 560,
+  "collapse": "右端から72px以内で離すと収納",
+  "reopened_width": 560,
+  "draft_preserved": true,
+  "keyboard": [
+    "ArrowLeftで24px拡張",
+    "Homeで収納して起点へフォーカス復帰"
+  ],
+  "mobile": {
+    "width": 390,
+    "document_width": 390,
+    "panel_width": 390,
+    "resize_handle": "hidden"
+  },
+  "target_width": 24,
+  "limitations": [
+    "実タッチ操作とドラッグ途中のEscapeは未確認。取消はMediatorの回帰テストで確認。"
+  ]
+}

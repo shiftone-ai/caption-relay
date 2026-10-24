@@ -37,6 +37,10 @@ interface OperatorContext {
   errorCaptionId: string | null;
   activeCaptionId: string | null;
   editingCaptionVisible: boolean;
+  inspectorWidth: number;
+  inspectorMaxWidth: number;
+  inspectorPreviewWidth: number | null;
+  inspectorResize: { pointerId: number; right: number } | null;
   followLatest: boolean;
   atLatest: boolean;
   latestRequest: number;
@@ -88,14 +92,26 @@ function toggleSettings(context: OperatorContext, panel: SettingsPanel) {
   const opening = context.settingsPanel !== panel;
   return {
     settingsPanel: opening ? panel : null,
+    inspectorResize: null, inspectorPreviewWidth: null,
     settingsFocusTarget: { panel, destination: opening ? "field" as const : "trigger" as const },
     settingsFocusRequest: context.settingsFocusRequest + 1,
   };
 }
 
 function closeEditor(context: OperatorContext) {
-  return { activeCaptionId: null, historyFocusCaptionId: context.activeCaptionId,
+  return { activeCaptionId: null, inspectorResize: null, inspectorPreviewWidth: null, historyFocusCaptionId: context.activeCaptionId,
     historyFocusRequest: context.historyFocusRequest + 1 };
+}
+
+function closeInspector(context: OperatorContext) {
+  return { ...(context.settingsPanel ? { settingsPanel: null,
+    settingsFocusTarget: { panel: context.settingsPanel, destination: "trigger" as const },
+    settingsFocusRequest: context.settingsFocusRequest + 1, activeCaptionId: null,
+  } : closeEditor(context)), inspectorResize: null, inspectorPreviewWidth: null };
+}
+
+function boundedInspectorWidth(width: number, maximum: number) {
+  return Math.max(288, Math.min(width, maximum));
 }
 
 function canSaveDestination(context: OperatorContext, captionId: string) {
@@ -288,6 +304,7 @@ export const operatorMachine = setup({
       return { openedDisclosures };
     }),
     closeSettings: assign(({ context }) => ({
+      inspectorResize: null, inspectorPreviewWidth: null,
       settingsPanel: null,
       settingsFocusTarget: context.settingsPanel ? { panel: context.settingsPanel, destination: "trigger" as const } : null,
       settingsFocusRequest: context.settingsFocusRequest + 1,
@@ -400,7 +417,8 @@ export const operatorMachine = setup({
     microphone: input.microphone, microphoneState: "stopped", microphoneMessage: "マイクの認識は停止しています。",
     microphoneLabel: "", microphoneDevices: [], microphoneDeviceId: "",
     api: input.api, visible: true, captions: [], captionsById: new Map(), drafts: new Map(), pendingSave: null,
-    error: "", errorSource: null, errorCaptionId: null, activeCaptionId: null, editingCaptionVisible: true,
+    error: "", errorSource: null, errorCaptionId: null, inspectorWidth: 384, inspectorMaxWidth: 960, inspectorPreviewWidth: null, inspectorResize: null,
+    activeCaptionId: null, editingCaptionVisible: true,
     followLatest: true, atLatest: true, latestRequest: 0, scrollTarget: "latest", editorFocusRequest: 0,
     historyFocusRequest: 0, historyFocusCaptionId: null, statusTooltip: { pointer: null, focus: null, dismissed: null, measurement: null }, unreadIds: [], saveStatus: null, autoPublish: true,
     settingsPanel: null, settingsFocusTarget: null, settingsFocusRequest: 0,
@@ -446,6 +464,25 @@ export const operatorMachine = setup({
         "caption.draft.discarded": { guard: "canDiscard", actions: "discardDraft" },
         "caption.status.interaction.changed": { guard: "canChangeStatusInteraction", actions: "changeStatusInteraction" },
         "caption.status.measured": { guard: "canMeasureStatus", actions: "measureStatus" },
+        "inspector.measured": { guard: ({ event }) => Number.isFinite(event.workspaceWidth) && event.workspaceWidth > 0,
+          actions: assign(({ event }) => ({ inspectorMaxWidth: Math.max(288, event.workspaceWidth - 320) })) },
+        "inspector.resize.started": { guard: ({ context, event }) => Boolean(context.settingsPanel || context.activeCaptionId)
+          && Number.isFinite(event.clientX) && Number.isFinite(event.right) && Number.isFinite(event.workspaceWidth) && event.workspaceWidth > 720,
+          actions: assign(({ event }) => ({ inspectorResize: { pointerId: event.pointerId, right: event.right },
+            inspectorMaxWidth: Math.max(288, event.workspaceWidth - 320) })) },
+        "inspector.resize.moved": { guard: ({ context, event }) => context.inspectorResize?.pointerId === event.pointerId && Number.isFinite(event.clientX),
+          actions: assign(({ context, event }) => ({ inspectorPreviewWidth: Math.max(0, Math.min(context.inspectorResize!.right - event.clientX, context.inspectorMaxWidth)) })) },
+        "inspector.resize.ended": { guard: ({ context, event }) => context.inspectorResize?.pointerId === event.pointerId && Number.isFinite(event.clientX),
+          actions: assign(({ context, event }) => context.inspectorResize!.right - event.clientX <= 72 ? closeInspector(context)
+            : { inspectorWidth: boundedInspectorWidth(context.inspectorResize!.right - event.clientX, context.inspectorMaxWidth),
+              inspectorResize: null, inspectorPreviewWidth: null }) },
+        "inspector.resize.cancelled": { guard: ({ context, event }) => context.inspectorResize?.pointerId === event.pointerId,
+          actions: assign({ inspectorResize: null, inspectorPreviewWidth: null }) },
+        "inspector.resize.keypressed": { guard: ({ context, event }) => Boolean(context.settingsPanel || context.activeCaptionId)
+          && ["ArrowLeft", "ArrowRight", "Home", "End", "Enter", "Escape"].includes(event.key),
+          actions: assign(({ context, event }) => ["Home", "Enter", "Escape"].includes(event.key) ? closeInspector(context)
+            : { inspectorWidth: event.key === "End" ? context.inspectorMaxWidth : boundedInspectorWidth(
+              Math.min(context.inspectorWidth, context.inspectorMaxWidth) + (event.key === "ArrowLeft" ? 1 : -1) * (event.shiftKey ? 64 : 24), context.inspectorMaxWidth) }) },
         "timeline.latest.requested": { actions: assign(({ context }) => ({ followLatest: true, atLatest: true, unreadIds: [], scrollTarget: "latest" as const,
           historyFocusCaptionId: context.activeCaptionId ? context.historyFocusCaptionId : context.captions.at(-1)?.id ?? null,
           historyFocusRequest: context.activeCaptionId ? context.historyFocusRequest : context.historyFocusRequest + 1,
