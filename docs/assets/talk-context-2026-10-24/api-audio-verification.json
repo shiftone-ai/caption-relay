@@ -1,0 +1,42 @@
+{
+  "verified_on": "2026-10-24",
+  "physical_microphone_used": false,
+  "generation": [
+    {
+      "role": "interviewer",
+      "voice": "cedar",
+      "model": "gpt-4o-mini-tts",
+      "text": "今回の展示では、写真と布を組み合わせていますよね。光の透け方に注目した理由を教えていただけますか。",
+      "duration_seconds": 8.55,
+      "request_id": "req_849958a60fe943ce947d79e7fbececc5",
+      "source": "OpenAI Audio API"
+    },
+    {
+      "role": "artist",
+      "voice": "marin",
+      "model": "gpt-4o-mini-tts",
+      "text": "布には光を通すところと、通さないところがあって、その違いを使いたかったんです。正解を、正解を見つける展示ではなくて、ご自身の記憶と重ねて見てもらえたらと思います。ゆっくり、ゆっくりイメージいただければと思います。展示は十三点です。予約は取り消しません。",
+      "duration_seconds": 24.0,
+      "request_id": "req_0dd1f09d114647b3978062298a1c4ac9",
+      "source": "OpenAI Audio API"
+    }
+  ],
+  "file_transcription": {
+    "text": "メノニは、光を通すところと通さないところがあって、その違いを使いたかったんです。正解を見つける展示ではなくて、ご自身の記憶と重ねて見てもらえたらと思います。ゆっくり、ゆっくりイメージいただければと思います。展示は13点です。予約は取り消しません。",
+    "languages": [
+      {
+        "code": "ja"
+      }
+    ],
+    "usage": {
+      "type": "duration",
+      "seconds": 24
+    },
+    "request_id": "req_8d7f4923cf4c44e1951c03dc17694400"
+  },
+  "limitations": [
+    "音声を正しく発音しているか、認識側が誤っているかは未特定。字幕の冒頭に誤認識がある。",
+    "この記録は音声生成とファイル認識の確認。純正UDトークを経由した確認とは分ける。"
+  ],
+  "shared_udtalk_replay": "仮想入力以外のデバイスを検出したため、追加の再生は開始せず中断。"
+}
