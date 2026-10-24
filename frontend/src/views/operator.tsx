@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { viewHierarchy } from "../events/hierarchy";
 import type { OperatorParameters } from "../presenters/operator";
+import { InspectorResizeView } from "./operator/inspector-resize";
 import { ToolbarView } from "./operator/toolbar";
 import { CaptionListView } from "./operator/captions";
 import { DisplaySettingsView } from "./operator/display-settings";
@@ -27,11 +28,14 @@ export function OperatorView({ parameters }: { parameters: OperatorParameters })
         <CaptionMonitorView parameters={parameters.monitor} />
         <div className="operator-workspace">
           <CaptionListView parameters={parameters} />
+          {(activePanel || parameters.editor) && <div className="operator-side-panel" style={{ width: parameters.inspector.width }} data-resizing={parameters.inspector.resizing}>
+          <InspectorResizeView parameters={parameters.inspector} />
           {parameters.toolbar.settingsOpen && <DisplaySettingsView parameters={parameters.displaySettings} />}
           {parameters.toolbar.aiSettingsOpen && <AiSettingsView parameters={parameters.ai} />}
           {parameters.toolbar.dictionarySettingsOpen && <DictionarySettingsView parameters={parameters.dictionary} />}
           {parameters.toolbar.connectionSettingsOpen && <ConnectionSettingsView parameters={parameters.connection} />}
           {!activePanel && parameters.editor && <div className="operator-inspector"><CaptionEditorView row={parameters.editor} /></div>}
+          </div>}
         </div>
       </main>
     </viewHierarchy.Scope>

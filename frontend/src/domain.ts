@@ -61,6 +61,12 @@ export const disclosureIds = [
 export type DisclosureId = typeof disclosureIds[number] | `caption-saved:${string}`;
 
 export type OperatorEvent =
+  | { type: "inspector.measured"; workspaceWidth: number }
+  | { type: "inspector.resize.started"; pointerId: number; clientX: number; right: number; workspaceWidth: number }
+  | { type: "inspector.resize.moved"; pointerId: number; clientX: number }
+  | { type: "inspector.resize.ended"; pointerId: number; clientX: number }
+  | { type: "inspector.resize.cancelled"; pointerId: number }
+  | { type: "inspector.resize.keypressed"; key: string; shiftKey: boolean }
   | { type: "disclosure.toggled"; id: DisclosureId }
   | { type: "caption.draft.changed"; captionId: string; text: string }
   | { type: "caption.save.requested"; captionId: string }
