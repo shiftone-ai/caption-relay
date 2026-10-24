@@ -8,19 +8,22 @@ from .models import AiModelId, AiModelOption, AiRequest, AiResultInfo, AiRouting
 
 
 MODELS = (
-    AiModelOption(id="gemini-3.1-flash-lite", provider="gemini", label="Gemini 3.1 Flash-Lite",
-                  input_usd_per_million=0.25, output_usd_per_million=1.5,
-                  pricing_url="https://ai.google.dev/gemini-api/docs/pricing"),
-    AiModelOption(id="claude-haiku-4-5", provider="claude", label="Claude Haiku 4.5",
-                  input_usd_per_million=1.0, output_usd_per_million=5.0,
-                  pricing_url="https://platform.claude.com/docs/en/about-claude/pricing"),
-    AiModelOption(id="gpt-5.3-codex", provider="codex", label="Codex · GPT-5.3-Codex",
-                  input_usd_per_million=1.75, output_usd_per_million=14.0,
-                  pricing_url="https://developers.openai.com/api/docs/pricing"),
-    AiModelOption(id="gpt-5.4-mini-2026-03-17", provider="openai", label="GPT-5.4 Mini",
-                  input_usd_per_million=0.75, output_usd_per_million=4.5,
-                  pricing_url="https://developers.openai.com/api/docs/models/gpt-5.4-mini",
-                  pricing_checked_on="2026-10-11"),
+    AiModelOption(id="gpt-6-luna", provider="openai", label="GPT-6 Luna",
+                  input_usd_per_million=0.1, output_usd_per_million=0.5,
+                  pricing_url="https://developers.openai.com/api/docs/pricing",
+                  pricing_checked_on="2026-10-24"),
+    AiModelOption(id="gpt-6.1-sol", provider="openai", label="GPT-6.1 Sol",
+                  input_usd_per_million=2.0, output_usd_per_million=10.0,
+                  pricing_url="https://developers.openai.com/api/docs/pricing",
+                  pricing_checked_on="2026-10-24"),
+    AiModelOption(id="claude-haiku-5-5", provider="claude", label="Claude Haiku 5.5",
+                  input_usd_per_million=0.1, output_usd_per_million=0.5,
+                  pricing_url="https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+                  pricing_checked_on="2026-10-24"),
+    AiModelOption(id="gemini-3.5-flash-lite", provider="gemini", label="Gemini 3.5 Flash-Lite",
+                  input_usd_per_million=0.3, output_usd_per_million=2.5,
+                  pricing_url="https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite",
+                  pricing_checked_on="2026-10-24"),
 )
 
 

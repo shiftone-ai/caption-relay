@@ -13,7 +13,6 @@ const receivedDateTime = new Intl.DateTimeFormat("ja-JP", {
 
 export interface RowParameters {
   savedDisclosure: DisclosureParameters;
-  aiDisclosure: DisclosureParameters;
   id: string;
   receivedAt: string;
   timeLabel: string;
@@ -23,7 +22,6 @@ export interface RowParameters {
   speaker: string | null;
   draftText: string;
   contentDescription: string;
-  formattedText: string | null;
   editing: boolean;
   dirty: boolean;
   saveLabel: string;
@@ -34,8 +32,11 @@ export interface RowParameters {
   message: string;
   invalid: boolean;
   state: string;
-  source: "saving" | "unsaved" | "human" | "ai" | "original";
+  source: "saving" | "unsaved" | "human" | "processing" | "ai" | "original";
+  aiPending: boolean;
+  aiProgressLabel: string;
   publication: string;
+  showPublicationStatus: boolean;
   publicationState: "hidden" | "updating" | "live" | "published" | "receiving" | "waiting" | "native";
   current: boolean;
   firstUnread: boolean;
@@ -85,6 +86,7 @@ export interface ToolbarParameters {
 }
 
 export interface AiParameters {
+  background: string;
   helpDisclosure: DisclosureParameters;
   comparisonDisclosure: DisclosureParameters;
   connectionDescription: string;
@@ -215,7 +217,9 @@ export interface OperatorParameters {
   unreadAnnouncement: string;
   firstUnreadId: string | null;
   latestLabel: string;
+  latestVisible: boolean;
   returnToEditorDisabled: boolean;
+  returnToEditorVisible: boolean;
   hasUnsavedChanges: boolean;
   liveText: string;
   liveLabel: string;
@@ -295,13 +299,13 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     const statusTooltipPosition = (sourceStatusOpen || publicationStatusOpen) && context.statusTooltip.measurement?.captionId === caption.id
       && context.statusTooltip.measurement.kind === statusTarget?.kind ? context.statusTooltip.measurement.position : null;
     const savedDisclosure = presentDisclosure(`caption-saved:${caption.id}`, context.openedDisclosures);
-    const aiDisclosure = presentDisclosure(`caption-ai:${caption.id}`, context.openedDisclosures);
     const dependencies = [draft, saving, rowError, editing, focusVersion, saveSuccess, disabled, readOnly, discardDisabled, editDisabled,
-      sourceModelName, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition, context.visible, currentId === caption.id, displayedIds.has(caption.id), firstUnreadId === caption.id, clientMode, savedDisclosure.open, aiDisclosure.open];
+      sourceModelName, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition, context.visible, currentId === caption.id, displayedIds.has(caption.id), firstUnreadId === caption.id, clientMode, savedDisclosure.open];
     const cached = rowCache.get(caption);
     if (cached && dependencies.every((dependency, index) => dependency === cached.dependencies[index])) return cached.parameters;
     const dirty = Boolean(draft && draft.text !== caption.text);
-    const source = saving ? "saving" : dirty ? "unsaved" : caption.human_edited ? "human" : caption.formatted_text ? "ai" : "original";
+    const aiPending = caption.ai_status === "running" || caption.ai_status === "queued";
+    const source = saving ? "saving" : dirty ? "unsaved" : caption.human_edited ? "human" : aiPending ? "processing" : caption.formatted_text ? "ai" : "original";
     const differentPublic = caption.published && caption.public_text != null && caption.public_text !== caption.text;
     const publicationState = clientMode ? "native" : !context.visible || !caption.publish_eligible ? "hidden" : differentPublic && displayedIds.has(caption.id) ? "updating"
       : displayedIds.has(caption.id) ? "live" : caption.published ? "published" : caption.source_final === false ? "receiving" : "waiting";
@@ -309,14 +313,14 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     const publication = clientMode ? "UDトーク側の字幕表示を使います。受信文と訂正の受付状態は、このアプリで確認できます。" : { hidden: !context.visible ? "観客には非表示" : "公開の対象外", updating: "観客には前の公開文を表示中", live: "観客に表示中", published: "公開済み・現在の表示範囲外", receiving: "発話の確定待ち", waiting: "保存すると公開", native: "UDトーク側の字幕表示を使います。" }[publicationState]
       + (differentPublic ? `。公開文「${caption.public_text}」と一覧の字幕は異なります。` : "");
     const parameters: RowParameters = {
-      savedDisclosure, aiDisclosure,
+      savedDisclosure,
       id: caption.id, original: caption.original, text: caption.text, speaker: caption.speaker?.trim() || null,
       receivedAt: caption.received_at,
       timeLabel: receivedTime.format(new Date(caption.received_at)),
       timeDescription: "受信時刻：" + receivedDateTime.format(new Date(caption.received_at)),
       draftText: draft?.text ?? caption.text,
       contentDescription: `字幕：${caption.text}`,
-      formattedText: caption.formatted_text ?? null,
+
       editing, dirty,
       saveLabel: saving ? "保存中…" : clientMode ? (draft?.conflict ? "再送して" : "保存して") + "UDトークへ反映" : (draft?.conflict ? "再保存" : "保存") + (publishes ? "して公開" : ""),
       saveConsequence: clientMode ? "編集権と発話の更新を確認し、UDトークへ訂正を送ります。通信失敗時は下書きを保持します。" : publishes ? "保存した文を観客に公開します。" : caption.source_final === false
@@ -325,10 +329,11 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
       disabled, readOnly, discardDisabled, editDisabled,
       message: draft?.conflict ?? (rowError || caption.ai_error || ""),
       invalid: Boolean(rowError && !draft?.text.trim()),
+      aiPending, aiProgressLabel: caption.ai_status === "queued" ? "AI待機中" : "AI校正中",
       source, state: source === "ai" && caption.ai_result
         ? "AI修正 · " + sourceModelName
-        : { saving: "保存中", unsaved: "未保存の下書きがあります。一覧には変更前の字幕を表示しています。", human: "手修正済み", ai: "AI修正", original: caption.ai_status === "running" || caption.ai_status === "queued" ? "AIの訂正待ち" : caption.ai_error ? "原文採用 · " + caption.ai_error : "原文採用" }[source],
-      publicationState, publication, current: currentId === caption.id,
+        : { saving: "保存中", unsaved: "未保存の下書きがあります。一覧には変更前の字幕を表示しています。", human: "手修正済み", processing: caption.ai_status === "queued" ? "AI待機中" : "AI校正中", ai: "AI修正", original: caption.ai_status === "running" || caption.ai_status === "queued" ? "AIの訂正待ち" : caption.ai_error ? "原文採用 · " + caption.ai_error : "原文採用" }[source],
+      showPublicationStatus: !clientMode, publicationState, publication, current: currentId === caption.id,
       firstUnread: firstUnreadId === caption.id, focusVersion, saveSuccess, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition,
     };
     rowCache.set(caption, { dependencies, parameters });
@@ -367,7 +372,9 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     unreadCount: context.unreadIds.length, firstUnreadId,
     unreadAnnouncement: context.unreadIds.length ? `新着の字幕が${context.unreadIds.length}件あります。` : "",
     latestLabel: context.unreadIds.length ? `最新へ · 新着 ${context.unreadIds.length} 件` : "最新へ",
+    latestVisible: !context.atLatest && context.captions.length > 0,
     returnToEditorDisabled: !snapshot.can({ type: "timeline.editing.requested" }),
+    returnToEditorVisible: snapshot.can({ type: "timeline.editing.requested" }) && (context.settingsPanel !== null || !context.editingCaptionVisible),
     hasUnsavedChanges: rows.some(row => row.dirty) || aiDirty || dictionaryDirty || JSON.stringify(displayDraft) !== JSON.stringify(context.display)
       || Boolean(context.connectionDraft && (context.connectionDraft.mode !== context.connection.mode || context.connectionDraft.editor_url?.trim()
         || context.connectionDraft.zoom_text_format !== context.connection.zoom_text_format
@@ -395,6 +402,7 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
         : "UDトークからの入力ではAI校正で参照します。自前の音声入力では認識にも使います。",
     },
     ai: {
+      background: aiDraft.background,
       helpDisclosure: presentDisclosure("ai-help", context.openedDisclosures),
       comparisonDisclosure: presentDisclosure("ai-comparison", context.openedDisclosures),
       connectionWarning: context.ai.settings.strategy !== "off" && !context.ai.connected,
@@ -407,8 +415,8 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
       preferredLabel: { manual: "指定AI", speed: "未計測時のAI", cost: "候補に残すAI", off: "初期候補のAI" }[aiDraft.strategy],
       preferredHint: { manual: "指定したAIを使います。候補からは外せません。", speed: "未計測時に使います。キー未設定なら設定済みの候補を選びます。候補からは外せません。",
         cost: "このAIを候補に含めます。選択先は候補の料金で決まり、ここでの指定とは一致しない場合があります。", off: "AIを使う設定に切り替えたときの候補です。現在は原文を採用します。" }[aiDraft.strategy],
-      strategyHint: { off: "原文を採用し、AIへ送信しません。", manual: "下で指定したAIを選びます。",
-        cost: "キー設定済みの候補から、入力200・出力100トークンの参考費用で選びます。", speed: "キー設定済みの候補の直近20件の実測中央値で比較します。未計測なら下のAIを優先します。" }[aiDraft.strategy],
+      strategyHint: { off: "原文を採用し、AIへ送信しません。", manual: "",
+        cost: "キー設定済みの候補から、入力200・出力100トークンの参考費用で選びます。", speed: "キー設定済みの候補の直近20件の実測中央値で比較します。未計測なら指定したAIを優先します。" }[aiDraft.strategy],
       strategy: aiDraft.strategy, preferredModel: aiDraft.preferred_model,
       strategies: Object.entries(aiStrategies).map(([value, label]) => ({ value, label })),
       saveDisabled: aiDisabled || !aiDirty, saveHint: aiDirty ? "未保存" : "",

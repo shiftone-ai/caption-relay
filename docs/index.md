@@ -20,7 +20,7 @@
 | UDトークの字幕出力を参照する | [字幕出力の調査](udtalk-display.md) | 公式仕様、今回の対応範囲、未提供の機能 |
 | UDトークの字幕を受け取り、訂正の配信先を選ぶ | [入力接続](udtalk-input.md) | Zoom形式の独立配信、編集参加、任意のWeb入力、実機確認と制約 |
 | UDトークへ訂正を戻す接続を調べる | [編集通信の解析](research/udtalk-editor-protocol.md)・[公開資料](research/udtalk-editor-protocol-sources.md) | 純正編集アプリの要求形式、オフライン実行結果、復旧後の実反映と未確認事項 |
-| AIを選び、速度と費用を比較する | [AIの選択と振り分け](ai-routing.md) | Gemini・Claude・Codex・GPT-5.4 Mini、料金の根拠、振り分けと実接続の確認 |
+| AIを選び、速度と費用を比較する | [AIの選択と振り分け](ai-routing.md) | GPT-6 Luna・GPT-6.1 Sol・Claude・Gemini、文脈と料金の根拠、振り分けと実接続の確認 |
 | 固有名詞・専門用語を登録する | [単語辞書](dictionary.md) | 表記・読み・誤認識例、認識と校正への反映、保存先 |
 | API モデルを変更する | [API の型生成](generated/README.md) | 生成元、再生成、型の一致確認 |
 | 新しい機能の要件を検討する | [v0.2 の設計案](design-v0.2.md) | 将来要件、未確定事項、受け入れ条件の案 |

@@ -691,10 +691,10 @@
           "id": {
             "type": "string",
             "enum": [
-              "gemini-3.1-flash-lite",
-              "claude-haiku-4-5",
-              "gpt-5.3-codex",
-              "gpt-5.4-mini-2026-03-17"
+              "gemini-3.5-flash-lite",
+              "claude-haiku-5-5",
+              "gpt-6.1-sol",
+              "gpt-6-luna"
             ],
             "title": "Id"
           },
@@ -703,7 +703,6 @@
             "enum": [
               "gemini",
               "claude",
-              "codex",
               "openai"
             ],
             "title": "Provider"
@@ -773,10 +772,10 @@
           "model_id": {
             "type": "string",
             "enum": [
-              "gemini-3.1-flash-lite",
-              "claude-haiku-4-5",
-              "gpt-5.3-codex",
-              "gpt-5.4-mini-2026-03-17"
+              "gemini-3.5-flash-lite",
+              "claude-haiku-5-5",
+              "gpt-6.1-sol",
+              "gpt-6-luna"
             ],
             "title": "Model Id"
           },
@@ -805,10 +804,10 @@
           "model_id": {
             "type": "string",
             "enum": [
-              "gemini-3.1-flash-lite",
-              "claude-haiku-4-5",
-              "gpt-5.3-codex",
-              "gpt-5.4-mini-2026-03-17"
+              "gemini-3.5-flash-lite",
+              "claude-haiku-5-5",
+              "gpt-6.1-sol",
+              "gpt-6-luna"
             ],
             "title": "Model Id"
           },
@@ -868,10 +867,10 @@
               {
                 "type": "string",
                 "enum": [
-                  "gemini-3.1-flash-lite",
-                  "claude-haiku-4-5",
-                  "gpt-5.3-codex",
-                  "gpt-5.4-mini-2026-03-17"
+                  "gemini-3.5-flash-lite",
+                  "claude-haiku-5-5",
+                  "gpt-6.1-sol",
+                  "gpt-6-luna"
                 ]
               },
               {
@@ -909,6 +908,12 @@
       },
       "AiSettings": {
         "properties": {
+          "background": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Background",
+            "default": ""
+          },
           "strategy": {
             "type": "string",
             "enum": [
@@ -923,22 +928,22 @@
           "preferred_model": {
             "type": "string",
             "enum": [
-              "gemini-3.1-flash-lite",
-              "claude-haiku-4-5",
-              "gpt-5.3-codex",
-              "gpt-5.4-mini-2026-03-17"
+              "gemini-3.5-flash-lite",
+              "claude-haiku-5-5",
+              "gpt-6.1-sol",
+              "gpt-6-luna"
             ],
             "title": "Preferred Model",
-            "default": "gemini-3.1-flash-lite"
+            "default": "gpt-6-luna"
           },
           "candidates": {
             "items": {
               "type": "string",
               "enum": [
-                "gemini-3.1-flash-lite",
-                "claude-haiku-4-5",
-                "gpt-5.3-codex",
-                "gpt-5.4-mini-2026-03-17"
+                "gemini-3.5-flash-lite",
+                "claude-haiku-5-5",
+                "gpt-6.1-sol",
+                "gpt-6-luna"
               ]
             },
             "type": "array",

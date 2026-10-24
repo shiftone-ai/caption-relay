@@ -1,11 +1,11 @@
 import { memo, useEffect, useRef } from "react";
-import { ArrowDown, Cable, Eye, EyeOff, FileText, LoaderCircle, Pencil, PencilLine, Sparkles, Undo2, UserRoundPen } from "lucide-react";
+import { ArrowDown, Cable, Eye, EyeOff, FileText, LoaderCircle, PencilLine, Sparkles, Undo2, UserRoundPen } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { viewHierarchy } from "../../events/hierarchy";
 import type { OperatorParameters, RowParameters } from "../../presenters/operator";
 
 const { Scope } = viewHierarchy;
-const sourceIcons = { saving: LoaderCircle, unsaved: PencilLine, human: UserRoundPen, ai: Sparkles, original: FileText };
+const sourceIcons = { saving: LoaderCircle, unsaved: PencilLine, human: UserRoundPen, processing: LoaderCircle, ai: Sparkles, original: FileText };
 const publicationIcons = { hidden: EyeOff, updating: Eye, live: Eye, published: EyeOff, receiving: EyeOff, waiting: EyeOff, native: Cable };
 
 function CaptionRowContent({ row }: { row: RowParameters }) {
@@ -50,14 +50,15 @@ function CaptionRowContent({ row }: { row: RowParameters }) {
       {emit => { notify.current = emit; return <>
         {row.firstUnread && <div className="caption-unread-boundary" role="separator" aria-label="ここから新着の字幕">ここから新着</div>}
         <article className="caption-row" data-caption-id={row.id} data-editing={row.editing} data-dirty={row.dirty}
-          data-current={row.current} data-first-unread={row.firstUnread} aria-labelledby={descriptionId} aria-describedby={timeId}>
+          aria-busy={row.aiPending} data-current={row.current} data-first-unread={row.firstUnread} aria-labelledby={descriptionId} aria-describedby={timeId}>
           <span id={descriptionId} className="sr-only">{row.contentDescription}</span>
           <time id={timeId} className="caption-received-time" dateTime={row.receivedAt} title={row.timeDescription} aria-label={row.timeDescription}>{row.timeLabel}</time>
           <div className="caption-text">
             {row.speaker && <span className="caption-row-speaker">{row.speaker}</span>}
             <button className="caption-edit-text" disabled={row.editDisabled} aria-label={"編集：" + row.text}
               aria-describedby={timeId} aria-expanded={row.editing}
-              onClick={() => emit({ type: "caption.edit.requested", captionId: row.id })}>{row.text}</button>
+              onClick={() => emit({ type: "caption.edit.requested", captionId: row.id })}><span key={row.text} className={row.source === "ai" ? "caption-corrected-text" : undefined}>{row.text}</span></button>
+            {row.aiPending && <div className="caption-ai-progress"><span>{row.aiProgressLabel}</span><span className="caption-ai-progress-track" aria-hidden="true" /></div>}
           </div>
           <div className="caption-state">
             <span ref={sourceTrigger} tabIndex={0} role="img" aria-label={row.state} aria-describedby={row.sourceStatusOpen ? sourceId : undefined}
@@ -66,12 +67,12 @@ function CaptionRowContent({ row }: { row: RowParameters }) {
               onPointerLeave={() => emit({ type: "caption.status.interaction.changed", captionId: row.id, kind: "source", interaction: "pointer", active: false })}
               onFocus={() => emit({ type: "caption.status.interaction.changed", captionId: row.id, kind: "source", interaction: "focus", active: true })}
               onBlur={() => emit({ type: "caption.status.interaction.changed", captionId: row.id, kind: "source", interaction: "focus", active: false })}>
-              <SourceIcon size={16} aria-hidden="true" />
+              <SourceIcon size={16} aria-hidden="true" className={row.aiPending ? "caption-ai-spinner" : undefined} />
               <span className="caption-state-bridge" aria-hidden="true" data-open={row.sourceStatusOpen && tooltipPosition !== null} style={tooltipPosition?.bridge} />
               <span ref={sourceTooltip} id={sourceId} role="tooltip" aria-hidden={!row.sourceStatusOpen} data-open={row.sourceStatusOpen}
                 data-positioned={tooltipPosition !== null} style={tooltipStyle} className="caption-state-tooltip">{row.state}</span>
             </span>
-            <span ref={publicationTrigger} tabIndex={0} role="img" aria-label={row.publication} aria-describedby={row.publicationStatusOpen ? publicationId : undefined}
+            {row.showPublicationStatus && <span ref={publicationTrigger} tabIndex={0} role="img" aria-label={row.publication} aria-describedby={row.publicationStatusOpen ? publicationId : undefined}
               className={"caption-state-icon" + (row.current ? " caption-live" : "")} data-open={row.publicationStatusOpen}
               onPointerEnter={() => emit({ type: "caption.status.interaction.changed", captionId: row.id, kind: "publication", interaction: "pointer", active: true })}
               onPointerLeave={() => emit({ type: "caption.status.interaction.changed", captionId: row.id, kind: "publication", interaction: "pointer", active: false })}
@@ -81,11 +82,8 @@ function CaptionRowContent({ row }: { row: RowParameters }) {
               <span className="caption-state-bridge" aria-hidden="true" data-open={row.publicationStatusOpen && tooltipPosition !== null} style={tooltipPosition?.bridge} />
               <span ref={publicationTooltip} id={publicationId} role="tooltip" aria-hidden={!row.publicationStatusOpen} data-open={row.publicationStatusOpen}
                 data-positioned={tooltipPosition !== null} style={tooltipStyle} className="caption-state-tooltip">{row.publication}</span>
-            </span>
+            </span>}
           </div>
-          <Button variant="ghost" className="operator-icon-button caption-edit-icon" disabled={row.editDisabled}
-            aria-label="編集欄を開く" aria-describedby={timeId + " " + descriptionId} aria-expanded={row.editing}
-            intent={{ type: "caption.edit.requested", captionId: row.id }}><Pencil size={16} /></Button>
         </article>
       </>; }}
     </Scope>
@@ -111,6 +109,19 @@ export function CaptionListView({ parameters }: { parameters: OperatorParameters
     else Array.from(node.querySelectorAll<HTMLElement>("[data-caption-id]"))
       .find(row => row.dataset.captionId === parameters.scrollCaptionId)?.scrollIntoView?.({ block: "nearest" });
   }, [parameters.scrollVersion]);
+  useEffect(() => {
+    const node = viewport.current;
+    const captionId = parameters.editor?.id;
+    if (!node || !captionId || typeof IntersectionObserver === "undefined") return;
+    const row = Array.from(node.querySelectorAll<HTMLElement>("[data-caption-id]"))
+      .find(caption => caption.dataset.captionId === captionId);
+    if (!row) return;
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) notify.current?.({ type: "timeline.editing.measured", captionId, intersectionRatio: entry.intersectionRatio });
+    }, { root: node });
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [parameters.editor?.id]);
   useEffect(() => {
     const node = viewport.current;
     const history = content.current;
@@ -140,9 +151,9 @@ export function CaptionListView({ parameters }: { parameters: OperatorParameters
           <footer className="caption-list-footer"><span>{parameters.rows.length} 件<span className="caption-follow-state"> · {parameters.followLabel}</span></span>
             <p className="sr-only caption-unread-announcement" role="status" aria-live="polite" aria-atomic="true">{parameters.unreadAnnouncement}</p>
             <div className="caption-history-actions">
-              {parameters.editor && <Button variant="ghost" className="operator-button" disabled={parameters.returnToEditorDisabled}
-                intent={{ type: "timeline.editing.requested" }}><Undo2 size={16} />訂正位置へ</Button>}
-              <Button variant="ghost" className="operator-button" intent={{ type: "timeline.latest.requested" }}><ArrowDown size={16} />{parameters.latestLabel}</Button>
+              {parameters.returnToEditorVisible && <Button variant="ghost" className="operator-button" disabled={parameters.returnToEditorDisabled}
+                intent={{ type: "timeline.editing.requested" }}><Undo2 size={16} />編集中の字幕へ</Button>}
+              {parameters.latestVisible && <Button variant="ghost" className="operator-button" intent={{ type: "timeline.latest.requested" }}><ArrowDown size={16} />{parameters.latestLabel}</Button>}
             </div>
           </footer>
         </section>;

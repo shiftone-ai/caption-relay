@@ -170,3 +170,18 @@ it("keeps failed/conflicted saves beside the editor without a success message", 
   expect(editor).toMatchObject({ draftText: "修正中", text: "更新済み。", saveSuccess: "", saveLabel: "再保存して公開" });
   expect(editor?.message).not.toContain("。。");
 });
+
+it("keeps the received caption editable while AI runs and preserves a draft when its result arrives", async () => {
+  const { actor, api } = start();
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  vi.mocked(api.load).mockResolvedValueOnce({ visible: true, captions: [{ ...caption, ai_status: "running" }] });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(presentOperator(actor.getSnapshot()).rows[0]).toMatchObject({ text: "字幕", source: "processing", aiPending: true, editDisabled: false });
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "caption.draft.changed", captionId: "one", text: "入力中の訂正" });
+  vi.mocked(api.load).mockResolvedValueOnce({ visible: true, captions: [{ ...caption, text: "AIの訂正", formatted_text: "AIの訂正", ai_status: "succeeded", revision: 2 }] });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(presentOperator(actor.getSnapshot()).editor).toMatchObject({ text: "AIの訂正", draftText: "入力中の訂正", aiPending: false, source: "unsaved", readOnly: false });
+});

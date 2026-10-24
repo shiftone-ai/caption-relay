@@ -396,7 +396,7 @@ it("requires explicit AI settings save, keeps failed drafts and blocks duplicate
   const actor = await start(adapter);
   actor.send({ type: "ai.settings.toggled" });
   actor.send({ type: "ai.strategy.selected", value: "manual" });
-  actor.send({ type: "ai.preferred.selected", modelId: "claude-haiku-4-5" });
+  actor.send({ type: "ai.preferred.selected", modelId: "claude-haiku-5-5" });
   actor.send({ type: "display.settings.toggled" });
   expect(actor.getSnapshot().context.settingsPanel).toBe("display");
   expect(adapter.setAi).not.toHaveBeenCalled();
@@ -406,28 +406,28 @@ it("requires explicit AI settings save, keeps failed drafts and blocks duplicate
   expect(adapter.setAi).toHaveBeenCalledTimes(1);
   pending.reject(new Error("offline"));
   await waitFor(actor, state => state.matches({ ready: "idle" }));
-  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ strategy: "manual", preferred_model: "claude-haiku-4-5" });
+  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ strategy: "manual", preferred_model: "claude-haiku-5-5" });
   actor.send({ type: "ai.save.requested" });
   await waitFor(actor, state => state.matches({ ready: "idle" }));
-  expect(actor.getSnapshot().context.ai.settings.preferred_model).toBe("claude-haiku-4-5");
+  expect(actor.getSnapshot().context.ai.settings.preferred_model).toBe("claude-haiku-5-5");
   expect(actor.getSnapshot().context.aiDraft).toBeNull();
 });
 
 it("owns AI candidate invariants even when UI restrictions are bypassed", async () => {
   const actor = await start();
-  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-4-5", included: false });
-  actor.send({ type: "ai.preferred.selected", modelId: "claude-haiku-4-5" });
-  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-4-5", included: false });
-  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-4-5", included: true });
+  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-5-5", included: false });
+  actor.send({ type: "ai.preferred.selected", modelId: "claude-haiku-5-5" });
+  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-5-5", included: false });
+  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-5-5", included: true });
   actor.send({ type: "ai.preferred.selected", modelId: "unknown-model" });
   actor.send({ type: "ai.strategy.selected", value: "invalid" });
-  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ preferred_model: "claude-haiku-4-5", strategy: "off" });
-  expect(actor.getSnapshot().context.aiDraft?.candidates.filter(id => id === "claude-haiku-4-5")).toHaveLength(1);
-  actor.send({ type: "ai.candidate.changed", modelId: "gpt-5.4-mini-2026-03-17", included: false });
-  actor.send({ type: "ai.preferred.selected", modelId: "gpt-5.4-mini-2026-03-17" });
-  actor.send({ type: "ai.candidate.changed", modelId: "gpt-5.4-mini-2026-03-17", included: false });
-  expect(actor.getSnapshot().context.aiDraft?.preferred_model).toBe("gpt-5.4-mini-2026-03-17");
-  expect(actor.getSnapshot().context.aiDraft?.candidates.filter(id => id === "gpt-5.4-mini-2026-03-17")).toHaveLength(1);
+  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ preferred_model: "claude-haiku-5-5", strategy: "off" });
+  expect(actor.getSnapshot().context.aiDraft?.candidates.filter(id => id === "claude-haiku-5-5")).toHaveLength(1);
+  actor.send({ type: "ai.candidate.changed", modelId: "gpt-6-luna", included: false });
+  actor.send({ type: "ai.preferred.selected", modelId: "gpt-6-luna" });
+  actor.send({ type: "ai.candidate.changed", modelId: "gpt-6-luna", included: false });
+  expect(actor.getSnapshot().context.aiDraft?.preferred_model).toBe("gpt-6-luna");
+  expect(actor.getSnapshot().context.aiDraft?.candidates.filter(id => id === "gpt-6-luna")).toHaveLength(1);
 });
 
 it("interprets display fields and palettes without publishing until saved", async () => {
