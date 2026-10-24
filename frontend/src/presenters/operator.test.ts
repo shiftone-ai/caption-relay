@@ -185,3 +185,54 @@ it("keeps the received caption editable while AI runs and preserves a draft when
   await waitFor(actor, state => state.matches({ ready: "idle" }));
   expect(presentOperator(actor.getSnapshot()).editor).toMatchObject({ text: "AIの訂正", draftText: "入力中の訂正", aiPending: false, source: "unsaved", readOnly: false });
 });
+
+it("resizes the inspector and tucks it away at the right edge without losing drafts or its width", async () => {
+  const { actor } = start();
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "caption.draft.changed", captionId: "one", text: "保持する下書き" });
+  actor.send({ type: "inspector.resize.started", pointerId: 1, clientX: 896, right: 1280, workspaceWidth: 1280 });
+  actor.send({ type: "inspector.resize.moved", pointerId: 1, clientX: 600 });
+  expect(presentOperator(actor.getSnapshot()).inspector).toMatchObject({ width: 680, resizing: true });
+  actor.send({ type: "inspector.resize.ended", pointerId: 1, clientX: 600 });
+  actor.send({ type: "ai.settings.toggled" });
+  actor.send({ type: "ai.background.changed", value: "保持する背景" });
+  actor.send({ type: "inspector.resize.started", pointerId: 2, clientX: 600, right: 1280, workspaceWidth: 1280 });
+  actor.send({ type: "inspector.resize.moved", pointerId: 99, clientX: 1270 });
+  expect(presentOperator(actor.getSnapshot()).inspector.width).toBe(680);
+  actor.send({ type: "inspector.resize.ended", pointerId: 2, clientX: 1270 });
+  expect(presentOperator(actor.getSnapshot()).editor).toBeNull();
+  expect(presentOperator(actor.getSnapshot()).toolbar.aiSettingsOpen).toBe(false);
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  expect(presentOperator(actor.getSnapshot()).inspector.width).toBe(680);
+  expect(presentOperator(actor.getSnapshot()).editor?.draftText).toBe("保持する下書き");
+  actor.send({ type: "ai.settings.toggled" });
+  expect(presentOperator(actor.getSnapshot()).ai.background).toBe("保持する背景");
+});
+
+it("cancels an inspector drag and supports keyboard resizing and collapse", async () => {
+  const { actor } = start();
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "inspector.resize.started", pointerId: 1, clientX: 896, right: 1280, workspaceWidth: 1280 });
+  actor.send({ type: "inspector.resize.moved", pointerId: 1, clientX: 600 });
+  actor.send({ type: "inspector.resize.cancelled", pointerId: 1 });
+  expect(presentOperator(actor.getSnapshot()).inspector.width).toBe(384);
+  actor.send({ type: "inspector.resize.keypressed", key: "ArrowLeft", shiftKey: false });
+  expect(presentOperator(actor.getSnapshot()).inspector.width).toBeGreaterThan(384);
+  actor.send({ type: "inspector.resize.keypressed", key: "Home", shiftKey: false });
+  expect(presentOperator(actor.getSnapshot()).editor).toBeNull();
+  expect(presentOperator(actor.getSnapshot()).historyFocusCaptionId).toBe("one");
+});
+
+it("clears a drag when settings close before pointer release", async () => {
+  const { actor } = start();
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  actor.send({ type: "ai.settings.toggled" });
+  actor.send({ type: "inspector.resize.started", pointerId: 1, clientX: 896, right: 1280, workspaceWidth: 1280 });
+  actor.send({ type: "inspector.resize.moved", pointerId: 1, clientX: 1100 });
+  actor.send({ type: "settings.keypressed", key: "Escape", isComposing: false, defaultPrevented: false });
+  actor.send({ type: "inspector.resize.ended", pointerId: 1, clientX: 1270 });
+  actor.send({ type: "ai.settings.toggled" });
+  expect(presentOperator(actor.getSnapshot()).inspector).toMatchObject({ width: 384, resizing: false });
+});
