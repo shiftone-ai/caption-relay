@@ -36,7 +36,9 @@ interface OperatorContext {
   errorSource: "load" | "save" | "command" | null;
   errorCaptionId: string | null;
   activeCaptionId: string | null;
+  editingCaptionVisible: boolean;
   followLatest: boolean;
+  atLatest: boolean;
   latestRequest: number;
   scrollTarget: "latest" | "caption";
   editorFocusRequest: number;
@@ -142,6 +144,7 @@ const operations = {
   "display.field.changed": { guard: "hostMode", actions: "editDisplay" },
   "display.palette.selected": { guard: "hostMode", actions: "editDisplay" },
   "ai.strategy.selected": { guard: "validAiStrategy", actions: "editAi" },
+  "ai.background.changed": { actions: "editAi" },
   "ai.preferred.selected": { guard: "validAiModel", actions: "editAi" },
   "ai.candidate.changed": { guard: "canChangeAiCandidate", actions: "editAi" },
   "ai.save.requested": { target: "settingAi", actions: "clearError" },
@@ -190,7 +193,7 @@ export const operatorMachine = setup({
       && Number.isInteger(event.index) && event.index >= 0 && event.index < (context.dictionaryDraft ?? draftDictionary(context.dictionary)).entries.length,
     validDictionary: ({ context }) => !dictionaryValidation(context.dictionaryDraft ?? draftDictionary(context.dictionary)),
     knownDisclosure: ({ context, event }) => event.type === "disclosure.toggled" &&
-      (disclosureIds.some(id => id === event.id) || ((event.id.startsWith("caption-saved:") || event.id.startsWith("caption-ai:"))
+      (disclosureIds.some(id => id === event.id) || (event.id.startsWith("caption-saved:")
         && context.captionsById.has(event.id.slice(event.id.indexOf(":") + 1)))),
     hostMode: ({ context }) => context.connection.mode === "host",
     canStartMicrophone: ({ context }) => Boolean(context.microphone?.available && context.connection.mode === "host"
@@ -238,6 +241,8 @@ export const operatorMachine = setup({
           || !sameStatusGeometry(context.statusTooltip.measurement!.geometry, event.geometry));
     },
     hasEditor: ({ context }) => context.activeCaptionId !== null,
+    canMeasureEditing: ({ context, event }) => event.type === "timeline.editing.measured"
+      && context.activeCaptionId === event.captionId && context.editingCaptionVisible !== (event.intersectionRatio > 0),
     validAiStrategy: ({ event }) => event.type === "ai.strategy.selected" && Object.keys(aiStrategies).includes(event.value),
     validAiModel: ({ event }) => event.type === "ai.preferred.selected" && knownAiModel(event.modelId),
     canChangeAiCandidate: ({ context, event }) => event.type === "ai.candidate.changed" && knownAiModel(event.modelId)
@@ -323,6 +328,7 @@ export const operatorMachine = setup({
     }),
     editAi: assign(({ context, event }) => {
       const settings = context.aiDraft ?? context.ai.settings;
+      if (event.type === "ai.background.changed") return { aiDraft: { ...settings, background: event.value } };
       if (event.type === "ai.strategy.selected") {
         const strategy = Object.keys(aiStrategies).find(value => value === event.value) as AiSettings["strategy"];
         return { aiDraft: { ...settings, strategy } };
@@ -365,7 +371,7 @@ export const operatorMachine = setup({
       const drafts = new Map(context.drafts);
       const caption = context.captionsById.get(event.captionId)!;
       if (!drafts.has(caption.id)) drafts.set(caption.id, { text: caption.text, baseRevision: caption.revision, baseSourceRevision: caption.source_revision });
-      return { drafts, activeCaptionId: caption.id, followLatest: false, scrollTarget: "caption" as const,
+      return { drafts, activeCaptionId: caption.id, editingCaptionVisible: true, followLatest: false, scrollTarget: "caption" as const,
         latestRequest: context.latestRequest + 1, editorFocusRequest: context.editorFocusRequest + 1, settingsPanel: null, settingsFocusTarget: null };
     }),
     discardDraft: assign(({ context, event }) => {
@@ -394,8 +400,8 @@ export const operatorMachine = setup({
     microphone: input.microphone, microphoneState: "stopped", microphoneMessage: "マイクの認識は停止しています。",
     microphoneLabel: "", microphoneDevices: [], microphoneDeviceId: "",
     api: input.api, visible: true, captions: [], captionsById: new Map(), drafts: new Map(), pendingSave: null,
-    error: "", errorSource: null, errorCaptionId: null, activeCaptionId: null,
-    followLatest: true, latestRequest: 0, scrollTarget: "latest", editorFocusRequest: 0,
+    error: "", errorSource: null, errorCaptionId: null, activeCaptionId: null, editingCaptionVisible: true,
+    followLatest: true, atLatest: true, latestRequest: 0, scrollTarget: "latest", editorFocusRequest: 0,
     historyFocusRequest: 0, historyFocusCaptionId: null, statusTooltip: { pointer: null, focus: null, dismissed: null, measurement: null }, unreadIds: [], saveStatus: null, autoPublish: true,
     settingsPanel: null, settingsFocusTarget: null, settingsFocusRequest: 0,
     openedDisclosures: new Set<DisclosureId>(["display-speaker", "display-appearance"]),
@@ -440,18 +446,26 @@ export const operatorMachine = setup({
         "caption.draft.discarded": { guard: "canDiscard", actions: "discardDraft" },
         "caption.status.interaction.changed": { guard: "canChangeStatusInteraction", actions: "changeStatusInteraction" },
         "caption.status.measured": { guard: "canMeasureStatus", actions: "measureStatus" },
-        "timeline.latest.requested": { actions: assign(({ context }) => ({ followLatest: true, unreadIds: [], scrollTarget: "latest" as const,
+        "timeline.latest.requested": { actions: assign(({ context }) => ({ followLatest: true, atLatest: true, unreadIds: [], scrollTarget: "latest" as const,
+          historyFocusCaptionId: context.activeCaptionId ? context.historyFocusCaptionId : context.captions.at(-1)?.id ?? null,
+          historyFocusRequest: context.activeCaptionId ? context.historyFocusRequest : context.historyFocusRequest + 1,
           latestRequest: context.latestRequest + 1, editorFocusRequest: context.activeCaptionId ? context.editorFocusRequest + 1 : context.editorFocusRequest })) },
         "timeline.editing.requested": { guard: "hasEditor", actions: assign(({ context }) => ({ followLatest: false,
           settingsPanel: null, settingsFocusTarget: null,
           scrollTarget: "caption" as const, latestRequest: context.latestRequest + 1, editorFocusRequest: context.editorFocusRequest + 1 })) },
+        "timeline.editing.measured": { guard: "canMeasureEditing", actions: assign(({ event }) => ({ editingCaptionVisible: event.intersectionRatio > 0 })) },
         "timeline.scrolled": { actions: assign(({ context, event }) => {
+          const atLatest = event.scrollHeight - event.clientHeight - event.scrollTop < 8;
           const followLatest = !(context.activeCaptionId && context.scrollTarget === "caption")
-            && event.scrollHeight - event.clientHeight - event.scrollTop < 8;
-          return { followLatest, unreadIds: followLatest ? [] : context.unreadIds };
+            && atLatest;
+          return { atLatest, followLatest, unreadIds: atLatest ? [] : context.unreadIds };
         }) },
-        "timeline.resized": { actions: assign(({ context }) => context.followLatest
-          ? { scrollTarget: "latest" as const, latestRequest: context.latestRequest + 1 } : {}) },
+        "timeline.resized": { actions: assign(({ context, event }) => {
+          if (context.followLatest) return { atLatest: true, scrollTarget: "latest" as const, latestRequest: context.latestRequest + 1 };
+          const atLatest = event.scrollHeight - event.clientHeight - event.scrollTop < 8;
+          return { atLatest, followLatest: !(context.activeCaptionId && context.scrollTarget === "caption") && atLatest,
+            unreadIds: atLatest ? [] : context.unreadIds };
+        }) },
         "settings.keypressed": [
           { guard: "dismissStatusShortcut", actions: "dismissStatus" },
           { guard: "closeSettingsShortcut", actions: "closeSettings" },

@@ -1,6 +1,6 @@
 # AIの選択と振り分け
 
-実接続の確認日：2026-10-11。GPT-5.4 Miniの料金確認日：2026-10-11。ほかの候補の調査日：2026-10-07。
+現行候補と標準料金の確認日：2026-10-24。過去の実接続記録は試験時のモデル名を残す。
 
 操作画面のロボットアイコンから「AI設定」を開く。AIを指定するほか、候補を限定して費用・実測速度を優先できる。サーバーにAPIキーを設定した提供元へ、次の確定字幕から校正を依頼する。初期値はAIなし。設定方法は[開発手順](development.md#環境変数)を参照する。
 
@@ -23,24 +23,20 @@
 
 ## 候補と料金
 
-標準API・テキスト・USDの比較。入力／出力は100万トークンあたり。参考1,000件は1件あたり入力200・出力100トークンで計算し、キャッシュ、追加機能、税、契約割引を含めない。思考に使う出力も課金される場合があり、実際の費用は利用量で変わる。Codex・Claudeの月額契約の料金とは分けて考える。
+標準API・テキスト・USDの比較。入力／出力は100万トークンあたり。参考1,000件は1件あたり入力200・出力100トークンで計算し、キャッシュ、追加機能、税、契約割引を含めない。思考に使う出力も課金される場合があり、実際の費用は利用量で変わる。月額契約の料金とは分けて考える。
 
 | 候補 | モデルID | 入力 | 出力 | 参考1,000件 | 根拠 |
 |---|---|---:|---:|---:|---|
-| Gemini 3.1 Flash-Lite | `gemini-3.1-flash-lite` | $0.25 | $1.50 | $0.20 | [Google公式料金](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.1-flash-lite) |
-| Claude Haiku 4.5 | `claude-haiku-4-5` | $1.00 | $5.00 | $0.70 | [Claude公式料金](https://platform.claude.com/docs/en/about-claude/pricing) |
-| Codex / GPT-5.3-Codex | `gpt-5.3-codex` | $1.75 | $14.00 | $1.75 | [OpenAI公式料金](https://developers.openai.com/api/docs/pricing#specialized-models) |
-| GPT-5.4 Mini | `gpt-5.4-mini-2026-03-17` | $0.75 | $4.50 | $0.60 | [OpenAI公式仕様・料金](https://developers.openai.com/api/docs/models/gpt-5.4-mini) |
+| GPT-6 Luna | `gpt-6-luna` | $0.10 | $0.50 | $0.07 | [OpenAI公式料金](https://developers.openai.com/api/docs/pricing) |
+| GPT-6.1 Sol | `gpt-6.1-sol` | $2.00 | $10.00 | $1.40 | [OpenAI公式料金](https://developers.openai.com/api/docs/pricing) |
+| Claude Haiku 5.5 | `claude-haiku-5-5` | $0.10 | $0.50 | $0.07 | [Claude公式仕様・料金](https://platform.claude.com/docs/en/models/haiku-5-5/overview) |
+| Gemini 3.5 Flash-Lite | `gemini-3.5-flash-lite` | $0.30 | $2.50 | $0.31 | [Google公式料金](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite) |
 
-Googleは[Gemini 3.1 Flash-Lite](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite)を低遅延・費用効率を重視する軽い処理向けと説明している。字幕整形を試す最初の候補に適すると考えられるが、本アプリでの速度・日本語の訂正品質は未測定。[Claude Haiku 4.5の仕様](https://platform.claude.com/docs/en/models/haiku-4-5/overview)も速度を重視する候補として比較する。速度の説明だけで各社の実応答時間に順位を付けない。
+字幕校正向けの既定候補はGPT-6 Luna。AI自体は初期値オフのまま。一般向けの現行モデルを比較し、開発専用のCodexは候補に含めない。[OpenAI公式カタログ](https://developers.openai.com/api/docs/models)のAPI名は `gpt-6-luna` と `gpt-6.1-sol`。表示名から存在しないAPI名を組み立てない。
 
-[Codex](https://developers.openai.com/api/docs/guides/code-generation#use-codex)は開発用エージェントであり、モデルそのものとは異なる。この比較ではAPIで選べるGPT-5.3-Codexを候補に置いている。CLI・ChatGPT契約経由の選択肢は実装しておらず、字幕整形への適性も未検証。APIモデルの選択とエージェントの接続方式を同じ設定として扱わない。
+OpenAIの2候補は同じ `OPENAI_API_KEY` を使い、2026-10-24に実Responsesの完了応答を確認した。ClaudeとGeminiはAPI名・標準料金・要求形式の確認までで、実接続は未確認。Geminiの実試験は利用者の指定で見送っている。
 
-GPT-5.3-Codexは2026-10-01に廃止予定が告知され、API停止予定日は2027-04-01。[公式の廃止予定](https://developers.openai.com/api/docs/deprecations)を確認し、それまでに候補を更新する。
-
-GPT-5.4 Miniは既存の `OPENAI_API_KEY` を使う。無料枠の公式対象一覧に含まれる固定版を指定する。料金比較は標準の従量単価を使い、アカウントごとの無料枠や残量を見積もりへ織り込まない。各候補の料金確認日は画面の公式料金リンクに表示する。
-
-料金・候補は `backend/app/ai.py`、型は `backend/app/models.py` に置く。提供状況や料金が変わったら公式資料を再確認して更新する。
+単価は通常の短いテキスト入力に対する標準処理の料金。OpenAIは入力272Kトークン以下、Claudeは100Kトークン以下。キャッシュ・長文・追加機能・税・アカウント固有の無料枠は計算に含めない。推論トークンは提供元の出力使用量に含まれ、実費は参考の100トークンを超える場合がある。各候補の確認日は画面の公式料金リンクで確認できる。各社の速度に順位を付けず、接続した結果から測定する。
 
 ## 結果の受け取り
 
@@ -49,8 +45,9 @@ GPT-5.4 Miniは既存の `OPENAI_API_KEY` を使う。無料枠の公式対象�
 ```json
 {
   "strategy": "cost",
-  "preferred_model": "gemini-3.1-flash-lite",
-  "candidates": ["gemini-3.1-flash-lite", "claude-haiku-4-5", "gpt-5.3-codex", "gpt-5.4-mini-2026-03-17"]
+  "preferred_model": "gpt-6-luna",
+  "candidates": ["gpt-6-luna", "gpt-6.1-sol", "claude-haiku-5-5", "gemini-3.5-flash-lite"],
+  "background": "写真と布を使う展覧会のアーティストトーク"
 }
 ```
 
@@ -62,7 +59,7 @@ GPT-5.4 Miniは既存の `OPENAI_API_KEY` を使う。無料枠の公式対象�
   "text": "本日はありがとうございます。",
   "ai": {
     "request_id": "字幕のai_request.id",
-    "model_id": "gemini-3.1-flash-lite",
+    "model_id": "gpt-6-luna",
     "elapsed_ms": 250.0,
     "input_tokens": 200,
     "output_tokens": 100
@@ -74,11 +71,21 @@ GPT-5.4 Miniは既存の `OPENAI_API_KEY` を使う。無料枠の公式対象�
 
 ## 校正要求と失敗時の扱い
 
-Geminiは[generateContent](https://ai.google.dev/api/generate-content)、Claudeは[Messages](https://platform.claude.com/docs/en/api/messages/create)、OpenAIは[Responses](https://developers.openai.com/api/docs/guides/text)を使う。原文を利用者入力として送り、句読点・明らかな誤字・不要な言い直しだけを整える。意味・固有名詞・数字・否定表現を維持し、判断できない部分は残すよう指示する。文意に不要な単独の「えー」「あの」は除き、指示語など意味を持つ語は残す。本文だけを採用し、思考・説明用の応答を表示しない。指示だけで品質を保証するものではない。
+Geminiは[generateContent](https://ai.google.dev/api/generate-content)、Claudeは[Messages](https://platform.claude.com/docs/en/api/messages/create)、OpenAIは[Responses](https://developers.openai.com/api/docs/guides/text)を使う。原文を校正対象として送り、句読点・明らかな誤字・不要な言い直しだけを整える。意味・固有名詞・数字・否定表現を維持し、判断できない部分は残すよう指示する。文意に不要な単独の「えー」「あの」は除き、指示語など意味を持つ語は残す。本文だけを採用し、思考・説明用の応答を表示しない。指示だけで品質を保証するものではない。
 
 出力上限は4096トークン、要求全体の時間超過は初期値15秒。完全に終了した応答だけを採用する。途中で切れた応答、空欄、通信エラー、ロック拒否、原文の更新では訂正を採用せず、原文または保存済みの表示文を保持する。提供元のエラー本文やAPIキーは操作画面とログへ返さない。別の提供元への自動再送は行わない。
 
 同時要求は2件。対象原文の更新・モード変更・サーバー終了で古い要求を終了する。UDトークへの反映は生成後に対象発話を再確認し、編集要求の受付を確認してからローカルの表示文も更新する。ほかの編集者の訂正を受け取った場合は、人の訂正として保護する。
+
+## トークの背景と直近の字幕
+
+「トークの背景」にはテーマ、登壇者、作品名などを4,000文字まで入力できる。保存後の確定字幕から使い、既存の字幕を再校正しない。背景はAI設定と同じくメモリ上にあり、再起動で消える。
+
+各要求では、その時点の背景、単語辞書、同じ接続の直前の確定字幕を取得する。直近の字幕は採用済みの表示文を古い順で最大6件・合計3,000文字まで渡し、文の途中では切らない。対象自身・後続字幕・未確定字幕・以前の接続の履歴は混ぜない。接続先や入力元を変えた場合は履歴の範囲をリセットし、同じ入力の送信形式だけを変えた場合は保つ。
+
+背景と過去字幕は参考資料としてJSONで分け、その中の命令には従わず、対象本文だけを出力させる。文脈と読みから認識誤りを判断し、話題にない語への置換や発言の補作を避ける。「正解を、正解を見つける」の言い直しは整え、「ゆっくり、ゆっくり」の強調は残すよう指示する。背景・直近字幕も選択した提供元へ送るが、観客APIへは返さない。
+
+Lunaの推論は標準の `medium`、Solは `low` を指定する。実際の「気概→違い」の確認ではLunaの `low` が誤った語に直したため、速度だけで採用しない。校正の意味の正しさを一般に保証するものではない。
 
 ## 実接続での確認
 
@@ -101,6 +108,16 @@ Geminiは利用者の指定で試験を見送り、Claudeも実接続してい�
 入力の「あの集合時刻は午後2時です。」から「あの」を除き、「13人」「午後2時」「予約は取り消しません」を保持した。2回の応答時間は2,059.473ms・1,191.205ms、いずれも入力180・出力29トークン。モデルは既存の固定版 `gpt-5.4-mini-2026-03-17`。試験ごとの全文・依頼IDは[使用量の記録](assets/udtalk-recovery-2026-10-24/ai-writeback.json)、[操作画面](assets/udtalk-recovery-2026-10-24/ai-relay.png)と[純正Web字幕](assets/udtalk-recovery-2026-10-24/ai-web.png)を参照する。
 
 以前許可された専用プロジェクトで1日・Responses限定のキーを発行した。この2件の個別の請求確定額は未確認。後続の連続運転では、試験用プロジェクトの入力トークンがデータ共有枠へ計上されたことを[使用量画面](udtalk-input.md#翻訳と連続運転の確認)で確認した。純正編集アプリのロック通知表示、推論中に実際の入力を変える競合試験は残る。翻訳と連続運転は[後続の実接続確認](udtalk-input.md#翻訳と連続運転の確認)に分けて記録する。回帰テストの保護処理と実機確認の範囲は[入力接続](udtalk-input.md#復旧後の実接続確認)を参照する。
+
+### 文脈と現行モデルの確認（2026-10-24）
+
+架空のアーティストトーク12発話を、共有UDトーク→Lunaの実Responses→純正への自動反映で確認した。最初の音声はmacOSの `say`（Kyoko / Eddy）で、25字幕中17件に空白以外の変更があった。「正解を、正解を」の重複を整理し、「ゆっくり、ゆっくり」と13点・午後2時30分・禁止表現を保持した。これは字幕の全文が正しいという判定ではない。
+
+利用者の指摘を受け、OpenAI公式デモでGPT-4o mini TTSのMarin音声を生成し、ファイルをBlackHoleへ再生した。6字幕の実AI処理と純正への同文反映を確認した。「気概」は出なかったが、「その違いをしないを」という認識誤りが残り、Lunaも直さなかった。台本末尾の否定文は受信できず、音声品質や認識の成功を一般化しない。APIからの音声生成権限は保存したが、保存直後の要求は `missing_scope` で失敗しており、デモ経由の生成と区別する。
+
+文脈付きの「その気概を（気概を）使いたかったんです」は、Lunaに誤りが残った。同じ入力をSolへ送ると2文とも「その違いを使いたかったんです」へ訂正し、「ゆっくり、ゆっくり」は保持した。少数の例による確認であり、各モデルの総合順位は決めない。元の認識誤りと校正の失敗を分けて記録する。
+
+[入力と使用量の記録](assets/talk-context-2026-10-24/verification.json)・[背景入力欄](assets/talk-context-2026-10-24/ai-background.png)・[処理中](assets/talk-context-2026-10-24/ai-processing.png)・[統一した編集欄](assets/talk-context-2026-10-24/editor.png)を参照する。
 
 ## 実験のデータ共有と無料枠
 

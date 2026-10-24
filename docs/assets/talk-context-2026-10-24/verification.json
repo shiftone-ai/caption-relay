@@ -1,0 +1,778 @@
+{
+  "verified_on": "2026-10-24",
+  "physical_microphone_used": false,
+  "synthetic_audio_input": "BlackHole 2ch",
+  "luna_interview": {
+    "result": "PASSED",
+    "physical_microphone_used": false,
+    "checks": {
+      "all_twelve_turns": true,
+      "all_turn_checks": true,
+      "body_was_automatically_edited": true,
+      "meaningful_reference_retained": true,
+      "exhibition_name": true,
+      "venue_name": true,
+      "thirteen_works": true,
+      "two_thirty": true,
+      "flash_prohibition": true,
+      "touch_prohibition": true
+    },
+    "completed_turns": 12,
+    "caption_count": 25,
+    "meaningfully_edited_captions": 17,
+    "elapsed_seconds": 232.4394754160021,
+    "turns": [
+      {
+        "turn": 1,
+        "role": "聞き手",
+        "voice": "Kyoko",
+        "text": "えー、本日は、星見台ギャラリーのアーティストトークにお越しいただき、ありがとうございます。今回の展示、余白の記憶について、まず、制作のきっかけを教えていただけますか。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 20.5630505829904,
+        "captions": [
+          {
+            "original": "本日は星賢大ギャラリーのが木須とトークにお越しいただきありがとうございます。\n今回の展示、余白の記憶について、まず制作のきっかけを教えていただけますか。\n",
+            "text": "本日は星見台ギャラリーのアーティストトークにお越しいただきありがとうございます。\n今回の展示「余白の記憶」について、まず制作のきっかけを教えていただけますか。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "0bc4edfe-8da0-4311-a840-4b214a363963",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 2844.9449579929933,
+              "input_tokens": 785,
+              "output_tokens": 202
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 1
+      },
+      {
+        "turn": 2,
+        "role": "作家",
+        "voice": "Eddy (Japanese (Japan))",
+        "text": "はい。あの、祖母の家を片付けていたときに、古い写真を見つけたんです。そこから、そこから、写真には写っていない時間を、どう残せるかを考え始めました。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 19.648001583002042,
+        "captions": [
+          {
+            "original": "あの人の家を片付けていたときに、古い写真を見つけたんです。\n",
+            "text": "あの人の家を片付けていたときに、古い写真を見つけたんです。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "1fc9a15e-17ac-46d8-ad9c-20f20285a6f8",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 2156.111292002606,
+              "input_tokens": 811,
+              "output_tokens": 73
+            },
+            "ai_error": null
+          },
+          {
+            "original": "はい",
+            "text": "はい。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "ba7e4061-3071-47ba-a2d5-7df7093d448f",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1467.2013750096085,
+              "input_tokens": 814,
+              "output_tokens": 6
+            },
+            "ai_error": null
+          },
+          {
+            "original": "そこから、そこから写真には写っていない時間後、ドームを知るかを考え始めました。\n",
+            "text": "そこから、写真には写っていない時間をどう知るかを考え始めました。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "17ddb359-2e29-4714-8997-bff646b7af6f",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 2969.1497089952463,
+              "input_tokens": 844,
+              "output_tokens": 221
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 2
+      },
+      {
+        "turn": 3,
+        "role": "聞き手",
+        "voice": "Kyoko",
+        "text": "なるほど。あの作品では、写真と布を組み合わせていますよね。素材を選ぶときに、大事にしたことはありますか。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 14.042465666003409,
+        "captions": [
+          {
+            "original": "なるほど。\nあの作品では、写真と布を組み合わせていますよね。\n素材を選ぶときに大事にしたことはありますか。\n",
+            "text": "なるほど。あの作品では、写真と布を組み合わせていますよね。素材を選ぶときに大事にしたことはありますか。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "50e4f551-2b41-4564-b1b4-f96b90bda709",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1441.2442920001922,
+              "input_tokens": 878,
+              "output_tokens": 39
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 0
+      },
+      {
+        "turn": 4,
+        "role": "作家",
+        "voice": "Eddy (Japanese (Japan))",
+        "text": "えー、布には、光を通すところと、通さないところがあって。その、違いを、違いを使いたかったんです。きれいに説明するより、見る人が少し立ち止まれるような余白を残しています。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 20.638578416997916,
+        "captions": [
+          {
+            "original": "布には光を通しところと、当社ないところがあって、",
+            "text": "布には光を通すところと、通さないところがあって、",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "6f341193-7aa5-4259-a4e0-78156b95fc42",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 2338.7575000087963,
+              "input_tokens": 894,
+              "output_tokens": 128
+            },
+            "ai_error": null
+          },
+          {
+            "original": "人の違いを、違いを伝えたかったんです。\n",
+            "text": "人の違いを伝えたかったんです。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "8632a464-02f8-4ee7-87a4-f63aa940db7a",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1278.8850409997394,
+              "input_tokens": 913,
+              "output_tokens": 16
+            },
+            "ai_error": null
+          },
+          {
+            "original": "綺麗に説明するより、見る人が少し立ちどまれるような余白を残しています。\n",
+            "text": "綺麗に説明するより、見る人が少し立ち止まれるような余白を残しています。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "2abac767-19fb-434f-b619-bcd23208e455",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1389.879333000863,
+              "input_tokens": 883,
+              "output_tokens": 30
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 3
+      },
+      {
+        "turn": 5,
+        "role": "聞き手",
+        "voice": "Kyoko",
+        "text": "作品を見るとき、先に説明を読んだほうがいいのでしょうか。それとも、自由に見ても大丈夫ですか。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 12.649085124998237,
+        "captions": [
+          {
+            "original": "作品を見るとき、先に説明を読んだ方がいいのでしょうか。\nそれとも自由に見ても大丈夫ですか。\n",
+            "text": "作品を見るとき、先に説明を読んだ方がいいのでしょうか。それとも自由に見ても大丈夫ですか。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "dc3b45ca-2cfa-4101-be33-2da3149da120",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1446.4632910094224,
+              "input_tokens": 888,
+              "output_tokens": 33
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 0
+      },
+      {
+        "turn": 6,
+        "role": "作家",
+        "voice": "Eddy (Japanese (Japan))",
+        "text": "あの、説明を読まなければ理解できない、ということではないんです。正解を、正解を見つける展示ではなくて、ご自身の記憶と重ねて見てもらえたらと思います。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 18.252790915998048,
+        "captions": [
+          {
+            "original": "あの説明を読まなければ理解できないということではないんです。\n",
+            "text": "説明を読まなければ理解できないということではないんです。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "3d9be13a-5633-4bdc-bb7f-287758b18716",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 2661.1975419946248,
+              "input_tokens": 903,
+              "output_tokens": 69
+            },
+            "ai_error": null
+          },
+          {
+            "original": "正解を、正解を見つける展示ではなくて、ご自身の記憶と重ねて見てもらえたらと思います。\n",
+            "text": "正解を見つける展示ではなくて、ご自身の記憶と重ねて見てもらえたらと思います。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "a56d0d28-cf43-4c0c-90e7-d3177c37d2a7",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1408.7156659952598,
+              "input_tokens": 913,
+              "output_tokens": 34
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 2
+      },
+      {
+        "turn": 7,
+        "role": "聞き手",
+        "voice": "Kyoko",
+        "text": "来場した方とお話しする中で、印象に残っている反応はありましたか。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 11.10966641700361,
+        "captions": [
+          {
+            "original": "来場した方とお話する中で、印象に残っている反応はありましたか。\n",
+            "text": "来場した方とお話しする中で、印象に残っている反応はありましたか。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "acfa6842-53a8-4814-9d58-97b806a42a23",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1689.4283330038888,
+              "input_tokens": 898,
+              "output_tokens": 29
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 1
+      },
+      {
+        "turn": 8,
+        "role": "作家",
+        "voice": "Eddy (Japanese (Japan))",
+        "text": "はい。小学生の方が、この写真の外にも家族がいる気がする、と話してくれて。えー、私は、私は、その言葉がすごくうれしかったです。同じ写真でも見えているものが違うんですよね。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 20.67654612500337,
+        "captions": [
+          {
+            "original": "はい",
+            "text": "はい。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "db890b7b-3112-4397-9d13-722736c86c35",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1131.2603330006823,
+              "input_tokens": 882,
+              "output_tokens": 6
+            },
+            "ai_error": null
+          },
+          {
+            "original": "小学生の方が、この写真の外にも家族が言う気がすると話してくれて",
+            "text": "小学生の方が、この写真の外にも家族がいる気がすると話してくれて。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "ebb0febc-1670-492d-9bec-7eb56eb12baa",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 2360.4163749987492,
+              "input_tokens": 893,
+              "output_tokens": 144
+            },
+            "ai_error": null
+          },
+          {
+            "original": "私は、私はその言葉がすごく嬉しかったです。\n",
+            "text": "私はその言葉がすごく嬉しかったです。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "15e89cda-a97d-4146-8198-b9cd81474655",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1771.4780420064926,
+              "input_tokens": 883,
+              "output_tokens": 55
+            },
+            "ai_error": null
+          },
+          {
+            "original": "同じ写真でも見えているものが違うんですよね。\n",
+            "text": "同じ写真でも見えているものが違うんですよね。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "2c4f5b03-968b-43a5-998f-ae5ead99c6e6",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1505.2854170062346,
+              "input_tokens": 867,
+              "output_tokens": 38
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 3
+      },
+      {
+        "turn": 9,
+        "role": "聞き手",
+        "voice": "Kyoko",
+        "text": "展示は十三点でしたよね。明日のトークは午後二時三十分からと伺っています。撮影や作品の取り扱いで、気をつけることも教えてください。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 18.303315416007536,
+        "captions": [
+          {
+            "original": "展示は13点でしたよね。\n明日のトークは午後2時30分からと伺っています。\n撮影や作品の取り合いで気をつけることも教えてください。\n",
+            "text": "展示は13点でしたよね。\n明日のトークは午後2時30分からと伺っています。\n撮影や作品の取り扱いで気をつけることも教えてください。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "11ce65d1-16b9-400f-ad99-9bb16049a7ee",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 3053.024207998533,
+              "input_tokens": 896,
+              "output_tokens": 181
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 1
+      },
+      {
+        "turn": 10,
+        "role": "作家",
+        "voice": "Eddy (Japanese (Japan))",
+        "text": "はい、展示は十三点で、明日は午後二時三十分からです。写真撮影はできますが、フラッシュは使わないでください。それから、作品には触れないでください。ゆっくり、ゆっくり見ていただければと思います。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 21.971768124989467,
+        "captions": [
+          {
+            "original": "天理は13点で、明日は午後2時30分からです。\n",
+            "text": "展示は13点で、明日は午後2時30分からです。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "820b8498-edfc-481e-a1c5-b07652ec3a3b",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 2426.078417003737,
+              "input_tokens": 883,
+              "output_tokens": 135
+            },
+            "ai_error": null
+          },
+          {
+            "original": "写真撮影はできますが、フラッシュは使わないでください。\n",
+            "text": "写真撮影はできますが、フラッシュは使わないでください。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "6cc2bc7c-25d2-4130-9184-faf40fb01299",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1272.7314170042519,
+              "input_tokens": 874,
+              "output_tokens": 21
+            },
+            "ai_error": null
+          },
+          {
+            "original": "それから、作品には触れないでください。\n",
+            "text": "それから、作品には触れないでください。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "a3b8c480-5f0f-4102-85b7-552a72f199a4",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1816.8139589979546,
+              "input_tokens": 883,
+              "output_tokens": 64
+            },
+            "ai_error": null
+          },
+          {
+            "original": "ゆっくりゆっくり見ていただければと思います。\n",
+            "text": "ゆっくり、ゆっくり見ていただければと思います。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "0d70fe09-86a7-4db8-b76a-a585d4e09204",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1595.773041000939,
+              "input_tokens": 877,
+              "output_tokens": 65
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 2
+      },
+      {
+        "turn": 11,
+        "role": "聞き手",
+        "voice": "Kyoko",
+        "text": "最後に、この展示を見た方へ、何か持ち帰ってほしいことはありますか。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 11.649585749997641,
+        "captions": [
+          {
+            "original": "最後に、この展示を見た方へ何か持ち帰ってほしいことはありますか。\n",
+            "text": "最後に、この展示を見た方へ何か持ち帰ってほしいことはありますか。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "adbbda7b-644c-46fa-9eb0-9c8735b24ec4",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 2383.7789999961387,
+              "input_tokens": 887,
+              "output_tokens": 136
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 0
+      },
+      {
+        "turn": 12,
+        "role": "作家",
+        "voice": "Eddy (Japanese (Japan))",
+        "text": "えー、結論を一つに決めたいわけではないんです。あの作品を見て思い出したことを、そのまま、そのまま持ち帰ってもらえたらうれしいです。本日は、本日はありがとうございました。",
+        "checks": {
+          "audio_success": true,
+          "received": true,
+          "ai_success": true,
+          "no_manual_caption_save": true,
+          "native_exact_match": true
+        },
+        "elapsed_seconds": 19.38966920800158,
+        "captions": [
+          {
+            "original": "結論を一つに決めたいわけではないんです。\n",
+            "text": "結論を一つに決めたいわけではないんです。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "b90f4775-23e6-423b-9663-93e52c7658be",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1349.0524160006316,
+              "input_tokens": 888,
+              "output_tokens": 20
+            },
+            "ai_error": null
+          },
+          {
+            "original": "試作品を見て思い出したことをそのままそのまま持ち帰ってもらえたら嬉しいです。\n",
+            "text": "試作品を見て思い出したことをそのまま持ち帰ってもらえたら嬉しいです。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "79d3aacf-1ed3-458c-b269-9312d452095f",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 2766.9939580082428,
+              "input_tokens": 872,
+              "output_tokens": 166
+            },
+            "ai_error": null
+          },
+          {
+            "original": "本日は、本日はありがとうございました。\n",
+            "text": "本日はありがとうございました。",
+            "human_edited": false,
+            "ai_status": "succeeded",
+            "ai_result": {
+              "request_id": "3178544d-76ac-4d1b-844d-e2b1bd08b280",
+              "model_id": "gpt-6-luna",
+              "elapsed_ms": 1475.961541000288,
+              "input_tokens": 859,
+              "output_tokens": 29
+            },
+            "ai_error": null
+          }
+        ],
+        "meaningful_changes": 2
+      }
+    ]
+  },
+  "gpt_generated_audio": {
+    "source": "https://www.openai.fm/",
+    "model": "gpt-4o-mini-tts",
+    "voice": "marin",
+    "result": {
+      "result": "PASSED",
+      "physical_microphone_used": false,
+      "checks": {
+        "all_turns": true,
+        "all_turn_checks": true
+      },
+      "completed_turns": 1,
+      "caption_count": 6,
+      "meaningfully_edited_captions": 3,
+      "elapsed_seconds": 42.97861362500407,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "作家",
+          "voice": "OpenAI.fm / GPT-4o mini TTS / marin",
+          "text": "布には光を通すところと、通さないところがあって、その違いを、違いを使いたかったんです。きれいに説明するより、見る人が少し立ち止まれるような余白を残しています。正解を、正解を見つける展示ではなくて、ご自身の記憶と重ねて見てもらえたらと思います。ゆっくり、ゆっくりイメージいただければと思います。展示は十三点です。予約は取り消しません。",
+          "audio_path": "[redacted-path]",
+          "checks": {
+            "audio_success": true,
+            "received": true,
+            "ai_success": true,
+            "no_manual_caption_save": true,
+            "native_exact_match": true
+          },
+          "elapsed_seconds": 40.403078749994165,
+          "captions": [
+            {
+              "original": "布には、光を通すところと通さないところがあって、その違いをしないを使いたかったんです。\n",
+              "text": "布には光を通すところと通さないところがあって、その違いをしないを使いたかったんです。",
+              "human_edited": false,
+              "ai_status": "succeeded",
+              "ai_result": {
+                "request_id": "0f6aba15-2278-4150-93f1-6df9460a2909",
+                "model_id": "gpt-6-luna",
+                "elapsed_ms": 9185.386083001504,
+                "input_tokens": 894,
+                "output_tokens": 879
+              },
+              "ai_error": null
+            },
+            {
+              "original": "綺麗に説明するより、見る人が少し立ち止まれるような余白を残しています。\n",
+              "text": "綺麗に説明するより、見る人が少し立ち止まれるような余白を残しています。",
+              "human_edited": false,
+              "ai_status": "succeeded",
+              "ai_result": {
+                "request_id": "aec823a7-93c9-4095-bf84-d6022f10d932",
+                "model_id": "gpt-6-luna",
+                "elapsed_ms": 1794.2012089915806,
+                "input_tokens": 905,
+                "output_tokens": 77
+              },
+              "ai_error": null
+            },
+            {
+              "original": "正解を、正解を見つける展示ではなくて、",
+              "text": "正解を見つける展示ではなくて、",
+              "human_edited": false,
+              "ai_status": "succeeded",
+              "ai_result": {
+                "request_id": "31018ab4-d75d-419d-88b2-5c4bb0f3ab52",
+                "model_id": "gpt-6-luna",
+                "elapsed_ms": 1774.3307089986047,
+                "input_tokens": 891,
+                "output_tokens": 78
+              },
+              "ai_error": null
+            },
+            {
+              "original": "ご自身の記憶と重ねて見てもらえたらと思います。\n",
+              "text": "ご自身の記憶と重ねて見てもらえたらと思います。",
+              "human_edited": false,
+              "ai_status": "succeeded",
+              "ai_result": {
+                "request_id": "f839cb1b-9690-41bc-9a13-bb6f6b4212b5",
+                "model_id": "gpt-6-luna",
+                "elapsed_ms": 1939.4828749937005,
+                "input_tokens": 903,
+                "output_tokens": 67
+              },
+              "ai_error": null
+            },
+            {
+              "original": "ゆっくりゆっくりイメージいただければと思います。\n",
+              "text": "ゆっくり、ゆっくりイメージいただければと思います。",
+              "human_edited": false,
+              "ai_status": "succeeded",
+              "ai_result": {
+                "request_id": "7ee5b563-42ed-49ed-af99-9f40f1a8d940",
+                "model_id": "gpt-6-luna",
+                "elapsed_ms": 1340.8526249986608,
+                "input_tokens": 888,
+                "output_tokens": 22
+              },
+              "ai_error": null
+            },
+            {
+              "original": "展示は13点です。\n",
+              "text": "展示は13点です。",
+              "human_edited": false,
+              "ai_status": "succeeded",
+              "ai_result": {
+                "request_id": "03ee6683-277f-4e2b-89cf-c24a685d5c93",
+                "model_id": "gpt-6-luna",
+                "elapsed_ms": 1380.6858330062823,
+                "input_tokens": 885,
+                "output_tokens": 31
+              },
+              "ai_error": null
+            }
+          ],
+          "meaningful_changes": 3
+        }
+      ]
+    }
+  },
+  "sol_context_replay": [
+    {
+      "original": "その気概を気概を使いたかったんです。",
+      "text": "その違いを使いたかったんです。",
+      "ai": {
+        "request_id": "sol-context-0",
+        "model_id": "gpt-6.1-sol",
+        "elapsed_ms": 3196.4595000026748,
+        "input_tokens": 652,
+        "output_tokens": 77
+      }
+    },
+    {
+      "original": "その気概を使いたかったんです。",
+      "text": "その違いを使いたかったんです。",
+      "ai": {
+        "request_id": "sol-context-1",
+        "model_id": "gpt-6.1-sol",
+        "elapsed_ms": 4221.788790993742,
+        "input_tokens": 649,
+        "output_tokens": 91
+      }
+    },
+    {
+      "original": "ゆっくり、ゆっくりイメージいただければと思います。",
+      "text": "ゆっくり、ゆっくりイメージいただければと思います。",
+      "ai": {
+        "request_id": "sol-context-2",
+        "model_id": "gpt-6.1-sol",
+        "elapsed_ms": 1735.569291995489,
+        "input_tokens": 657,
+        "output_tokens": 22
+      }
+    }
+  ],
+  "luna_low_context_replay": [
+    {
+      "original": "その気概を使いたかったんです。",
+      "text": "その気配を使いたかったんです。",
+      "ai": {
+        "request_id": "context-0",
+        "model_id": "gpt-6-luna",
+        "elapsed_ms": 1469.866915998864,
+        "input_tokens": 461,
+        "output_tokens": 14
+      }
+    },
+    {
+      "original": "正解を、正解を見つける展示ではなくて、ご自身の記憶と重ねて見てもらえたらと思います。",
+      "text": "正解を見つける展示ではなくて、ご自身の記憶と重ねて見てもらえたらと思います。",
+      "ai": {
+        "request_id": "context-1",
+        "model_id": "gpt-6-luna",
+        "elapsed_ms": 1393.6155840056017,
+        "input_tokens": 470,
+        "output_tokens": 34
+      }
+    },
+    {
+      "original": "ゆっくり、ゆっくりイメージいただければと思います。",
+      "text": "ゆっくり、ゆっくりイメージいただければと思います。",
+      "ai": {
+        "request_id": "context-2",
+        "model_id": "gpt-6-luna",
+        "elapsed_ms": 1064.3027080077445,
+        "input_tokens": 459,
+        "output_tokens": 22
+      }
+    }
+  ],
+  "limitations": [
+    "Lunaは気概の文脈訂正に失敗する例が残る。Solは同じ2文を違いへ訂正したが一般の品質比較ではない。",
+    "GPT音声でも違いをしないという誤認識が残り、Lunaはその部分を訂正しなかった。",
+    "GPT音声の末尾の否定文はUDトークの受信に現れず、全台本の認識成功とは扱わない。",
+    "音声生成のAPI権限は保存したが、この記録の時点ではAPIがmissing_scopeを返した。公式デモ経由の音声とは区別する。"
+  ]
+}

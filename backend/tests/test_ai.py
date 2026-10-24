@@ -6,27 +6,27 @@ from app.ai import AiRouter
 from app.models import AiSettings
 
 
-GEMINI = "gemini-3.1-flash-lite"
-CLAUDE = "claude-haiku-4-5"
-CODEX = "gpt-5.3-codex"
-GPT_MINI = "gpt-5.4-mini-2026-03-17"
+GEMINI = "gemini-3.5-flash-lite"
+CLAUDE = "claude-haiku-5-5"
+SOL = "gpt-6.1-sol"
+LUNA = "gpt-6-luna"
 
 
-def test_openai_key_enables_mini_for_manual_and_cost_routes() -> None:
+def test_openai_key_enables_luna_for_manual_and_cost_routes() -> None:
     with TestClient(create_app(environment={"OPENAI_API_KEY": "test-key"})) as client:
         initial = client.get("/api/ai").json()
         assert initial["settings"]["strategy"] == "off"
         assert initial["selected_model"] is None
-        assert {model["id"] for model in initial["models"] if model["configured"]} == {CODEX, GPT_MINI}
+        assert {model["id"] for model in initial["models"] if model["configured"]} == {SOL, LUNA}
         assert len(initial["settings"]["candidates"]) == 4
         candidates = initial["settings"]["candidates"]
-        saved = client.put("/api/ai", json=settings("manual", GPT_MINI, candidates))
+        saved = client.put("/api/ai", json=settings("manual", LUNA, candidates))
         assert saved.status_code == 200
-        assert saved.json()["selected_model"] == GPT_MINI
+        assert saved.json()["selected_model"] == LUNA
         assert saved.json()["connected"] is True
-        assert client.get("/api/ai").json()["settings"]["preferred_model"] == GPT_MINI
-        routed = client.put("/api/ai", json=settings("cost", CODEX, [CODEX, GPT_MINI])).json()
-        assert routed["selected_model"] == GPT_MINI
+        assert client.get("/api/ai").json()["settings"]["preferred_model"] == LUNA
+        routed = client.put("/api/ai", json=settings("cost", SOL, [SOL, LUNA])).json()
+        assert routed["selected_model"] == LUNA
         assert routed["reason"] == "cost"
 
 
@@ -40,7 +40,7 @@ def test_unmeasured_speed_route_uses_a_configured_candidate_when_preferred_key_i
 
 
 def settings(strategy: str, preferred: str = CLAUDE, candidates: list[str] | None = None) -> dict[str, object]:
-    return {"strategy": strategy, "preferred_model": preferred, "candidates": candidates or [GEMINI, CLAUDE, CODEX]}
+    return {"strategy": strategy, "preferred_model": preferred, "candidates": candidates or [GEMINI, CLAUDE, SOL]}
 
 
 def source(client: TestClient, name: str, revision: int = 1, final: bool = True) -> dict[str, object]:
@@ -71,10 +71,10 @@ def test_routes_new_final_inputs_and_preserves_the_original_plan_after_settings_
         assert source(client, "partial", final=False)["ai_request"] is None
         first = source(client, "one")
         assert first["ai_request"]["model_id"] == CLAUDE
-        client.put("/api/ai", json=settings("manual", CODEX))
-        assert source(client, "two")["ai_request"]["model_id"] == CODEX
+        client.put("/api/ai", json=settings("manual", SOL))
+        assert source(client, "two")["ai_request"]["model_id"] == SOL
         assert complete(client, first, 300.0)["text"] == "原文です。"
-        assert source(client, "one", 2)["ai_request"]["model_id"] == CODEX
+        assert source(client, "one", 2)["ai_request"]["model_id"] == SOL
         assert complete(client, first, 1.0) == {"status": "stale"}
         public = client.get("/api/view").json()
         assert "ai_request" not in str(public) and "ai_result" not in str(public)
@@ -82,28 +82,28 @@ def test_routes_new_final_inputs_and_preserves_the_original_plan_after_settings_
 
 def test_cost_route_uses_only_selected_candidates() -> None:
     with TestClient(create_app(environment={})) as client:
-        result = client.put("/api/ai", json=settings("cost", CODEX)).json()
-        assert result["selected_model"] == GEMINI
-        result = client.put("/api/ai", json=settings("cost", CODEX, [CLAUDE, CODEX])).json()
+        result = client.put("/api/ai", json=settings("cost", SOL)).json()
+        assert result["selected_model"] == CLAUDE
+        result = client.put("/api/ai", json=settings("cost", SOL, [CLAUDE, SOL])).json()
         assert result["selected_model"] == CLAUDE
         assert source(client, "one")["ai_request"]["model_id"] == CLAUDE
 
 
 def test_speed_uses_measurements_without_fabricating_latency_or_counting_replays() -> None:
     with TestClient(create_app(environment={})) as client:
-        result = client.put("/api/ai", json=settings("speed", CODEX)).json()
-        assert result["selected_model"] == CODEX and result["reason"] == "unmeasured"
+        result = client.put("/api/ai", json=settings("speed", SOL)).json()
+        assert result["selected_model"] == SOL and result["reason"] == "unmeasured"
         assert all(model["measured_latency_ms"] is None for model in result["models"])
-        first = source(client, "codex")
+        first = source(client, "sol")
         complete(client, first, 700.0)
         assert complete(client, first, 1.0) == {"status": "duplicate"}
         client.put("/api/ai", json=settings("manual", GEMINI))
         gemini = source(client, "gemini")
         complete(client, gemini, 200.0)
-        result = client.put("/api/ai", json=settings("speed", CODEX)).json()
+        result = client.put("/api/ai", json=settings("speed", SOL)).json()
         assert result["selected_model"] == GEMINI and result["reason"] == "speed"
-        codex = next(model for model in result["models"] if model["id"] == CODEX)
-        assert codex["measured_latency_ms"] == 700.0 and codex["latency_samples"] == 1
+        sol = next(model for model in result["models"] if model["id"] == SOL)
+        assert sol["measured_latency_ms"] == 700.0 and sol["latency_samples"] == 1
 
 
 def test_routed_results_reject_wrong_models_and_preserve_human_edits() -> None:
@@ -112,7 +112,7 @@ def test_routed_results_reject_wrong_models_and_preserve_human_edits() -> None:
         first = source(client, "one")
         wrong = client.put("/api/captions/one/formatted", json={
             "source_revision": 1, "text": "誤ったAIの結果",
-            "ai": {"request_id": first["ai_request"]["id"], "model_id": CODEX, "elapsed_ms": 1.0},
+            "ai": {"request_id": first["ai_request"]["id"], "model_id": SOL, "elapsed_ms": 1.0},
         })
         assert wrong.json() == {"status": "stale"}
         client.patch("/api/captions/one", json={"text": "人の修正", "base_revision": first["revision"]})

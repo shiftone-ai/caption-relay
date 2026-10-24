@@ -81,6 +81,7 @@ it("keeps a separate focused editor and saved history through arrivals, latest, 
   expect(screen.getByRole("separator", { name: "ここから新着の字幕" })).toBeTruthy();
   expect(within(screen.getByRole("region", { name: "直近3件の入力" })).getByText("次の入力")).toBeTruthy();
   expect(within(screen.getByRole("region", { name: "観客への表示" })).getByText("次の公開文")).toBeTruthy();
+  act(() => actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 0 }));
   await user.click(screen.getByRole("button", { name: "最新へ · 新着 1 件" }));
   expect(screen.getByRole("textbox")).toBe(input);
   expect(input.value).toBe("未保存の訂正");
@@ -88,8 +89,6 @@ it("keeps a separate focused editor and saved history through arrivals, latest, 
   expect(input.selectionStart).toBe(1);
   expect(screen.queryByRole("separator")).toBeNull();
   expect(announcement.textContent).toBe("");
-  await user.click(screen.getByRole("button", { name: "訂正位置へ" }));
-  expect(document.activeElement).toBe(input);
   await user.keyboard("{Escape}");
   expect(screen.queryByRole("textbox")).toBeNull();
   const row = screen.getByRole("article", { name: "字幕：保存済み" });
@@ -101,6 +100,43 @@ it("keeps a separate focused editor and saved history through arrivals, latest, 
   expect(within(row).getByRole("img", { name: /一覧には変更前の字幕/ }).tabIndex).toBe(0);
   await user.click(within(row).getByRole("button", { name: "編集：保存済み" }));
   expect(screen.getByRole<HTMLTextAreaElement>("textbox").value).toBe("未保存の訂正");
+});
+
+it("offers return only while the edited caption is outside the history viewport", async () => {
+  let intersection!: IntersectionObserverCallback;
+  let observer!: IntersectionObserver;
+  const observed: Element[] = [];
+  const disconnect = vi.fn();
+  vi.stubGlobal("IntersectionObserver", class {
+    constructor(callback: IntersectionObserverCallback) { intersection = callback; observer = this as unknown as IntersectionObserver; }
+    observe(element: Element) { observed.push(element); }
+    disconnect = disconnect;
+  });
+  const { actor } = await start();
+  const { unmount } = render(<TimelineTestRoot actor={actor} />);
+  const user = userEvent.setup();
+  const returnButton = () => screen.queryByRole("button", { name: "編集中の字幕へ" });
+  const measure = (intersectionRatio: number) => act(() => intersection([{ intersectionRatio } as IntersectionObserverEntry], observer));
+  expect(returnButton()).toBeNull();
+  await user.click(screen.getByRole("button", { name: "編集：保存済み" }));
+  const input = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "表示文" });
+  await user.type(input, "訂正途中");
+  input.setSelectionRange(1, 3);
+  expect(observed).toEqual([screen.getByRole("article", { name: "字幕：保存済み" })]);
+  measure(1);
+  expect(returnButton()).toBeNull();
+  measure(0);
+  await user.click(screen.getByRole("button", { name: "編集中の字幕へ" }));
+  expect(document.activeElement).toBe(input);
+  expect(input.value).toBe("保存済み訂正途中");
+  expect([input.selectionStart, input.selectionEnd]).toEqual([1, 3]);
+  measure(0.25);
+  expect(returnButton()).toBeNull();
+  await user.keyboard("{Escape}");
+  measure(0);
+  expect(returnButton()).toBeNull();
+  unmount();
+  expect(disconnect).toHaveBeenCalledTimes(1);
 });
 
 it.each(["close", "escape", "discard"])("returns focus to the edited history row after %s without refocusing it on refresh", async action => {
@@ -185,4 +221,21 @@ it("announces save success once while ordinary refreshes keep the same editor st
   expect(editorTime.dateTime).toBe(caption.received_at);
   await user.type(screen.getByRole("textbox"), "続き");
   expect(success.textContent).toBe("");
+});
+
+it("shows latest only away from the actual bottom, including while an editor pauses following", async () => {
+  const { actor } = await start();
+  render(<TimelineTestRoot actor={actor} />);
+  expect(screen.queryByRole("button", { name: /^最新へ/ })).toBeNull();
+  act(() => actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 100 }));
+  await userEvent.setup().click(screen.getByRole("button", { name: "最新へ" }));
+  expect(screen.queryByRole("button", { name: /^最新へ/ })).toBeNull();
+  await userEvent.setup().click(screen.getByRole("button", { name: "編集：保存済み" }));
+  act(() => actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 600 }));
+  expect(actor.getSnapshot().context.followLatest).toBe(false);
+  expect(screen.queryByRole("button", { name: /^最新へ/ })).toBeNull();
+  act(() => actor.send({ type: "timeline.scrolled", scrollHeight: 1000, clientHeight: 400, scrollTop: 100 }));
+  expect(screen.getByRole("button", { name: "最新へ" })).toBeTruthy();
+  act(() => actor.send({ type: "timeline.resized", scrollHeight: 350, clientHeight: 400, scrollTop: 0 }));
+  expect(screen.queryByRole("button", { name: /^最新へ/ })).toBeNull();
 });

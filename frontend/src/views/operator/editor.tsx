@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { LoaderCircle, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
 import { Disclosure } from "../../components/ui/disclosure";
@@ -28,13 +28,13 @@ export function CaptionEditorView({ row }: { row: RowParameters }) {
         </header>
         <div className="caption-editor-scroll operator-panel-scroll">
           <section className="caption-editor-reference" aria-label="訂正する字幕の原文"><h3>原文</h3><p tabIndex={0}>{row.original}</p></section>
+          {row.aiPending && <p className="caption-ai-progress" role="status"><LoaderCircle size={14} className="caption-ai-spinner" aria-hidden="true" />{row.aiProgressLabel}</p>}
           <label htmlFor={inputId}>表示文</label>
           <Textarea ref={input} id={inputId} className="caption-editor-input" value={row.draftText} readOnly={row.readOnly}
             aria-invalid={row.invalid} aria-describedby={hintId + (row.message ? " " + messageId : "")}
             change={text => ({ type: "caption.draft.changed", captionId: row.id, text })}
             keypress={key => ({ type: "caption.editor.keypressed", captionId: row.id, ...key })} />
           {row.dirty && <Disclosure parameters={row.savedDisclosure} className="caption-saved-reference" summary="変更前の字幕"><p>{row.text}</p></Disclosure>}
-          {row.formattedText && <Disclosure parameters={row.aiDisclosure} className="caption-ai-reference" summary="AI修正結果を確認"><p>{row.formattedText}</p></Disclosure>}
         </div>
         <footer className="caption-editor-footer">
           {row.message && <p id={messageId} role="status" className="operator-error">{row.message}</p>}

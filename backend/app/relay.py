@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from .ai import AiRouter
 from .models import (
-    AiModelId, AiRouting, AiSettings, Caption, CaptionPatch, Command, PublicCaption, PublicSnapshot,
+    AiCorrectionContext, AiModelId, AiRouting, AiSettings, Caption, CaptionPatch, Command, PublicCaption, PublicSnapshot,
     DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
 )
 
@@ -35,6 +35,7 @@ class CaptionRelay:
         self._display = DisplaySettings()
         self._ai = AiRouter()
         self._connection_mode = "host"
+        self._context_start_position = 0
         self._public_signature: tuple[bool, str, tuple[tuple[str, str, str | None], ...]] = (
             self._visible, self._display.model_dump_json(), (),
         )
@@ -63,9 +64,34 @@ class CaptionRelay:
             captions=captions,
         )
 
-    def connection_mode(self, mode: str) -> None:
+    def connection_mode(self, mode: str, *, reset_context: bool = True) -> None:
         self._connection_mode = mode
+        if reset_context:
+            self._context_start_position = len(self._captions)
         self._publish()
+
+    def ai_context(self, caption_id: str) -> AiCorrectionContext:
+        """Snapshot only preceding, complete utterances from the current connection."""
+        position = self._caption_positions[caption_id]
+        recent: list[str] = []
+        size = 0
+        for identifier in reversed(self._captions):
+            previous_position = self._caption_positions[identifier]
+            if previous_position >= position:
+                continue
+            if previous_position < self._context_start_position:
+                break
+            previous = self._captions[identifier]
+            if not previous.source_final or not previous.text.strip():
+                continue
+            if size + len(previous.text) > 3000:
+                break
+            recent.append(previous.text)
+            size += len(previous.text)
+            if len(recent) == 6:
+                break
+        return AiCorrectionContext(background=self._ai.snapshot().settings.background,
+                                   recent_utterances=list(reversed(recent)))
 
     def _publish(self) -> None:
         snapshot = self.public_snapshot()
