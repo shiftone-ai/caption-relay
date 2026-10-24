@@ -58,7 +58,7 @@ export const disclosureIds = [
   "publication-help", "preparation", "display-speaker", "display-appearance", "display-layout", "display-help",
   "ai-help", "ai-comparison", "connection-host-help", "connection-client-help",
 ] as const;
-export type DisclosureId = typeof disclosureIds[number] | `caption-saved:${string}` | `caption-ai:${string}`;
+export type DisclosureId = typeof disclosureIds[number] | `caption-saved:${string}`;
 
 export type OperatorEvent =
   | { type: "disclosure.toggled"; id: DisclosureId }
@@ -72,6 +72,7 @@ export type OperatorEvent =
   | { type: "caption.status.measured"; captionId: string; kind: "source" | "publication"; geometry: StatusTooltipGeometry }
   | { type: "timeline.latest.requested" }
   | { type: "timeline.editing.requested" }
+  | { type: "timeline.editing.measured"; captionId: string; intersectionRatio: number }
   | { type: "timeline.scrolled"; scrollHeight: number; clientHeight: number; scrollTop: number }
   | { type: "timeline.resized"; scrollHeight: number; clientHeight: number; scrollTop: number }
   | { type: "settings.keypressed"; key: string; isComposing: boolean; defaultPrevented: boolean }
@@ -82,6 +83,7 @@ export type OperatorEvent =
   | { type: "display.save.requested" }
   | { type: "ai.settings.toggled" }
   | { type: "ai.strategy.selected"; value: string }
+  | { type: "ai.background.changed"; value: string }
   | { type: "ai.preferred.selected"; modelId: string }
   | { type: "ai.candidate.changed"; modelId: string; included: boolean }
   | { type: "ai.save.requested" }

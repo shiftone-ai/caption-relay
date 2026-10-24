@@ -485,11 +485,12 @@ it("returns from settings to the draft editor and focuses it through both return
   for (const returnByRow of [false, true]) {
     await user.click(screen.getByRole("button", { name: "表示設定" }));
     await user.selectOptions(screen.getByRole("combobox", { name: "文字サイズ" }), "96");
-    await user.click(screen.getByRole("button", { name: returnByRow ? "編集：字幕" : "訂正位置へ" }));
+    await user.click(screen.getByRole("button", { name: returnByRow ? "編集：字幕" : "編集中の字幕へ" }));
     const input = screen.getByRole<HTMLTextAreaElement>("textbox");
     expect(screen.queryByRole("complementary", { name: "観客画面の表示設定" })).toBeNull();
     expect(input.value).toBe("字幕未保存の修正");
     expect(document.activeElement).toBe(input);
+    expect(screen.queryByRole("button", { name: "編集中の字幕へ" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "表示設定" }));
     expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "文字サイズ" }).value).toBe("96");
     await user.click(screen.getByRole("button", { name: "表示設定を閉じる" }));
@@ -513,6 +514,9 @@ it("keeps the monitor and correction draft available while viewing latest input 
   await user.type(input, "確認した訂正文");
   expect(api.save).not.toHaveBeenCalled();
   expect(within(monitor).queryByText("確認した訂正文")).toBeNull();
+  const historyViewport = screen.getByRole("region", { name: "字幕一覧" }).querySelector<HTMLDivElement>(".caption-viewport")!;
+  Object.defineProperties(historyViewport, { scrollHeight: { configurable: true, value: 1000 }, clientHeight: { configurable: true, value: 400 } });
+  fireEvent.scroll(historyViewport);
   await user.click(screen.getByRole("button", { name: "最新へ" }));
   expect(screen.getByRole("textbox")).toBe(input);
   expect(screen.getByRole("region", { name: "直近の入力と観客への表示" })).toBe(monitor);
@@ -608,16 +612,17 @@ it("routes fullscreen controls through the audience Mediator and releases both s
 });
 
 const ai: AiParameters & { preferredLabel: string; preferredHint: string; selectionHeading: string; strategyHint: string } = {
+  background: "",
   helpDisclosure: { id: "ai-help", open: false }, comparisonDisclosure: { id: "ai-comparison", open: false },
   connectionWarning: true, showModelSettings: true, showCurrentSelection: true,
-  connectionDescription: "選択したAIのAPIキーが未設定です。", strategy: "speed", preferredModel: "gemini-3.1-flash-lite", saveDisabled: false, saveHint: "未保存の設定があります", disabled: false,
-  selectedLabel: "Claude Haiku 4.5", selectionHeading: "保存済みの設定による選択先", selectionNote: "保存した設定で応答時間を比較した結果です。",
+  connectionDescription: "選択したAIのAPIキーが未設定です。", strategy: "speed", preferredModel: "gemini-3.5-flash-lite", saveDisabled: false, saveHint: "未保存の設定があります", disabled: false,
+  selectedLabel: "Claude Haiku 5.5", selectionHeading: "保存済みの設定による選択先", selectionNote: "保存した設定で応答時間を比較した結果です。",
   preferredLabel: "比較できないときのAI", preferredHint: "全候補が未計測の場合や同じ条件の場合に使います。候補からは外せません。",
-  strategyHint: "未計測の候補は速度比較から除き、全候補が未計測なら下のAIを使います。",
+  strategyHint: "未計測の候補は速度比較から除き、全候補が未計測なら指定したAIを使います。",
   strategies: [{ value: "manual", label: "AIを指定" }, { value: "cost", label: "費用を優先" }, { value: "speed", label: "実測の速度を優先" }],
   models: [
-    { id: "gemini-3.1-flash-lite", provider: "Gemini", label: "Gemini 3.1 Flash-Lite", variant: "3.1 Flash-Lite", inputPrice: "$0.25", outputPrice: "$1.50", sampleCost: "$0.20", latency: "未計測", selected: true, disabled: true, pricingUrl: "https://ai.google.dev/gemini-api/docs/pricing", checkedOn: "2026-10-05" },
-    { id: "claude-haiku-4-5", provider: "Claude", label: "Claude Haiku 4.5", variant: "Haiku 4.5", inputPrice: "$1.00", outputPrice: "$5.00", sampleCost: "$0.70", latency: "250 ms · 1 件", selected: true, disabled: false, pricingUrl: "https://platform.claude.com/docs/en/about-claude/pricing", checkedOn: "2026-10-05" },
+    { id: "gemini-3.5-flash-lite", provider: "Gemini", label: "Gemini 3.5 Flash-Lite", variant: "3.5 Flash-Lite", inputPrice: "$0.25", outputPrice: "$1.50", sampleCost: "$0.20", latency: "未計測", selected: true, disabled: true, pricingUrl: "https://ai.google.dev/gemini-api/docs/pricing", checkedOn: "2026-10-05" },
+    { id: "claude-haiku-5-5", provider: "Claude", label: "Claude Haiku 5.5", variant: "Haiku 5.5", inputPrice: "$1.00", outputPrice: "$5.00", sampleCost: "$0.70", latency: "250 ms · 1 件", selected: true, disabled: false, pricingUrl: "https://platform.claude.com/docs/en/about-claude/pricing", checkedOn: "2026-10-05" },
   ],
 };
 
@@ -732,12 +737,17 @@ it("hides inactive AI choices and retains them when AI is enabled again", async 
   expect(screen.queryByText("現在のAI")).toBeNull();
   const strategy = screen.getByRole("combobox", { name: "AIの選び方" });
   await user.selectOptions(strategy, "manual");
-  await user.selectOptions(screen.getByRole("combobox", { name: "指定AI" }), "claude-haiku-4-5");
+  await user.selectOptions(screen.getByRole("combobox", { name: "指定AI" }), "claude-haiku-5-5");
+  await user.type(screen.getByRole("textbox", { name: "トークの背景" }), "写真と布の展示");
   await user.selectOptions(strategy, "off");
   expect(screen.queryByRole("checkbox")).toBeNull();
   await user.selectOptions(strategy, "manual");
-  expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "指定AI" }).value).toBe("claude-haiku-4-5");
+  expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "指定AI" }).value).toBe("claude-haiku-5-5");
+  expect(screen.getByRole<HTMLTextAreaElement>("textbox", { name: "トークの背景" }).value).toBe("写真と布の展示");
   expect(api.setAi).not.toHaveBeenCalled();
+  vi.mocked(api.setAi).mockImplementation(settings => Promise.resolve({ ...defaultAi, settings }));
+  await user.click(screen.getByRole("button", { name: "AI設定を保存" }));
+  await waitFor(() => expect(api.setAi).toHaveBeenCalledWith(expect.objectContaining({ background: "写真と布の展示" }), expect.any(AbortSignal)));
 });
 
 const toolbar: ToolbarParameters & { preparationHint: string } = {
@@ -753,15 +763,15 @@ it("distinguishes the saved AI route from the draft fallback choice and exposes 
   const user = userEvent.setup();
   const panel = screen.getByRole("complementary", { name: "字幕修正のAI設定" });
   expect(panel.getAttribute("aria-describedby")).toBe("ai-settings-description");
-  expect(screen.getByText("保存済みの設定による選択先").nextElementSibling?.textContent).toBe("Claude Haiku 4.5");
+  expect(screen.getByText("保存済みの設定による選択先").nextElementSibling?.textContent).toBe("Claude Haiku 5.5");
   const preferred = screen.getByRole<HTMLSelectElement>("combobox", { name: "比較できないときのAI" });
-  expect(preferred.value).toBe("gemini-3.1-flash-lite");
+  expect(preferred.value).toBe("gemini-3.5-flash-lite");
   expect(document.getElementById("ai-preferred-hint")?.textContent).toBe(ai.preferredHint);
   expect(preferred.getAttribute("aria-describedby")).toBe("ai-preferred-hint");
   expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "AIの選び方" }).getAttribute("aria-describedby")).toBe("ai-strategy-hint");
-  expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Geminiを候補に含める" }).disabled).toBe(true);
-  await user.selectOptions(preferred, "claude-haiku-4-5");
-  expect(handle).toHaveBeenLastCalledWith({ type: "ai.preferred.selected", modelId: "claude-haiku-4-5" });
+  expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Gemini 3.5 Flash-Liteを候補に含める" }).disabled).toBe(true);
+  await user.selectOptions(preferred, "claude-haiku-5-5");
+  expect(handle).toHaveBeenLastCalledWith({ type: "ai.preferred.selected", modelId: "claude-haiku-5-5" });
   expect(handle).not.toHaveBeenCalledWith({ type: "ai.save.requested" });
   await user.click(screen.getByRole("button", { name: "AI設定を保存" }));
   expect(handle).toHaveBeenLastCalledWith({ type: "ai.save.requested" });

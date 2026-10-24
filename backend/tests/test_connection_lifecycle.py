@@ -79,7 +79,7 @@ def test_transition_does_not_schedule_ai_for_input_received_while_cancelling(shu
         server = NativeServer()
         workflow = CaptionWorkflow(relay, None, {"GEMINI_API_KEY": "test-key"}, httpx.MockTransport(handle),
                                    httpx.MockTransport(server.handle))
-        relay.ai_settings(AiSettings(strategy="manual"))
+        relay.ai_settings(AiSettings(strategy="manual", preferred_model="gemini-3.5-flash-lite"))
         workflow.source_event(SourceEvent(utterance_id="before", revision=1, text="元の字幕", source_event_id="before-1"))
         await asyncio.wait_for(started.wait(), 1)
         transition = asyncio.create_task(workflow.stop() if shutdown else workflow.configure(
@@ -123,7 +123,7 @@ def test_shutdown_keeps_ai_paused_while_the_editor_departure_is_pending():
                                    httpx.MockTransport(editor_handle))
         await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
         await wait_until(lambda: workflow.connections.status().state == "live")
-        relay.ai_settings(AiSettings(strategy="manual"))
+        relay.ai_settings(AiSettings(strategy="manual", preferred_model="gemini-3.5-flash-lite"))
         stopping = asyncio.create_task(workflow.stop())
         try:
             await asyncio.wait_for(departing.wait(), 1)
@@ -163,7 +163,7 @@ def test_reconfiguration_pauses_ai_before_web_departure_finishes():
         workflow.connections.web = UdtalkWebInput(URL, workflow.source_event, httpx.MockTransport(web_handle))
         workflow.start()
         await wait_until(lambda: workflow.connections.web.status.state == "live")
-        relay.ai_settings(AiSettings(strategy="manual"))
+        relay.ai_settings(AiSettings(strategy="manual", preferred_model="gemini-3.5-flash-lite"))
         transition = asyncio.create_task(workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url())))
         try:
             await asyncio.wait_for(departing.wait(), 1)
