@@ -10,34 +10,20 @@ export function AiSettingsView({ parameters }: { parameters: AiParameters }) {
     {emit => <aside id="ai-settings" className="display-settings ai-settings" aria-label="字幕修正のAI設定" aria-describedby="ai-settings-description">
         <div className="display-settings-heading"><h2>AI設定</h2><Button variant="ghost" className="operator-icon-button" aria-label="AI設定を閉じる" intent={{ type: "ai.settings.toggled" }}><X size={16} /></Button></div>
         <p id="ai-settings-description" className={parameters.connectionWarning ? "operator-error" : "sr-only"}>{parameters.connectionDescription}</p>
-        {parameters.showCurrentSelection && <div className="ai-current" title={parameters.selectionNote}><div className="ai-current-heading"><span>{parameters.selectionHeading}</span><strong>{parameters.selectedLabel}</strong></div></div>}
         <fieldset disabled={parameters.disabled} className="display-fields ai-fields operator-panel-scroll">
-          <label>選び方<select data-setting-autofocus aria-label="AIの選び方" aria-describedby={parameters.strategyHint ? "ai-strategy-hint" : undefined} value={parameters.strategy} onChange={event => emit({ type: "ai.strategy.selected", value: event.currentTarget.value })}>
-            {parameters.strategies.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          <label>モデル<select data-setting-autofocus aria-label="モデル" value={parameters.model} onChange={event => emit({ type: "ai.model.selected", modelId: event.currentTarget.value })}>
+            <option value="off">AIなし</option>
+            {parameters.models.map(model => <option key={model.id} value={model.id}>{model.label}</option>)}
           </select></label>
-          {parameters.strategyHint && <p id="ai-strategy-hint" className="sr-only">{parameters.strategyHint}</p>}
           {parameters.showModelSettings && <>
-          <label>{parameters.preferredLabel}<select aria-label={parameters.preferredLabel} aria-describedby="ai-preferred-hint" value={parameters.preferredModel} onChange={event => emit({ type: "ai.preferred.selected", modelId: event.currentTarget.value })}>{parameters.models.map(model => <option key={model.id} value={model.id}>{model.label}</option>)}</select></label>
-          <p id="ai-preferred-hint" className="sr-only">{parameters.preferredHint}</p>
           <label htmlFor="ai-background">トークの背景
             <Textarea id="ai-background" value={parameters.background} maxLength={4000} rows={4}
               placeholder="テーマ、登壇者、作品名など"
               change={value => ({ type: "ai.background.changed", value })}
               keypress={key => ({ type: "settings.keypressed", key: key.key, isComposing: key.isComposing, defaultPrevented: false })} />
           </label>
-          <fieldset className="ai-candidates">
-            <legend>比較する候補</legend>
-            {parameters.models.map(model => <label key={model.id} className="ai-candidate">
-              <input type="checkbox" aria-label={model.label + "を候補に含める"} checked={model.selected} disabled={model.disabled}
-                onChange={event => emit({ type: "ai.candidate.changed", modelId: model.id, included: event.currentTarget.checked })} />
-              <span><strong>{model.provider}</strong><small>{model.variant}</small></span>
-              <span className="caption-hint">{model.latency}</span>
-            </label>)}
-          </fieldset>
           </>}
-          <Disclosure parameters={parameters.helpDisclosure} className="panel-help" summaryLabel="AIの選び方の説明" summaryTitle="AIの選び方の説明" summary={<Info size={16} aria-hidden="true" />}>
-            {parameters.strategyHint && <p>{parameters.strategyHint}</p>}
-            {parameters.showModelSettings && <p>{parameters.preferredHint}</p>}
+          <Disclosure parameters={parameters.helpDisclosure} className="panel-help" summaryLabel="AIの利用について" summaryTitle="AIの利用について" summary={<Info size={16} aria-hidden="true" />}>
             <p>保存後の確定字幕から使います。AIの利用にはAPI料金がかかります。</p>
           </Disclosure>
           <Disclosure parameters={parameters.comparisonDisclosure} className="ai-details" summary="料金と速度の比較">

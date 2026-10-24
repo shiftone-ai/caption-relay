@@ -12,9 +12,12 @@ export const defaultAi: AiRouting = {
 
 export const aiProviderNames = { gemini: "Gemini", claude: "Claude", openai: "OpenAI" };
 
-export const aiStrategies = {
-  off: "AIなし", manual: "AIを指定", cost: "費用を優先", speed: "実測の速度を優先",
-} satisfies Record<AiSettings["strategy"], string>;
+export function editableAiSettings(ai: AiRouting): AiSettings {
+  const model = ai.settings.strategy === "manual" ? ai.settings.preferred_model
+    : ai.selected_model ?? ai.settings.preferred_model;
+  return { ...ai.settings, strategy: ai.settings.strategy === "off" ? "off" : "manual",
+    preferred_model: model, candidates: [model] };
+}
 
 export function knownAiModel(value: string): value is AiSettings["preferred_model"] {
   return defaultAiSettings.candidates.some(model => model === value);

@@ -212,10 +212,6 @@ button, textarea { font: inherit; }
 .display-settings .display-save { margin-top: var(--space-2); width: 100%; }
 .operator-shell select:disabled, .display-fields:disabled { opacity: .6; }
 .ai-settings { width: 384px; }
-.ai-current { flex-shrink: 0; padding: 8px 0; border-bottom: 1px solid #d4d4d4; }
-.ai-current-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
-.ai-current strong { display: block; font-size: 16px; line-height: 24px; }
-.ai-current p { font-size: 12px; line-height: 24px; color: #525252; }
 .ai-fields { display: flex; flex-direction: column; gap: var(--space); flex: 1; min-height: 0; overflow-y: auto; }
 .dictionary-fields { display: flex; flex-direction: column; gap: var(--space-2); flex: 1; min-height: 0; overflow-y: auto; }
 .dictionary-settings h2 small { font-size: 12px; font-weight: 400; color: #525252; }
@@ -226,12 +222,7 @@ button, textarea { font: inherit; }
 .dictionary-word input:not([type="checkbox"]) { width: 100%; min-width: 0; padding: 4px 8px; border: 1px solid #a3a3a3; border-radius: 4px; font-size: 14px; }
 .dictionary-enabled { align-items: center; }
 .dictionary-error { color: #b91c1c; font-size: 12px; }
-.ai-candidates { display: grid; gap: var(--space); border-top: 1px solid #d4d4d4; padding-top: var(--space); }
-.ai-fields .ai-candidate { display: flex; flex-direction: row; align-items: center; gap: var(--space); }
-.ai-candidate > span:first-of-type { flex: 1; min-width: 0; }
-.ai-candidate small, .ai-model-title small { display: block; font-size: 12px; line-height: 16px; color: #525252; }
-.ai-candidate input { width: 16px; height: 16px; accent-color: #15406a; flex-shrink: 0; }
-.ai-candidates legend { font-size: 12px; line-height: 24px; color: #525252; }
+.ai-model-title small { display: block; font-size: 12px; line-height: 16px; color: #525252; }
 .ai-details { border-top: 1px solid #d4d4d4; padding-top: var(--space); }
 .ai-comparison { margin-top: var(--space); }
 .ai-comparison table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; line-height: 16px; }
