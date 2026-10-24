@@ -1,0 +1,9 @@
+{
+  "observed_utc": "2026-10-24T10:35:44Z",
+  "processing_tier": "Data sharing incentive tier",
+  "model": "gpt-5.4-mini-2026-03-17",
+  "input_tokens_in_dashboard": 21832,
+  "hour_final_adopted_input_tokens": 21120,
+  "dashboard_scope": "Dedicated test project; includes the hour, smoke test, and earlier verification requests",
+  "final_invoice_verified": false
+}
