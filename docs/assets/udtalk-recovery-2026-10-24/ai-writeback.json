@@ -1,0 +1,30 @@
+[
+  {
+    "original": "明日の参加者は13人です。\nあの集合時刻は午後2時です。\n予約は取り消しません。\n",
+    "text": "明日の参加者は13人です。\n集合時刻は午後2時です。\n予約は取り消しません。",
+    "source_final": true,
+    "human_edited": false,
+    "ai_status": "succeeded",
+    "ai_result": {
+      "request_id": "227521db-ff03-449f-b2bf-a95f4712c92f",
+      "model_id": "gpt-5.4-mini-2026-03-17",
+      "elapsed_ms": 2059.4728339929134,
+      "input_tokens": 180,
+      "output_tokens": 29
+    }
+  },
+  {
+    "original": "明日の参加者は13人です。\nあの集合時刻は午後2時です。\n予約は取り消しません。\n",
+    "text": "明日の参加者は13人です。\n集合時刻は午後2時です。\n予約は取り消しません。",
+    "source_final": true,
+    "human_edited": false,
+    "ai_status": "succeeded",
+    "ai_result": {
+      "request_id": "65831bb9-f5ad-41ca-be6f-44c428c8cc74",
+      "model_id": "gpt-5.4-mini-2026-03-17",
+      "elapsed_ms": 1191.205249997438,
+      "input_tokens": 180,
+      "output_tokens": 29
+    }
+  }
+]
