@@ -88,10 +88,8 @@ export type OperatorEvent =
   | { type: "display.palette.selected"; value: string }
   | { type: "display.save.requested" }
   | { type: "ai.settings.toggled" }
-  | { type: "ai.strategy.selected"; value: string }
   | { type: "ai.background.changed"; value: string }
-  | { type: "ai.preferred.selected"; modelId: string }
-  | { type: "ai.candidate.changed"; modelId: string; included: boolean }
+  | { type: "ai.model.selected"; modelId: string }
   | { type: "ai.save.requested" }
   | { type: "dictionary.settings.toggled" }
   | { type: "dictionary.word.added" }
