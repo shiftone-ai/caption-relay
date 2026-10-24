@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-24",
+  "runtime": {
+    "app": "iOS UD Talk 344 / build 1 on Apple Silicon Mac",
+    "backend": "FastAPI / uvicorn on loopback",
+    "audio": "macOS say Kyoko -> BlackHole 2ch",
+    "physical_microphone": false,
+    "ai_enabled": "off for manual tests; GPT-5.4 Mini for AI writeback"
+  },
+  "real_service": {
+    "edit_only_join": true,
+    "keyboard_caption_writeback": true,
+    "synthetic_caption_writeback": true,
+    "fragmented_caption_records": 3,
+    "native_app_and_passcode_web_match": true,
+    "full_replacement_empty_records": 2,
+    "reedit_after_full_replacement": true,
+    "peer_lock_denial_keeps_draft": true,
+    "save_after_peer_unlock": true,
+    "peer_notifications": {
+      "locked": 3,
+      "unlocked": 3,
+      "all_results": true
+    },
+    "ai_writeback": {
+      "model": "gpt-5.4-mini-2026-03-17",
+      "requests": 2,
+      "native_app_and_passcode_web_match": true,
+      "unchanged_manual_save_accepted": true
+    }
+  },
+  "checks": {
+    "command": "bash scripts/check.sh",
+    "frontend_passed": 126,
+    "backend_passed": 173,
+    "type_errors": 0
+  },
+  "not_verified": [
+    "native editor lock notification UI",
+    "translation",
+    "live service partial failure and concurrent recognition during AI inference",
+    "current requests data sharing incentive tier and final billed amount"
+  ],
+  "cleanup": {
+    "speech_recognition_stopped": true,
+    "web_publication_stopped": true,
+    "edit_publication_stopped": true,
+    "local_participation_stopped": true,
+    "server_stopped": true,
+    "original_key_rejected_after_close_status": 4
+  }
+}

@@ -10,6 +10,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from hashlib import sha256
 import json
+import logging
 import math
 from time import time
 from urllib.parse import unquote, urlsplit
@@ -22,9 +23,11 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
 from .models import ConnectionStatus, SourceEvent
 from .udtalk import Fragment, UdtalkProtocolError, WebMessage, speaker_from_fragments
+from .udtalk_edit_plan import plan_fragment_edits
 
 API = "https://app.udtalk.jp"
 JSON_OBJECT = TypeAdapter(dict[str, JsonValue])
+LOGGER = logging.getLogger(__name__)
 
 
 class EditorError(Exception):
@@ -35,11 +38,7 @@ class EditorError(Exception):
 class SharingInfo:
     talk_id: str
     entry_key: str
-    expires_at: float
-
-    def validate_permission(self) -> None:
-        if self.expires_at <= time():
-            raise EditorError("編集用リンクの期限が切れています。UDトークで発行し直してください。")
+    sharing_limit: float
 
 
 def decode_editor_url(url: str) -> SharingInfo:
@@ -53,25 +52,27 @@ def decode_editor_url(url: str) -> SharingInfo:
                   if part.partition("=")[0] == "token"]
         if len(tokens) != 1:
             raise ValueError()
-        encrypted = base64.b64decode(tokens[0], validate=True)
+        encrypted = base64.b64decode(tokens[0].replace("\r", "").replace("\n", ""), validate=True)
         decryptor = Cipher(algorithms.AES(b"udtalk".ljust(32, b"\0")), modes.CBC(bytes(16))).decryptor()
         padded = decryptor.update(encrypted) + decryptor.finalize()
         unpadder = padding.PKCS7(128).unpadder()
         payload = JSON_OBJECT.validate_json(unpadder.update(padded) + unpadder.finalize())
         read_only = payload.get("readOnly")
-        if read_only not in (0, "0", False):
+        edit_only = payload.get("editOnly", 0)
+        if any(type(value) not in (bool, int, str) or value not in (0, 1, "0", "1") for value in (read_only, edit_only)):
+            raise ValueError()
+        if read_only in (1, "1") and edit_only not in (1, "1"):
             raise EditorError("閲覧用リンクでは訂正できません。編集を許可した参加用リンクを使ってください。")
-        talk, key, expiry = payload.get("talkId"), payload.get("entryKey"), payload.get("sharingLimit")
+        talk, key, limit = payload.get("talkId"), payload.get("entryKey"), payload.get("sharingLimit")
         if not isinstance(talk, str) or not talk or not isinstance(key, str) or not key:
             raise ValueError()
-        if not isinstance(expiry, (str, int, float)) or isinstance(expiry, bool):
+        if not isinstance(limit, (str, int, float)) or isinstance(limit, bool):
             raise ValueError()
-        expires_at = float(expiry)
-        if not math.isfinite(expires_at):
+        sharing_limit = float(limit)
+        if not math.isfinite(sharing_limit):
             raise ValueError()
-        info = SharingInfo(talk, key, expires_at)
-        info.validate_permission()
-        return info
+        # Native clients display this metadata; the service decides whether the key is still valid.
+        return SharingInfo(talk, key, sharing_limit)
     except (ValueError, TypeError, KeyError):
         raise EditorError("編集用リンクを読み取れません。UDトークの参加用リンクを確認してください。") from None
 
@@ -81,7 +82,7 @@ class NativeResponse(BaseModel):
     status: int
     number: int | None = Field(default=None, ge=0)
     current: int | None = Field(default=None, ge=0)
-    users: dict[str, JsonValue] | None = None
+    users: dict[str, JsonValue] | list[JsonValue] | None = None
     messages: list[list[WebMessage]] | None = None
     options: list[list[WebMessage]] | None = None
     result: bool | None = None
@@ -92,6 +93,10 @@ class NativeUtterance:
     fragments: dict[int, dict[str, JsonValue]] = field(default_factory=lambda: {})
     revision: int = 0
     content: tuple[str, bool, bool, str | None] | None = None
+
+    def active_fragments(self) -> dict[int, dict[str, JsonValue]]:
+        return {index: value for index, value in self.fragments.items() if value.get("phase") != "removed"
+                and not (value.get("phase") == "created" and value.get("text") == "..." and value.get("type") == -1)}
 
 
 class UdtalkEditor:
@@ -110,6 +115,7 @@ class UdtalkEditor:
         self._push_cursor: tuple[int, int] = (-1, -1)
         self._utterances: dict[str, NativeUtterance] = {}
         self._roots: dict[str, str] = {}
+        self._uncertain_edits: dict[str, dict[str, JsonValue]] = {}
 
     def start(self) -> None:
         self._task = asyncio.create_task(self._run())
@@ -127,11 +133,11 @@ class UdtalkEditor:
         await self._client.aclose()
 
     async def _post(self, route: str, body: dict[str, JsonValue], allowed: tuple[int, ...] = (1,)) -> NativeResponse:
-        self.info.validate_permission()
         response = await self._client.post(API + route, json={**body, "v": "0.0.1"})
         response.raise_for_status()
         result = NativeResponse.model_validate_json(response.content)
         if result.status not in allowed:
+            LOGGER.warning("UDTalk rejected %s (status=%s)", route, result.status)
             raise EditorError("UDトークが要求を受け付けませんでした。公開状態と編集権を確認してください。")
         return result
 
@@ -148,7 +154,7 @@ class UdtalkEditor:
     async def _connect(self) -> None:
         if self._user is None:
             initialized = await self._post("/push/initialize/", {"u": "0", "n": "Caption Relay"})
-            user = initialized.users.get("id") if initialized.users else None
+            user = initialized.users.get("id") if isinstance(initialized.users, dict) else None
             if not isinstance(user, (int, str)) or isinstance(user, bool) or not str(user):
                 raise EditorError("UDトークの参加応答を読み取れませんでした。")
             self._user = str(user)
@@ -163,6 +169,7 @@ class UdtalkEditor:
         # Stage all metadata and derived state before invoking the application.
         state = deepcopy(self._utterances)
         accepted: list[tuple[SourceEvent, bool, str]] = []
+        reconciled: set[str] = set()
         for message in messages:
             command = JSON_OBJECT.validate_json(message.meta)
             if command.get("phase") not in {"created", "updated", "modified", "finalized", "direct", "removed", "image"}:
@@ -170,8 +177,13 @@ class UdtalkEditor:
             if not command.get("utteranceIdentifier"):
                 continue
             fragment = Fragment.model_validate(command)
-            if fragment.phase == "image" or fragment.type == 1 or command.get("sendingUniqueIdentifier") == self._device:
+            if fragment.phase == "image" or fragment.type == 1:
                 continue
+            if command.get("sendingUniqueIdentifier") == self._device:
+                pending = self._uncertain_edits.get(fragment.utteranceIdentifier)
+                if pending is None or any(command.get(key) != pending.get(key) for key in ("text", "editCount")):
+                    continue
+                reconciled.add(fragment.utteranceIdentifier)
             parts = fragment.utteranceIdentifier.split(":")
             if len(parts) > 2 or not parts[0] or (len(parts) == 2 and not parts[1].isdecimal()):
                 raise EditorError("UDトークの発話IDを読み取れませんでした。")
@@ -203,6 +215,8 @@ class UdtalkEditor:
             if event is not None:
                 accepted.append((event, remote_edit, root))
         self._utterances = state
+        for identifier in reconciled:
+            self._uncertain_edits.pop(identifier, None)
         for event, remote_edit, root in accepted:
             self._roots[event.utterance_id] = root
             self._accept(event, remote_edit)
@@ -215,8 +229,7 @@ class UdtalkEditor:
         self.status.editable_caption_ids = editable
 
     def _decode_utterance(self, root: str, utterance: NativeUtterance, remote_edit: bool) -> SourceEvent | None:
-        active = {i: value for i, value in utterance.fragments.items() if value.get("phase") != "removed"
-                  and not (value.get("phase") == "created" and value.get("text") == "..." and value.get("type") == -1)}
+        active = utterance.active_fragments()
         if utterance.content is None and not any(value.get("text") for value in active.values()):
             return None
         text = "".join(str(active[i].get("text", "")) for i in sorted(active))
@@ -284,39 +297,73 @@ class UdtalkEditor:
             utterance = self._utterances[root]
             if not utterance.content or not utterance.content[1]:
                 raise EditorError("UDトークの発話が確定してから訂正してください。")
-            token = str(uuid4())
-            lock_body: dict[str, JsonValue] = {"u": self._user, "t": self.info.talk_id, "lgid": root + "_" + self.info.talk_id}
-            locked = await self._post("/push/lockMessage/", {**lock_body, "token": token})
-            if locked.result is not True:
-                await self._notify("locked", root, False, token)
-                raise EditorError("別の編集者が編集中です。下書きを保持しています。")
+            fragments = utterance.active_fragments()
+            identities = {index: str(value["utteranceIdentifier"]) for index, value in fragments.items()}
+            acquired: list[tuple[dict[str, JsonValue], str]] = []
+            applied: SourceEvent | None = None
             try:
-                await self._notify("locked", root, True, token)
+                for index in sorted(identities):
+                    identifier = identities[index]
+                    token = str(uuid4())
+                    lock_body: dict[str, JsonValue] = {"u": self._user, "t": self.info.talk_id,
+                                                       "lgid": identifier + "_" + self.info.talk_id}
+                    # Cancellation or a lost response does not prove the service
+                    # did not acquire this lock. Release it unless explicitly denied.
+                    acquired.append((lock_body, identifier))
+                    locked = await self._post("/push/lockMessage/", {**lock_body, "token": token})
+                    if locked.result is not True:
+                        acquired.pop()
+                        await self._notify("locked", identifier, False, token)
+                        raise EditorError("別の編集者が編集中です。下書きを保持しています。")
+                    await self._notify("locked", identifier, True, token)
                 await self._poll()
                 validate()
                 utterance = self._utterances[root]
-                command = deepcopy(utterance.fragments[min(utterance.fragments)])
-                edit_count = command.get("editCount")
-                if not isinstance(edit_count, (str, int)) or isinstance(edit_count, bool):
-                    edit_count = 0
-                command.update(utteranceIdentifier=root, text=text, phase="finalized", endOfUtterance=True,
-                    sendingUniqueIdentifier=self._device, rid=self._user, editCount=int(edit_count) + 1)
-                # Keep original identity and locale, but do not resend stale reading/translation output.
-                command["originalText"] = command.get("originalText") or (utterance.content[0] if utterance.content else "")
-                command["extendResult"] = None
-                for key in ("sharingTalkId", "sharingUserId", "_udtalkInitialHistory"):
-                    command.pop(key, None)
-                edited = await self._post("/push/editMessage/", {"u": self._user, "t": self.info.talk_id,
-                    "m": text, "l": self._push_cursor[0], "c": self._push_cursor[1],
-                    "lgid": root + "_" + self.info.talk_id, "mt": json.dumps(command, ensure_ascii=False),
-                    "uuid": str(uuid4()), "bc": "1"})
-                if edited.number is not None and edited.current is not None:
-                    self._push_cursor = (edited.number, edited.current)
+                current = utterance.active_fragments()
+                if {index: str(value["utteranceIdentifier"]) for index, value in current.items()} != identities:
+                    raise EditorError("UDトークの字幕が更新されました。内容を確認してから保存し直してください。")
+                commands = plan_fragment_edits([current[index] for index in sorted(current)], text)
+                if not commands:
+                    # Explicitly keeping the wording must also protect it from
+                    # another participant's pending AI correction.
+                    command = deepcopy(current[min(current)])
+                    if not command.get("originalText"):
+                        command["originalText"] = command.get("text", "")
+                    commands = [command]
+                indices = {identifier: index for index, identifier in identities.items()}
+                for command in commands:
+                    await self._poll()
+                    validate()
+                    identifier = str(command["utteranceIdentifier"])
+                    edit_count = command.get("editCount")
+                    if not isinstance(edit_count, (str, int)) or isinstance(edit_count, bool):
+                        edit_count = 0
+                    command.update(phase="finalized", endOfUtterance=True,
+                        sendingUniqueIdentifier=self._device, rid=self._user, editCount=int(edit_count) + 1)
+                    for key in ("sharingTalkId", "sharingUserId", "_udtalkInitialHistory"):
+                        command.pop(key, None)
+                    self._uncertain_edits[identifier] = command
+                    edited = await self._post("/push/editMessage/", {"u": self._user, "t": self.info.talk_id,
+                        "m": command["text"], "l": self._push_cursor[0], "c": self._push_cursor[1],
+                        "lgid": identifier + "_" + self.info.talk_id, "mt": json.dumps(command, ensure_ascii=False),
+                        "uuid": str(uuid4()), "bc": "1"})
+                    self._uncertain_edits.pop(identifier, None)
+                    if edited.number is not None and edited.current is not None:
+                        self._push_cursor = (edited.number, edited.current)
+                    utterance = self._utterances[root]
+                    utterance.fragments[indices[identifier]] = command
+                    applied = self._decode_utterance(root, utterance, False) or applied
+            except BaseException as error:
+                if applied is not None:
+                    self._accept(applied, True)
+                    if isinstance(error, (EditorError, httpx.HTTPError)):
+                        raise EditorError("一部の訂正だけが反映されました。UDトークの表示を確認してください。") from None
+                raise
             finally:
                 # Wait for cleanup even if another cancellation arrives while
                 # the save is already unwinding. Shutdown must not close the
                 # client before the unlock request and notification finish.
-                cleanup = asyncio.create_task(self._release_lock(lock_body, root))
+                cleanup = asyncio.create_task(self._release_locks(acquired))
                 cancelled = False
                 while not cleanup.done():
                     try:
@@ -326,6 +373,10 @@ class UdtalkEditor:
                 cleanup.result()
                 if cancelled:
                     raise asyncio.CancelledError()
+
+    async def _release_locks(self, acquired: list[tuple[dict[str, JsonValue], str]]) -> None:
+        for body, identifier in reversed(acquired):
+            await self._release_lock(body, identifier)
 
     async def _release_lock(self, lock_body: dict[str, JsonValue], root: str) -> None:
         unlock_token = str(uuid4())
