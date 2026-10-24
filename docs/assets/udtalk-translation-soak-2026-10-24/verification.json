@@ -1,0 +1,48 @@
+{
+  "result": "PASSED",
+  "physical_microphone_used": false,
+  "route": "macOS Kyoko TTS → BlackHole 2ch → iOS UD Talk → Caption Relay → GPT-5.4 Mini → native UD Talk display",
+  "started_utc": "2026-10-24T08:34:37.510422+00:00",
+  "elapsed_seconds": 3600.7991401250038,
+  "synthetic_interval_seconds": 30.0,
+  "expected_audio_waves": 120,
+  "completed_captions": 120,
+  "independent_checks": {
+    "consecutive_unique_numbers": true,
+    "all_numbers_and_negation": true,
+    "all_final_ai_succeeded": true,
+    "fixed_model": true,
+    "native_raw_texts_match": true,
+    "full_hour": true,
+    "audio_120": true,
+    "captions_120": true,
+    "native_texts_match": true,
+    "no_local_or_observer_errors": true,
+    "original_run_passed": true,
+    "each_wave_delivered_once": true,
+    "all_native_edits_observed": true
+  },
+  "backend_rss_kib": {
+    "first": 79856,
+    "peak": 83072,
+    "last": 83056
+  },
+  "provider_response_ms_for_final_adopted_results": {
+    "samples": 120,
+    "median": 983.159,
+    "p95": 1447.635,
+    "max": 2587.643
+  },
+  "billing_note": "Token totals below include only final adopted responses, not all attempted or billed requests; final invoice is unverified.",
+  "native_roots_with_edit_count_above_zero": 120,
+  "ai_changes_beyond_whitespace": 0,
+  "finished_utc": "2026-10-24T09:34:38.299028+00:00",
+  "audio_waves": 120,
+  "native_nonempty_captions": 120,
+  "api_errors": 0,
+  "observer_errors": 0,
+  "final_adopted_response_tokens": {
+    "input": 21120,
+    "output": 3240
+  }
+}
