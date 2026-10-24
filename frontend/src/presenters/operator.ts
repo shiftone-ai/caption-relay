@@ -206,6 +206,7 @@ function presentDisplay(settings: DisplaySettings, saved: DisplaySettings, disab
 }
 
 export interface OperatorParameters {
+  inspector: { width: number; maximum: number; resizing: boolean };
   panelFocus: { selector: string; version: number } | null;
   toolbar: ToolbarParameters;
   message: string;
@@ -340,6 +341,8 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
     return parameters;
   });
   return {
+    inspector: { width: context.inspectorPreviewWidth ?? Math.min(context.inspectorWidth, context.inspectorMaxWidth),
+      maximum: context.inspectorMaxWidth, resizing: context.inspectorResize !== null },
     panelFocus: context.settingsFocusTarget ? {
       selector: context.settingsFocusTarget.destination === "field"
         ? `#${context.settingsFocusTarget.panel}-settings [data-setting-autofocus]:not(:disabled), #${context.settingsFocusTarget.panel}-settings select:not(:disabled)`

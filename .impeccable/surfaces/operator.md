@@ -19,3 +19,5 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 ## Constraints
 
 人の修正は明示的に保存する。外部AIへの接続は後の段階に行い、今回は選択・振り分けと結果の受け取りまで。画面はRoot配下のPassive Viewとし、操作をChain経由で状態機械のMediatorへ渡す。認証・永続化・会場実機の試験は現行PoCの対象外。
+
+INTERACTION: 右ペインの境界は24pxの操作領域でドラッグでき、右端で収納する。幅と未保存入力を保持して再表示し、キーボードでも操作できる。

@@ -132,3 +132,5 @@ Zoom送信の名前付き形式は接続設定から `connection.text-format.sel
 観客画面のスクロール寸法は共通Viewから `display.scrolled` で通知する。観客Mediatorが末尾との距離から追従を停止・再開し、Presenterが `followLatest` と「最新へ」の表示を決める。追従停止中はViewの末尾移動とリサイズ追従を止める。`display.latest.requested` は追従再開・末尾移動・字幕へのフォーカス要求を更新する。公開履歴はSSEの完全なスナップショットで同期し、クライアントが未公開の字幕を蓄積しない。
 
 AIの処理状態はPresenterが `aiPending`・`aiProgressLabel` へ変換し、Viewは原文と併せて描画する。パネル開始・訂正文・処理中の動きはCSSで定義し、定期取得でパネルを再マウントしない。`prefers-reduced-motion` では回転・移動・反復を無効にする。
+
+右ペインの幅・ドラッグ中のプレビュー・操作中のポインターはOperator Mediatorが保持する。InspectorResizeViewは境界のポインターを捕捉し、座標と作業領域の寸法、キー、取消を通知する。Viewに業務状態を保持しない。確定幅の制限と右端での収納はMediatorが決め、設定・訂正欄を閉じる経路でもドラッグ状態を解除する。
