@@ -1,0 +1,17 @@
+{
+  "result": "PASSED",
+  "physical_microphone_used": false,
+  "history_before": 123,
+  "history_after": 124,
+  "checks": {
+    "exactly_one_new_caption": true,
+    "all_old_history_retained": true,
+    "new_caption_final": true,
+    "ai_stopped": true,
+    "meaning_preserved": true,
+    "connection_live": true
+  },
+  "new_text": [
+    "再接続の試験です。\n参加者は13人です。\n予約は取り消しません。\n"
+  ]
+}
