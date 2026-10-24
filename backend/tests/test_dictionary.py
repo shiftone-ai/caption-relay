@@ -107,7 +107,7 @@ def test_queued_ai_uses_the_dictionary_at_reception_and_excludes_disabled_words(
             return httpx.Response(200, json={"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "校正済み。"}]}], "usage": {"input_tokens": 10, "output_tokens": 5}})
         relay = CaptionRelay()
         workflow = CaptionWorkflow(relay, None, {"OPENAI_API_KEY": "test-key"}, httpx.MockTransport(handle), dictionary=dictionary)
-        relay.ai_settings(AiSettings(strategy="manual", preferred_model="gpt-5.4-mini-2026-03-17"))
+        relay.ai_settings(AiSettings(strategy="manual", preferred_model="gpt-6-luna"))
         workflow.source_event(SourceEvent(utterance_id="old", revision=1, text="元の字幕", source_event_id="old"))
         # Update before the queued coroutine first runs.
         dictionary.update(update("変更後の表記", 1))

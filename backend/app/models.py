@@ -57,14 +57,15 @@ class DictionaryError(Model):
     detail: str
 
 
-AiModelId = Literal["gemini-3.1-flash-lite", "claude-haiku-4-5", "gpt-5.3-codex", "gpt-5.4-mini-2026-03-17"]
+AiModelId = Literal["gemini-3.5-flash-lite", "claude-haiku-5-5", "gpt-6.1-sol", "gpt-6-luna"]
 
 
 class AiSettings(Model):
+    background: str = Field(default="", max_length=4000)
     strategy: Literal["off", "manual", "cost", "speed"] = "off"
-    preferred_model: AiModelId = "gemini-3.1-flash-lite"
+    preferred_model: AiModelId = "gpt-6-luna"
     candidates: list[AiModelId] = Field(default_factory=lambda: [
-        "gemini-3.1-flash-lite", "claude-haiku-4-5", "gpt-5.3-codex", "gpt-5.4-mini-2026-03-17",
+        "gemini-3.5-flash-lite", "claude-haiku-5-5", "gpt-6.1-sol", "gpt-6-luna",
     ], min_length=1, max_length=4)
 
     @model_validator(mode="after")
@@ -76,9 +77,14 @@ class AiSettings(Model):
         return self
 
 
+class AiCorrectionContext(Model):
+    background: str = Field(default="", max_length=4000)
+    recent_utterances: list[str] = Field(default_factory=list, max_length=6)
+
+
 class AiModelOption(Model):
     id: AiModelId
-    provider: Literal["gemini", "claude", "codex", "openai"]
+    provider: Literal["gemini", "claude", "openai"]
     label: str
     input_usd_per_million: float
     output_usd_per_million: float

@@ -323,12 +323,12 @@ export interface components {
              * Id
              * @enum {string}
              */
-            id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17";
+            id: "gemini-3.5-flash-lite" | "claude-haiku-5-5" | "gpt-6.1-sol" | "gpt-6-luna";
             /**
              * Provider
              * @enum {string}
              */
-            provider: "gemini" | "claude" | "codex" | "openai";
+            provider: "gemini" | "claude" | "openai";
             /** Label */
             label: string;
             /** Input Usd Per Million */
@@ -363,7 +363,7 @@ export interface components {
              * Model Id
              * @enum {string}
              */
-            model_id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17";
+            model_id: "gemini-3.5-flash-lite" | "claude-haiku-5-5" | "gpt-6.1-sol" | "gpt-6-luna";
             /** Source Revision */
             source_revision: number;
         };
@@ -375,7 +375,7 @@ export interface components {
              * Model Id
              * @enum {string}
              */
-            model_id: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17";
+            model_id: "gemini-3.5-flash-lite" | "claude-haiku-5-5" | "gpt-6.1-sol" | "gpt-6-luna";
             /** Elapsed Ms */
             elapsed_ms: number;
             /** Input Tokens */
@@ -389,7 +389,7 @@ export interface components {
             /** Models */
             models: components["schemas"]["AiModelOption"][];
             /** Selected Model */
-            selected_model: ("gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17") | null;
+            selected_model: ("gemini-3.5-flash-lite" | "claude-haiku-5-5" | "gpt-6.1-sol" | "gpt-6-luna") | null;
             /**
              * Reason
              * @enum {string}
@@ -404,6 +404,11 @@ export interface components {
         /** AiSettings */
         AiSettings: {
             /**
+             * Background
+             * @default
+             */
+            background: string;
+            /**
              * Strategy
              * @default off
              * @enum {string}
@@ -411,12 +416,12 @@ export interface components {
             strategy: "off" | "manual" | "cost" | "speed";
             /**
              * Preferred Model
-             * @default gemini-3.1-flash-lite
+             * @default gpt-6-luna
              * @enum {string}
              */
-            preferred_model: "gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17";
+            preferred_model: "gemini-3.5-flash-lite" | "claude-haiku-5-5" | "gpt-6.1-sol" | "gpt-6-luna";
             /** Candidates */
-            candidates?: ("gemini-3.1-flash-lite" | "claude-haiku-4-5" | "gpt-5.3-codex" | "gpt-5.4-mini-2026-03-17")[];
+            candidates?: ("gemini-3.5-flash-lite" | "claude-haiku-5-5" | "gpt-6.1-sol" | "gpt-6-luna")[];
         };
         /** Caption */
         Caption: {

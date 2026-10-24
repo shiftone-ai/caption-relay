@@ -12,10 +12,10 @@ from app.models import SourceEvent, AiSettings, CaptionPatch
 
 
 @pytest.mark.parametrize("model,environment,reply,host", [
-    ("gemini-3.1-flash-lite", {"GEMINI_API_KEY": "test-key"}, {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "本文です。"}]}}], "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5}}, "generativelanguage.googleapis.com"),
-    ("claude-haiku-4-5", {"ANTHROPIC_API_KEY": "test-key"}, {"content": [{"type": "text", "text": "本文です。"}], "stop_reason": "end_turn", "usage": {"input_tokens": 10, "output_tokens": 5}}, "api.anthropic.com"),
-    ("gpt-5.3-codex", {"OPENAI_API_KEY": "test-key"}, {"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "本文です。"}]}], "usage": {"input_tokens": 10, "output_tokens": 5}}, "api.openai.com"),
-    ("gpt-5.4-mini-2026-03-17", {"OPENAI_API_KEY": "test-key"}, {"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "本文です。"}]}], "usage": {"input_tokens": 10, "output_tokens": 5}}, "api.openai.com"),
+    ("gemini-3.5-flash-lite", {"GEMINI_API_KEY": "test-key"}, {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "本文です。"}]}}], "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5}}, "generativelanguage.googleapis.com"),
+    ("claude-haiku-5-5", {"ANTHROPIC_API_KEY": "test-key"}, {"content": [{"type": "text", "text": "本文です。"}], "stop_reason": "end_turn", "usage": {"input_tokens": 10, "output_tokens": 5}}, "api.anthropic.com"),
+    ("gpt-6.1-sol", {"OPENAI_API_KEY": "test-key"}, {"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "本文です。"}]}], "usage": {"input_tokens": 10, "output_tokens": 5}}, "api.openai.com"),
+    ("gpt-6-luna", {"OPENAI_API_KEY": "test-key"}, {"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "本文です。"}]}], "usage": {"input_tokens": 10, "output_tokens": 5}}, "api.openai.com"),
 ])
 def test_provider_uses_real_protocol_and_parses_only_completed_text(model, environment, reply, host):
     def handle(request):
@@ -28,6 +28,7 @@ def test_provider_uses_real_protocol_and_parses_only_completed_text(model, envir
         if host == "api.openai.com":
             assert body["model"] == model
             assert body["store"] is False
+            assert body["reasoning"] == {"effort": "medium" if model == "gpt-6-luna" else "low"}
         return httpx.Response(200, json=reply)
     async def verify():
         provider = AiProvider(environment, httpx.MockTransport(handle))
@@ -43,7 +44,7 @@ def test_provider_enforces_a_total_deadline_and_hides_upstream_error_payloads():
         async def delayed(_):
             await asyncio.sleep(1)
             return httpx.Response(200, json={})
-        plan = AiRequest(id="request", model_id="gemini-3.1-flash-lite", source_revision=1)
+        plan = AiRequest(id="request", model_id="gemini-3.5-flash-lite", source_revision=1)
         provider = AiProvider({"GEMINI_API_KEY": "test-key", "CAPTION_RELAY_AI_TIMEOUT_SECONDS": "0.01"},
                               httpx.MockTransport(delayed))
         with pytest.raises(AiFailure, match="時間内"):
@@ -58,7 +59,7 @@ def test_provider_enforces_a_total_deadline_and_hides_upstream_error_payloads():
 
 def test_provider_missing_key_error_and_incomplete_response_do_not_fabricate_correction():
     async def verify():
-        plan = AiRequest(id="request", model_id="gemini-3.1-flash-lite", source_revision=1)
+        plan = AiRequest(id="request", model_id="gemini-3.5-flash-lite", source_revision=1)
         with pytest.raises(AiUnavailable):
             await AiProvider({}).correct(plan, "字幕")
         provider = AiProvider({"GEMINI_API_KEY": "test-key"}, httpx.MockTransport(lambda _: httpx.Response(200, json={"candidates": [{"finishReason": "MAX_TOKENS"}]})))
@@ -78,7 +79,7 @@ def test_async_ai_result_preserves_new_source_and_human_save():
             return httpx.Response(200, json={"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "AIの訂正"}]}}]})
         relay = CaptionRelay()
         workflow = CaptionWorkflow(relay, None, {"GEMINI_API_KEY": "test-key"}, httpx.MockTransport(handle))
-        relay.ai_settings(AiSettings(strategy="manual"))
+        relay.ai_settings(AiSettings(strategy="manual", preferred_model="gemini-3.5-flash-lite"))
         first = workflow.source_event(SourceEvent(utterance_id="speech", revision=1, text="旧原文", source_event_id="one"))
         await asyncio.sleep(0)
         workflow.source_event(SourceEvent(utterance_id="speech", revision=2, text="新原文", source_event_id="two"))

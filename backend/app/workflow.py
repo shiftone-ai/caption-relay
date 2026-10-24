@@ -8,7 +8,7 @@ import httpx2 as httpx
 from .ai_provider import AiFailure, AiProvider, AiUnavailable
 from .connections import Connections
 from .dictionary import WordDictionary
-from .models import Caption, CaptionPatch, ConnectionSettings, ConnectionStatus, DictionarySnapshot, FormattedResult, SourceEvent, SourceIgnored
+from .models import AiCorrectionContext, Caption, CaptionPatch, ConnectionSettings, ConnectionStatus, DictionarySnapshot, FormattedResult, SourceEvent, SourceIgnored
 from .relay import CaptionRelay, RevisionConflict
 from .udtalk_editor import EditorError
 from .transcription.openai import Connector, openai_connect
@@ -61,8 +61,9 @@ class CaptionWorkflow:
     async def configure(self, settings: ConnectionSettings) -> ConnectionStatus:
         self._ai_paused += 1
         try:
+            generation = self._generation
             result = await self.connections.configure(settings, self._cancel_ai)
-            self.relay.connection_mode(settings.mode)
+            self.relay.connection_mode(settings.mode, reset_context=generation != self._generation)
             return result
         finally:
             self._ai_paused -= 1
@@ -85,16 +86,18 @@ class CaptionWorkflow:
             elif len(self._tasks) >= 64:
                 self.relay.ai_status(result.id, result.ai_request.id, "failed", "AIの処理待ちが多いため、原文を保持しています。")
             else:
-                self._tasks[result.id] = asyncio.create_task(self._correct(result, self._generation, self.dictionary.snapshot()))
+                self._tasks[result.id] = asyncio.create_task(self._correct(
+                    result, self._generation, self.dictionary.snapshot(), self.relay.ai_context(result.id)))
         return self.relay.caption(result.id)
 
-    async def _correct(self, caption: Caption, generation: int, dictionary: DictionarySnapshot) -> None:
+    async def _correct(self, caption: Caption, generation: int, dictionary: DictionarySnapshot,
+                       context: AiCorrectionContext) -> None:
         plan = caption.ai_request
         assert plan is not None
         try:
             async with self._slots:
                 self.relay.ai_status(caption.id, plan.id, "running")
-                result = await self.provider.correct(plan, caption.original, dictionary)
+                result = await self.provider.correct(plan, caption.original, dictionary, context)
                 if generation == self._generation:
                     await self.formatted_result(caption.id, result)
         except (AiFailure, AiUnavailable, EditorError, RevisionConflict) as error:
