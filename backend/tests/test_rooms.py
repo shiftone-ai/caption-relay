@@ -33,6 +33,17 @@ def receive(client, room, text, identifier="same"):
     return response.json()
 
 
+def test_room_name_and_background_use_unicode_character_limits_and_keep_saved_settings():
+    name, background = "𠮷" * 120, "𠮷" * 4000
+    with TestClient(create_app(environment={})) as client:
+        room = create_room(client, name, background)
+        for invalid_name, invalid_background in ((name + "𠮷", background), (name, background + "𠮷")):
+            response = client.put(f"/api/rooms/{room['id']}", json={"name": invalid_name, "ai": {"background": invalid_background}})
+            assert response.status_code == 422
+        saved = client.get(f"/api/rooms/{room['id']}").json()
+        assert saved["name"] == name and saved["background"] == background
+
+
 def test_switching_rooms_preserves_each_caption_and_background_but_rejects_old_tab_writes():
     with TestClient(create_app(environment={})) as client:
         first = create_room(client, "作家へのインタビュー", "写真と布の展示")

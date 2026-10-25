@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { AudienceRoot, OperatorRoot } from "./roots";
-import type { AudienceEvent, Caption, OperatorApi, Snapshot } from "./domain";
+import type { AiRouting, AudienceEvent, Caption, OperatorApi, Snapshot } from "./domain";
 import { defaultDisplay } from "./display";
 import { defaultConnection } from "./connection";
 import { viewHierarchy } from "./events/hierarchy";
@@ -636,6 +636,7 @@ it("routes fullscreen controls through the audience Mediator and releases both s
 });
 
 const ai: AiParameters = {
+  error: "",
   background: "",
   helpDisclosure: { id: "ai-help", open: false }, comparisonDisclosure: { id: "ai-comparison", open: false },
   connectionWarning: true, showModelSettings: true,
@@ -766,6 +767,44 @@ it("selects a model directly and saves background after toggling AI off", async 
   vi.mocked(api.setAi).mockImplementation(settings => Promise.resolve({ ...defaultAi, settings }));
   await user.click(screen.getByRole("button", { name: "AI設定を保存" }));
   await waitFor(() => expect(api.setAi).toHaveBeenCalledWith(expect.objectContaining({ strategy: "manual", preferred_model: "claude-haiku-5-5", candidates: ["claude-haiku-5-5"], background: "写真と布の展示" }), expect.any(AbortSignal)));
+});
+
+it("saves supplementary Unicode background and retains an oversized AI-off draft", async () => {
+  let routing: AiRouting = { ...defaultAi, settings: { ...defaultAi.settings, strategy: "manual", preferred_model: "gemini-3.5-flash-lite" }, selected_model: "gemini-3.5-flash-lite",
+    models: ai.models.map(model => ({ id: model.id, label: model.label, provider: model.provider === "Gemini" ? "gemini" : "claude",
+      input_usd_per_million: 1, output_usd_per_million: 1, pricing_url: model.pricingUrl, pricing_checked_on: model.checkedOn, configured: false, latency_samples: 0 })),
+  };
+  const api: OperatorApi = {
+    load: vi.fn().mockImplementation(() => Promise.resolve({ visible: true, captions: [], ai: routing })),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(),
+    setAi: vi.fn().mockImplementation(settings => {
+      routing = { ...routing, settings, selected_model: settings.strategy === "off" ? null : settings.preferred_model };
+      return Promise.resolve(routing);
+    }),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "AI設定" }));
+  const background = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "トークの背景" });
+  const text = "𠮷".repeat(4000);
+  await user.click(background); await user.paste(text);
+  expect(Array.from(background.value)).toHaveLength(4000);
+  await user.click(screen.getByRole("button", { name: "AI設定を保存" }));
+  await waitFor(() => expect(api.setAi).toHaveBeenCalledWith(expect.objectContaining({ background: text }), expect.any(AbortSignal)));
+  fireEvent.change(background, { target: { value: text + "𠮷" } });
+  await user.selectOptions(screen.getByRole("combobox", { name: "モデル" }), "off");
+  expect(screen.getByRole("textbox", { name: "トークの背景" })).toBe(background);
+  await user.click(screen.getByRole("button", { name: "AI設定を保存" }));
+  expect(api.setAi).toHaveBeenCalledTimes(1);
+  expect(Array.from(background.value)).toHaveLength(4001);
+  expect(screen.getByRole("alert").textContent).toContain("4,000文字以内");
+  await user.clear(background);
+  expect(screen.getByRole("textbox", { name: "トークの背景" })).toBe(background);
+  await user.type(background, "短い背景");
+  expect(document.activeElement).toBe(background);
+  await user.click(screen.getByRole("button", { name: "AI設定を保存" }));
+  await waitFor(() => expect(api.setAi).toHaveBeenLastCalledWith(expect.objectContaining({ background: "短い背景", strategy: "off" }), expect.any(AbortSignal)));
+  await waitFor(() => expect(screen.queryByRole("textbox", { name: "トークの背景" })).toBeNull());
 });
 
 const toolbar: ToolbarParameters & { preparationHint: string } = {
