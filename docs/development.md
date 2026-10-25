@@ -8,7 +8,7 @@
 
 | ツール | 基準・確認先 |
 |---|---|
-| Node.js | [.node-version](../.node-version) の 22.22.3 を推奨。利用可能な範囲は [frontend/package.json](../frontend/package.json) の `engines` |
+| Node.js | [.node-version](../.node-version) の 22.23.4 を推奨。利用可能な範囲は [frontend/package.json](../frontend/package.json) の `engines` |
 | Python | [.python-version](../.python-version) の 3.12 |
 | uv | [CI](../.github/workflows/ci.yml) と同じ 0.12.17 を基準とする |
 | npm | フロントエンドの依存関係をロックファイルから導入する |
@@ -22,7 +22,9 @@ bash scripts/setup.sh
 bash scripts/dev.sh
 ```
 
-[setup.sh](../scripts/setup.sh) は Node.js の要件を確認し、`backend/uv.lock` と `frontend/package-lock.json` から依存関係を導入して画面をビルドする。対応MacではmacOS 26 SDKでApple認識のSwift補助プログラムもビルドする。SDKがない環境やLinuxではAppleの準備を省略する。依存関係が変わった場合も再実行する。
+[setup.sh](../scripts/setup.sh) は `engines` と同じ範囲（22.23.4以上の22系、24.22.1以上の24系、26.12.1以上）を確認し、`backend/uv.lock` と `frontend/package-lock.json` から依存関係を導入して画面をビルドする。対応MacではmacOS 26 SDKでApple認識のSwift補助プログラムもビルドする。SDKがない環境やLinuxではAppleの準備を省略する。依存関係が変わった場合も再実行する。
+
+Nodeの下限は[2026-10-21の公式セキュリティ更新](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases)に合わせている。CIも `.node-version` を読み、Node・npmの実行版とNode実行ファイルのSHA-256を記録する。
 
 [dev.sh](../scripts/dev.sh) は FastAPI を `127.0.0.1:24681` で起動し、`frontend/dist/` を配信する。ホームは `/`、接続後の操作画面は `/rooms/{room_id}`。観客画面は操作画面のモニターアイコンから開く。バックエンドの変更は自動で読み込む。画面を変更した場合は `npm --prefix frontend run build` で再ビルドする。
 
