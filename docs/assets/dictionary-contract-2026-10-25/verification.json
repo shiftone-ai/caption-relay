@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-10-25T21:23:43.723009+09:00",
+  "environment": "隔離した実FastAPIと背景の実ブラウザ。辞書はテストプロセス内のみ。APIキーなし。",
+  "browser": {
+    "term_characters": 80,
+    "term_utf16_length": 160,
+    "reading_characters": 80,
+    "saved_revision": 2,
+    "oversized_draft_characters": 81,
+    "oversized_draft_retained": true,
+    "validation_error": "1件目は各欄80文字以内で入力してください。",
+    "console_errors": 0
+  },
+  "api": {
+    "oversized_status": 422,
+    "saved_revision_after_rejection": 2,
+    "saved_content_preserved": true
+  },
+  "audio_started": false
+}

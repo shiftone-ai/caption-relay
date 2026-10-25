@@ -25,11 +25,11 @@ export function DictionarySettingsView({ parameters }: { parameters: DictionaryP
             <Button variant="ghost" className="operator-icon-button" aria-label={`${word.index + 1}件目を削除`} title="単語を削除" disabled={parameters.disabled}
               intent={{ type: "dictionary.word.removed", index: word.index }}><Trash2 size={16} aria-hidden="true" /></Button>
           </div>
-          <label>表記<input data-setting-autofocus aria-label={`${word.index + 1}件目の表記`} value={word.term} placeholder="例：Caption Relay" maxLength={80}
+          <label>表記<input data-setting-autofocus aria-label={`${word.index + 1}件目の表記`} value={word.term} placeholder="例：Caption Relay"
             onChange={event => emit({ type: "dictionary.word.changed", index: word.index, field: "term", value: event.currentTarget.value })} /></label>
-          <label>読み <span className="caption-hint">任意</span><input aria-label={`${word.index + 1}件目の読み`} value={word.reading} placeholder="例：きゃぷしょんりれー" maxLength={80}
+          <label>読み <span className="caption-hint">任意</span><input aria-label={`${word.index + 1}件目の読み`} value={word.reading} placeholder="例：きゃぷしょんりれー"
             onChange={event => emit({ type: "dictionary.word.changed", index: word.index, field: "reading", value: event.currentTarget.value })} /></label>
-          <label>誤認識されやすい表記 <span className="caption-hint">任意・1行1件、5件まで</span>
+          <label>誤認識されやすい表記 <span className="caption-hint">{parameters.variantsHint}</span>
             <Textarea aria-label={`${word.index + 1}件目の誤認識の表記`} rows={2} value={word.variantsText} disabled={parameters.disabled}
               placeholder="例：キャプションリレー" change={value => ({ type: "dictionary.word.changed", index: word.index, field: "variantsText", value })}
               keypress={key => ({ type: "settings.keypressed", key: key.key, isComposing: key.isComposing, defaultPrevented: false })} />
