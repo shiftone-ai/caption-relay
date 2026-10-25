@@ -15,7 +15,7 @@ function RoomFormView({ parameters }: { parameters: HomeParameters["form"] }) {
       <Form intent={{ type: "home.save.requested" }} className="home-form">
         <fieldset disabled={parameters.busy}>
           <label htmlFor="room-name">ルーム名</label>
-          <input ref={name} id="room-name" value={parameters.name} required maxLength={120}
+          <input ref={name} id="room-name" value={parameters.name} required
             onChange={event => emit({ type: "home.form.changed", field: "name", value: event.currentTarget.value })} />
           <label htmlFor="room-mode">配信先</label>
           <select id="room-mode" value={parameters.mode} onChange={event => emit({ type: "home.form.changed", field: "mode", value: event.currentTarget.value })}>
@@ -35,9 +35,10 @@ function RoomFormView({ parameters }: { parameters: HomeParameters["form"] }) {
             </select>
           </>}
           <label htmlFor="room-background">トークの背景</label>
-          <Textarea id="room-background" value={parameters.background} maxLength={4000} rows={4} placeholder="テーマ、登壇者、作品名など"
+          <Textarea id="room-background" value={parameters.background} rows={4} placeholder="テーマ、登壇者、作品名など"
             change={value => ({ type: "home.form.changed", field: "background", value })}
             keypress={key => ({ type: "home.form.keypressed", ...key })} />
+          {parameters.message && <p className="home-error" role="alert">{parameters.message}</p>}
           <div className="home-form-actions">
             <Button type="submit" disabled={parameters.saveDisabled}>{parameters.busy && <LoaderCircle size={16} className="home-loading-icon" aria-hidden="true" />}{parameters.submitLabel}</Button>
             <Button type="button" variant="ghost" intent={{ type: "home.form.cancelled" }}>キャンセル</Button>

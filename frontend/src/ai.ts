@@ -1,3 +1,4 @@
+import { formLimits } from "./generated/form-limits";
 import type { AiRouting, AiSettings } from "./domain";
 
 export const defaultAiSettings: AiSettings = {
@@ -21,4 +22,9 @@ export function editableAiSettings(ai: AiRouting): AiSettings {
 
 export function knownAiModel(value: string): value is AiSettings["preferred_model"] {
   return defaultAiSettings.candidates.some(model => model === value);
+}
+
+export function backgroundValidation(value: string): string {
+  return Array.from(value).length > formLimits.background
+    ? `トークの背景は${formLimits.background.toLocaleString("ja-JP")}文字以内で入力してください。` : "";
 }

@@ -1,5 +1,6 @@
+import { formLimits } from "../generated/form-limits";
 import { assign, fromPromise, setup, type SnapshotFrom } from "xstate";
-import { defaultAiSettings } from "../ai";
+import { backgroundValidation, defaultAiSettings } from "../ai";
 import { OperationError, type AiSettings, type HomeEvent, type RoomCatalog, type RoomDetails, type RoomsApi, type ViewEvent } from "../domain";
 
 interface Form {
@@ -28,6 +29,11 @@ const emptyForm = (): Form => ({ name: "", mode: "client", inputSource: "udtalk"
 const message = (error: unknown) => error instanceof OperationError ? error.message : "ルームの接続を確認できませんでした。もう一度お試しください。";
 const knownRoom = (context: Context, event: HomeEvent) => "roomId" in event && context.catalog.rooms.some(room => room.id === event.roomId);
 
+const roomFormValidation = (form: Form) => Array.from(form.name.trim()).length > formLimits.roomName
+  ? `ルーム名は${formLimits.roomName}文字以内で入力してください。` : backgroundValidation(form.ai.background);
+const canSubmitRoom = (context: Context) => context.formOpen && Boolean(context.form.name.trim())
+  && !roomFormValidation(context.form) && (context.form.mode === "host" || Boolean(context.form.editorUrl.trim()) || context.form.storedLink);
+
 export const homeMachine = setup({
   types: {} as { context: Context; events: ViewEvent; input: { api: RoomsApi } },
   actors: {
@@ -40,9 +46,9 @@ export const homeMachine = setup({
   },
   guards: {
     knownRoom: ({ context, event }) => knownRoom(context, event as HomeEvent),
-    validForm: ({ context }) => context.formOpen && Boolean(context.form.name.trim()) && (context.form.mode === "host" || Boolean(context.form.editorUrl.trim()) || context.form.storedLink),
+    validForm: ({ context }) => canSubmitRoom(context),
     submitKey: ({ context, event }) => event.type === "home.form.keypressed" && event.key === "Enter" && (event.ctrlKey || event.metaKey) && !event.isComposing
-      && context.formOpen && Boolean(context.form.name.trim()) && (context.form.mode === "host" || Boolean(context.form.editorUrl.trim()) || context.form.storedLink),
+      && canSubmitRoom(context),
   },
   actions: {
     newForm: assign(({ context }) => ({ form: emptyForm(), formOpen: true, editingRoomId: null, message: "", focusVersion: context.focusVersion + 1 })),
@@ -54,7 +60,7 @@ export const homeMachine = setup({
       if (event.field === "editorUrl") form.editorUrl = event.value;
       if (event.field === "mode" && (event.value === "host" || event.value === "client")) form.mode = event.value;
       if (event.field === "inputSource" && (event.value === "udtalk" || event.value === "microphone")) form.inputSource = event.value;
-      return { form, message: "" };
+      return { form, message: roomFormValidation(form) };
     }),
     requestRoom: assign(({ event }) => "roomId" in event ? { requestedRoomId: event.roomId, message: "" } : {}),
   },

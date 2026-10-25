@@ -66,6 +66,37 @@ it("registers a room from the form once and connects before navigating", async (
   expect(api.connect).toHaveBeenCalledWith(room.id, expect.any(AbortSignal));
 });
 
+it("saves supplementary Unicode at the room limits and retains oversized form input", async () => {
+  const api = rooms();
+  render(<HomeRoot api={api} go={vi.fn()} />);
+  const user = userEvent.setup();
+  await screen.findByText(room.name);
+  await user.click(screen.getByRole("button", { name: "新しいルームに接続" }));
+  await user.selectOptions(screen.getByLabelText("配信先"), "host");
+  const name = screen.getByRole<HTMLInputElement>("textbox", { name: "ルーム名" });
+  const background = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "トークの背景" });
+  const nameText = "𠮷".repeat(120);
+  const backgroundText = "𠮷".repeat(4000);
+  await user.click(name); await user.paste(nameText);
+  expect(Array.from(name.value)).toHaveLength(120);
+  await user.click(background); await user.paste(backgroundText);
+  expect(Array.from(background.value)).toHaveLength(4000);
+  fireEvent.change(name, { target: { value: nameText + "𠮷" } });
+  expect(screen.getByRole("alert").textContent).toContain("120文字以内");
+  fireEvent.submit(name.closest("form")!);
+  expect(api.save).not.toHaveBeenCalled();
+  expect(Array.from(name.value)).toHaveLength(121);
+  fireEvent.change(name, { target: { value: nameText } });
+  fireEvent.change(background, { target: { value: backgroundText + "𠮷" } });
+  await user.keyboard("{Control>}{Enter}{/Control}");
+  expect(screen.getByRole("alert").textContent).toContain("4,000文字以内");
+  expect(api.save).not.toHaveBeenCalled();
+  expect(Array.from(background.value)).toHaveLength(4001);
+  fireEvent.change(background, { target: { value: backgroundText } });
+  await user.click(screen.getByRole("button", { name: "登録して接続" }));
+  await waitFor(() => expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ name: nameText, ai: expect.objectContaining({ background: backgroundText }) }), null, expect.any(AbortSignal)));
+});
+
 it("retains a rejected link for correction and can reconnect from the room list", async () => {
   const api = rooms();
   vi.mocked(api.save).mockRejectedValue(new OperationError("編集用の参加リンクを確認してください。"));

@@ -3,7 +3,7 @@ import { microphoneActor } from "./microphone";
 import type { MicrophoneAdapter, MicrophoneDevice, TranscriptionStatus } from "../domain";
 import { CaptionConflict, OperationError, disclosureIds, type DisclosureId, type ConnectionSettings, type ConnectionStatus, type AiRouting, type AiSettings, type Caption, type DisplaySettings, type Draft, type OperatorApi, type ViewEvent, type PublicationMode, type SaveRequest, type StatusTooltipGeometry } from "../domain";
 import { changeDisplayField, defaultDisplay, selectDisplayPalette } from "../display";
-import { editableAiSettings, defaultAi, knownAiModel } from "../ai";
+import { backgroundValidation, editableAiSettings, defaultAi, knownAiModel } from "../ai";
 import { defaultConnection } from "../connection";
 import { dictionaryLimits, dictionaryUpdate, dictionaryValidation, draftDictionary, emptyDictionary, type DictionaryDraft } from "../dictionary";
 import type { DictionarySnapshot, DictionaryUpdate } from "../domain";
@@ -62,6 +62,8 @@ interface OperatorContext {
   displayDraft: DisplaySettings | null;
   ai: AiRouting;
   aiDraft: AiSettings | null;
+  aiError: string;
+  aiBackgroundExpanded: boolean;
   dictionary: DictionarySnapshot;
   dictionaryDraft: DictionaryDraft | null;
   dictionaryError: string;
@@ -161,7 +163,10 @@ const operations = {
   "display.palette.selected": { guard: "hostMode", actions: "editDisplay" },
   "ai.background.changed": { actions: "editAi" },
   "ai.model.selected": { guard: "validAiModel", actions: "editAi" },
-  "ai.save.requested": { target: "settingAi", actions: "clearError" },
+  "ai.save.requested": [
+    { guard: "validAiSettings", target: "settingAi", actions: "clearError" },
+    { actions: "invalidAi" },
+  ],
   "dictionary.word.added": { guard: "canAddWord", actions: "addWord" },
   "dictionary.word.changed": { guard: "knownWord", actions: "editWord" },
   "dictionary.word.enabled": { guard: "knownWord", actions: "editWord" },
@@ -202,6 +207,7 @@ export const operatorMachine = setup({
     connection: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; settings: ConnectionSettings }; signal: AbortSignal }) => input.api.setConnection(input.settings, signal)),
   },
   guards: {
+    validAiSettings: ({ context }) => !backgroundValidation((context.aiDraft ?? context.ai.settings).background),
     canAddWord: ({ context }) => (context.dictionaryDraft ?? draftDictionary(context.dictionary)).entries.length < dictionaryLimits.maxEntries,
     knownWord: ({ context, event }) => (event.type === "dictionary.word.changed" || event.type === "dictionary.word.enabled" || event.type === "dictionary.word.removed")
       && Number.isInteger(event.index) && event.index >= 0 && event.index < (context.dictionaryDraft ?? draftDictionary(context.dictionary)).entries.length,
@@ -270,6 +276,7 @@ export const operatorMachine = setup({
       && context.pendingSave?.captionId !== event.captionId,
   },
   actions: {
+    invalidAi: assign(({ context }) => ({ aiError: backgroundValidation((context.aiDraft ?? context.ai.settings).background) })),
     discardDictionary: assign({ dictionaryDraft: null, dictionaryError: "", dictionaryNotice: "保存済みの辞書に戻しました。" }),
     clearDictionaryMessage: assign({ dictionaryError: "", dictionaryNotice: "" }),
     addWord: assign(({ context }) => {
@@ -340,10 +347,10 @@ export const operatorMachine = setup({
     }),
     editAi: assign(({ context, event }) => {
       const settings = context.aiDraft ?? editableAiSettings(context.ai);
-      if (event.type === "ai.background.changed") return { aiDraft: { ...settings, background: event.value } };
+      if (event.type === "ai.background.changed") return { aiError: "", aiBackgroundExpanded: context.aiBackgroundExpanded || Boolean(backgroundValidation(event.value)), aiDraft: { ...settings, background: event.value } };
       if (event.type === "ai.model.selected") {
-        if (event.modelId === "off") return { aiDraft: { ...settings, strategy: "off" as const } };
-        if (knownAiModel(event.modelId)) return { aiDraft: { ...settings, strategy: "manual" as const,
+        if (event.modelId === "off") return { aiError: "", aiDraft: { ...settings, strategy: "off" as const } };
+        if (knownAiModel(event.modelId)) return { aiError: "", aiDraft: { ...settings, strategy: "manual" as const,
           preferred_model: event.modelId, candidates: [event.modelId] } };
       }
       return {};
@@ -413,7 +420,7 @@ export const operatorMachine = setup({
     openedDisclosures: new Set<DisclosureId>(["display-speaker", "display-appearance"]),
     requestedMode: { auto_publish: true },
     display: defaultDisplay, displayDraft: null,
-    ai: defaultAi, aiDraft: null,
+    ai: defaultAi, aiDraft: null, aiError: "", aiBackgroundExpanded: false,
     dictionary: emptyDictionary, dictionaryDraft: null, dictionaryError: "", dictionaryNotice: "",
     connection: defaultConnection, receiverUrl: "", connectionDraft: null,
   }),
@@ -608,8 +615,8 @@ export const operatorMachine = setup({
         settingAi: {
           invoke: {
             src: "ai", input: ({ context }) => ({ api: context.api, settings: context.aiDraft ?? context.ai.settings }),
-            onDone: { target: "idle", actions: assign(({ event }) => ({ ai: event.output, aiDraft: null })) },
-            onError: { target: "idle", actions: assign({ error: "AI設定を保存できませんでした。設定内容は保持しています。", errorSource: "command" }) },
+            onDone: { target: "idle", actions: assign(({ event }) => ({ ai: event.output, aiDraft: null, aiError: "", aiBackgroundExpanded: false })) },
+            onError: { target: "idle", actions: assign({ aiError: "AI設定を保存できませんでした。設定内容は保持しています。" }) },
           },
         },
         settingDictionary: {
