@@ -1,6 +1,6 @@
-import { OperationError, type MicrophoneAdapter, type MicrophoneSession, type TranscriptionStatus } from "../domain";
+import { OperationError, type MicrophoneAdapter, type MicrophoneSession, type TranscriptionStatus, type RoomBinding } from "../domain";
 
-export function createMicrophoneAdapter(): MicrophoneAdapter {
+export function createMicrophoneAdapter(room?: RoomBinding): MicrophoneAdapter {
   return {
     available: Boolean(typeof navigator.mediaDevices?.getUserMedia === "function" && typeof AudioContext !== "undefined" && typeof AudioWorkletNode !== "undefined"),
     async devices() {
@@ -47,6 +47,10 @@ export function createMicrophoneAdapter(): MicrophoneAdapter {
         await context.resume();
         if (signal.aborted || released) throw new OperationError("マイクの開始を中止しました。");
         const url = new URL("/api/source/audio", window.location.href);
+        if (room) {
+          url.searchParams.set("room_id", room.roomId);
+          url.searchParams.set("generation", String(room.generation));
+        }
         url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
         socket = new WebSocket(url);
         const connection = socket;

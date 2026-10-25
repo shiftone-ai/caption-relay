@@ -1,0 +1,186 @@
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeAll, expect, it, vi } from "vitest";
+import { HomeRoot, RoomRoot } from "./roots";
+import { StrictMode } from "react";
+import { roomsApi } from "./adapters/rooms";
+import { createOperatorApi } from "./api";
+import { defaultAiSettings } from "./ai";
+import { OperationError, type Caption, type OperatorApi, type RoomDetails, type RoomsApi } from "./domain";
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+});
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+const room: RoomDetails = { id: "room-one", name: "作品のトーク", generation: 0, last_used_at: null, caption_count: 0,
+  mode: "host", input_source: "udtalk", recognizer: "openai", background: "展示の背景", ai: { ...defaultAiSettings, background: "展示の背景" },
+  connection: { mode: "host", input_source: "udtalk", recognizer: "openai", zoom_text_format: "plain" } };
+const rooms = (): RoomsApi => ({
+  catalog: vi.fn().mockResolvedValue({ active_room_id: null, rooms: [room] }), details: vi.fn().mockResolvedValue(room),
+  save: vi.fn().mockResolvedValue(room), connect: vi.fn().mockResolvedValue(room), leave: vi.fn().mockResolvedValue(undefined),
+  reset: vi.fn().mockResolvedValue({ ...room, generation: 1 }),
+});
+const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1,
+  original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
+const operator = (): OperatorApi => ({
+  load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }), save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
+  setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(),
+});
+const microphone = () => ({ available: false, devices: async () => [], start: vi.fn() });
+
+it("loads the home after StrictMode cancels its first request", async () => {
+  const fetch = vi.fn((_path: string, { signal }: RequestInit) => new Promise<Response>((resolve, reject) => {
+    if (signal?.aborted) { reject(new DOMException("aborted", "AbortError")); return; }
+    const timer = setTimeout(() => resolve(new Response(JSON.stringify({ active_room_id: null, rooms: [room] }))), 0);
+    signal?.addEventListener("abort", () => { clearTimeout(timer); reject(new DOMException("aborted", "AbortError")); }, { once: true });
+  }));
+  vi.stubGlobal("fetch", fetch);
+  render(<StrictMode><HomeRoot api={roomsApi} go={vi.fn()} /></StrictMode>);
+  await screen.findByRole("heading", { name: room.name });
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+it("registers a room from the form once and connects before navigating", async () => {
+  const api = rooms();
+  const go = vi.fn();
+  let complete!: (room: RoomDetails) => void;
+  vi.mocked(api.save).mockReturnValue(new Promise(resolve => { complete = resolve; }));
+  render(<HomeRoot api={api} go={go} />);
+  const user = userEvent.setup();
+  await screen.findByText(room.name);
+  await user.click(screen.getByRole("button", { name: "新しいルームに接続" }));
+  await user.type(screen.getByLabelText("ルーム名"), "新しい展示");
+  await user.selectOptions(screen.getByLabelText("配信先"), "host");
+  fireEvent.change(screen.getByLabelText("トークの背景"), { target: { value: "登壇者と作品" } });
+  await user.keyboard("{Control>}{Enter}{/Control}");
+  fireEvent.submit(screen.getByLabelText("ルーム名").closest("form")!);
+  expect(api.save).toHaveBeenCalledTimes(1);
+  expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ name: "新しい展示", ai: expect.objectContaining({ background: "登壇者と作品" }),
+    connection: expect.objectContaining({ mode: "host", editor_url: null }) }), null, expect.any(AbortSignal));
+  expect(go).not.toHaveBeenCalled();
+  await act(async () => complete(room));
+  await waitFor(() => expect(go).toHaveBeenCalledWith("/rooms/room-one"));
+  expect(api.connect).toHaveBeenCalledWith(room.id, expect.any(AbortSignal));
+});
+
+it("retains a rejected link for correction and can reconnect from the room list", async () => {
+  const api = rooms();
+  vi.mocked(api.save).mockRejectedValue(new OperationError("編集用の参加リンクを確認してください。"));
+  const go = vi.fn();
+  render(<HomeRoot api={api} go={go} />);
+  const user = userEvent.setup();
+  await screen.findByText(room.name);
+  await user.click(screen.getByRole("button", { name: "新しいルームに接続" }));
+  await user.type(screen.getByLabelText("ルーム名"), "接続テスト");
+  fireEvent.change(screen.getByLabelText("編集用の参加リンク"), { target: { value: "invalid-link" } });
+  await user.click(screen.getByRole("button", { name: "登録して接続" }));
+  await screen.findByRole("alert");
+  expect((screen.getByLabelText("編集用の参加リンク") as HTMLTextAreaElement).value).toBe("invalid-link");
+  await user.click(screen.getByRole("button", { name: "キャンセル" }));
+  await user.click(screen.getByRole("button", { name: room.name + "に接続" }));
+  await waitFor(() => expect(go).toHaveBeenCalledWith("/rooms/room-one"));
+});
+
+it("edits stored room settings without requiring the private link again", async () => {
+  const api = rooms();
+  vi.mocked(api.details).mockResolvedValue({ ...room, mode: "client", connection: { ...room.connection, mode: "client", editor_url: null } });
+  render(<HomeRoot api={api} go={vi.fn()} />);
+  const user = userEvent.setup();
+  await screen.findByText(room.name);
+  await user.click(screen.getByRole("button", { name: room.name + "の接続設定" }));
+  const background = await screen.findByLabelText("トークの背景");
+  expect((background as HTMLTextAreaElement).value).toBe("展示の背景");
+  await user.click(screen.getByRole("button", { name: "保存して接続" }));
+  await waitFor(() => expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ connection: expect.objectContaining({ mode: "client", editor_url: null }) }), room.id, expect.any(AbortSignal)));
+});
+
+it("keeps a newly saved room in the list when its first connection fails", async () => {
+  const api = rooms();
+  vi.mocked(api.catalog).mockResolvedValue({ active_room_id: null, rooms: [] });
+  vi.mocked(api.connect).mockRejectedValueOnce(new OperationError("接続を確認してください。"));
+  const go = vi.fn();
+  render(<HomeRoot api={api} go={go} />);
+  const user = userEvent.setup();
+  await waitFor(() => expect(screen.getByRole<HTMLButtonElement>("button", { name: "新しいルームに接続" }).disabled).toBe(false));
+  await user.click(screen.getByRole("button", { name: "新しいルームに接続" }));
+  await user.type(screen.getByLabelText("ルーム名"), room.name);
+  await user.selectOptions(screen.getByLabelText("配信先"), "host");
+  await user.click(screen.getByRole("button", { name: "登録して接続" }));
+  await screen.findByRole("alert");
+  await user.click(screen.getByRole("button", { name: room.name + "に接続" }));
+  await waitFor(() => expect(go).toHaveBeenCalledWith("/rooms/room-one"));
+  expect(api.save).toHaveBeenCalledTimes(1);
+  expect(api.connect).toHaveBeenCalledTimes(2);
+});
+
+it("cancels reset without losing a draft and discards it only after a successful reset", async () => {
+  const api = rooms();
+  const first = operator();
+  const next = operator();
+  vi.mocked(next.load).mockResolvedValue({ visible: true, captions: [] });
+  const factory = vi.fn(binding => binding.generation === 0 ? first : next);
+  render(<RoomRoot id={room.id} api={api} operator={factory} microphone={microphone} go={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "編集：字幕" }));
+  const editor = screen.getByRole("textbox", { name: "表示文" });
+  fireEvent.change(editor, { target: { value: "未保存の訂正" } });
+  await user.click(screen.getByRole("button", { name: "字幕をリセット" }));
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "キャンセル" }));
+  expect((editor as HTMLTextAreaElement).value).toBe("未保存の訂正");
+  expect(api.reset).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "字幕をリセット" }));
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "字幕をリセット" }));
+  await waitFor(() => expect(next.load).toHaveBeenCalled());
+  expect(api.reset).toHaveBeenCalledWith({ roomId: room.id, generation: 0 }, expect.any(AbortSignal));
+  expect(screen.queryByRole("textbox", { name: "表示文" })).toBeNull();
+  expect(first.save).not.toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: "観客画面" }).getAttribute("href")).toBe("/view/demo?room_id=room-one");
+});
+
+it("keeps unsaved work after a reset failure and confirms leaving before removing the page guard", async () => {
+  const api = rooms();
+  vi.mocked(api.reset).mockRejectedValue(new OperationError("保存先を確認してください。"));
+  const op = operator();
+  const go = vi.fn(() => {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+  render(<RoomRoot id={room.id} api={api} operator={() => op} microphone={microphone} go={go} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "編集：字幕" }));
+  const editor = screen.getByRole("textbox", { name: "表示文" });
+  fireEvent.change(editor, { target: { value: "残す訂正" } });
+  await user.click(screen.getByRole("button", { name: "字幕をリセット" }));
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "字幕をリセット" }));
+  await screen.findByText("保存先を確認してください。");
+  expect((editor as HTMLTextAreaElement).value).toBe("残す訂正");
+  await user.click(screen.getByRole("button", { name: "ホームへ戻る" }));
+  expect(api.leave).not.toHaveBeenCalled();
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "キャンセル" }));
+  expect(go).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "ホームへ戻る" }));
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "破棄して戻る" }));
+  await waitFor(() => expect(go).toHaveBeenCalledWith("/"));
+  expect(api.leave).toHaveBeenCalledWith({ roomId: room.id, generation: 0 }, expect.any(AbortSignal));
+});
+
+it("binds every operator read and write to the room and reset generation", async () => {
+  const fetch = vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify({
+    "/api/session": { visible: true }, "/api/events": [], "/api/ai": {}, "/api/connection": {}, "/api/dictionary": {},
+  }[path] ?? caption), { status: 200, headers: { "content-type": "application/json" } })));
+  vi.stubGlobal("fetch", fetch);
+  const api = createOperatorApi({ roomId: room.id, generation: 7 });
+  const signal = new AbortController().signal;
+  await api.load(signal);
+  await api.save({ captionId: caption.id, text: "訂正", baseRevision: 1 }, signal);
+  expect(fetch).toHaveBeenCalledTimes(6);
+  for (const [, options] of fetch.mock.calls) {
+    expect(options.headers.get("X-Caption-Relay-Room")).toBe(room.id);
+    expect(options.headers.get("X-Caption-Relay-Generation")).toBe("7");
+  }
+  expect(fetch.mock.calls.at(-1)?.[1].headers.get("content-type")).toBe("application/json");
+});

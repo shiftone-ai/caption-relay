@@ -67,6 +67,7 @@ export interface CaptionMonitorParameters {
 }
 
 export interface ToolbarParameters {
+  audienceHref: string;
   helpDisclosure: DisclosureParameters;
   preparationDisclosure: DisclosureParameters;
   preparationHint: string;
@@ -231,7 +232,7 @@ export interface OperatorParameters {
 
 const rowCache = new WeakMap<Caption, { dependencies: readonly unknown[]; parameters: RowParameters }>();
 
-export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters {
+export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): OperatorParameters {
   const { context } = snapshot;
   const clientMode = context.connection.mode === "client";
   let currentCaption: Caption | undefined;
@@ -341,6 +342,7 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
       version: context.settingsFocusRequest,
     } : null,
     toolbar: {
+      audienceHref: "/view/demo" + (roomId ? "?room_id=" + encodeURIComponent(roomId) : ""),
       helpDisclosure: presentDisclosure("publication-help", context.openedDisclosures),
       preparationDisclosure: presentDisclosure("preparation", context.openedDisclosures),
       preparationHint: !context.visible ? "非表示中のため、テスト字幕は一覧に追加され、観客には表示されません。"

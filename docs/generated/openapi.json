@@ -16,6 +16,315 @@
         }
       }
     },
+    "/rooms/{room_id}": {
+      "get": {
+        "summary": "Room Index",
+        "operationId": "room_index_rooms__room_id__get",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms": {
+      "get": {
+        "summary": "Room Catalog",
+        "operationId": "room_catalog_api_rooms_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomCatalog"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add Room",
+        "operationId": "add_room_api_rooms_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomDraft"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{room_id}": {
+      "get": {
+        "summary": "Room Details",
+        "operationId": "room_details_api_rooms__room_id__get",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Room",
+        "operationId": "update_room_api_rooms__room_id__put",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomDraft"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{room_id}/connect": {
+      "post": {
+        "summary": "Connect Room",
+        "operationId": "connect_room_api_rooms__room_id__connect_post",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{room_id}/leave": {
+      "post": {
+        "summary": "Leave Room",
+        "operationId": "leave_room_api_rooms__room_id__leave_post",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomReset"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomCatalog"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{room_id}/reset": {
+      "post": {
+        "summary": "Reset Room",
+        "operationId": "reset_room_api_rooms__room_id__reset_post",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomReset"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/view/demo": {
       "get": {
         "summary": "View",
@@ -31,6 +340,43 @@
       "get": {
         "summary": "Session",
         "operationId": "session_api_session_get",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -38,6 +384,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -49,17 +405,64 @@
       "get": {
         "summary": "Events",
         "operationId": "events_api_events_get",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/Caption"
                   },
-                  "type": "array",
                   "title": "Response Events Api Events Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -71,15 +474,52 @@
       "post": {
         "summary": "Source Event",
         "operationId": "source_event_api_source_events_post",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SourceEvent"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -117,6 +557,43 @@
       "get": {
         "summary": "Udtalk Status",
         "operationId": "udtalk_status_api_source_udtalk_get",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -124,6 +601,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UdtalkStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -135,6 +622,43 @@
       "get": {
         "summary": "Connection",
         "operationId": "connection_api_connection_get",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -145,21 +669,68 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       },
       "put": {
         "summary": "Set Connection",
         "operationId": "set_connection_api_connection_put",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ConnectionSettings"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -309,6 +880,41 @@
               "type": "string",
               "title": "Caption Id"
             }
+          },
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
           }
         ],
         "requestBody": {
@@ -368,6 +974,41 @@
               "type": "string",
               "title": "Caption Id"
             }
+          },
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
           }
         ],
         "requestBody": {
@@ -416,15 +1057,52 @@
       "post": {
         "summary": "Command",
         "operationId": "command_api_commands_post",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/Command"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -454,15 +1132,52 @@
       "put": {
         "summary": "Publication Mode",
         "operationId": "publication_mode_api_publication_mode_put",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PublicationMode"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -492,15 +1207,52 @@
       "put": {
         "summary": "Display Settings",
         "operationId": "display_settings_api_display_put",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DisplaySettings"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -530,6 +1282,43 @@
       "get": {
         "summary": "Ai Routing",
         "operationId": "ai_routing_api_ai_get",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -540,21 +1329,68 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       },
       "put": {
         "summary": "Ai Settings",
         "operationId": "ai_settings_api_ai_put",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AiSettings"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -584,6 +1420,43 @@
       "get": {
         "summary": "Get Dictionary",
         "operationId": "get_dictionary_api_dictionary_get",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -594,21 +1467,68 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       },
       "put": {
         "summary": "Set Dictionary",
         "operationId": "set_dictionary_api_dictionary_put",
+        "parameters": [
+          {
+            "name": "X-Caption-Relay-Room",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Room"
+            }
+          },
+          {
+            "name": "X-Caption-Relay-Generation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caption-Relay-Generation"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DictionaryUpdate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -622,24 +1542,24 @@
             }
           },
           "409": {
-            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DictionaryError"
                 }
               }
-            }
+            },
+            "description": "Conflict"
           },
           "503": {
-            "description": "Service Unavailable",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DictionaryError"
                 }
               }
-            }
+            },
+            "description": "Service Unavailable"
           },
           "422": {
             "description": "Validation Error",
@@ -658,6 +1578,24 @@
       "get": {
         "summary": "Public View",
         "operationId": "public_view_api_view_get",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Room Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -665,6 +1603,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PublicSnapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -676,9 +1624,37 @@
       "get": {
         "summary": "Public Events",
         "operationId": "public_events_api_view_events_get",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Room Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -1724,6 +2700,220 @@
           "message"
         ],
         "title": "RecognizerOption"
+      },
+      "RoomCatalog": {
+        "properties": {
+          "active_room_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Room Id"
+          },
+          "rooms": {
+            "items": {
+              "$ref": "#/components/schemas/RoomSummary"
+            },
+            "type": "array",
+            "title": "Rooms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "active_room_id",
+          "rooms"
+        ],
+        "title": "RoomCatalog"
+      },
+      "RoomDetails": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "generation": {
+            "type": "integer",
+            "title": "Generation"
+          },
+          "caption_count": {
+            "type": "integer",
+            "title": "Caption Count"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "input_source": {
+            "type": "string",
+            "enum": [
+              "udtalk",
+              "microphone"
+            ],
+            "title": "Input Source"
+          },
+          "recognizer": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "apple"
+            ],
+            "title": "Recognizer"
+          },
+          "background": {
+            "type": "string",
+            "title": "Background"
+          },
+          "connection": {
+            "$ref": "#/components/schemas/ConnectionSettings"
+          },
+          "ai": {
+            "$ref": "#/components/schemas/AiSettings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "last_used_at",
+          "generation",
+          "caption_count",
+          "mode",
+          "input_source",
+          "recognizer",
+          "background",
+          "connection",
+          "ai"
+        ],
+        "title": "RoomDetails"
+      },
+      "RoomDraft": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "connection": {
+            "$ref": "#/components/schemas/ConnectionSettings"
+          },
+          "ai": {
+            "$ref": "#/components/schemas/AiSettings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "RoomDraft"
+      },
+      "RoomReset": {
+        "properties": {
+          "generation": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Generation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "generation"
+        ],
+        "title": "RoomReset"
+      },
+      "RoomSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "generation": {
+            "type": "integer",
+            "title": "Generation"
+          },
+          "caption_count": {
+            "type": "integer",
+            "title": "Caption Count"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "input_source": {
+            "type": "string",
+            "enum": [
+              "udtalk",
+              "microphone"
+            ],
+            "title": "Input Source"
+          },
+          "recognizer": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "apple"
+            ],
+            "title": "Recognizer"
+          },
+          "background": {
+            "type": "string",
+            "title": "Background"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "last_used_at",
+          "generation",
+          "caption_count",
+          "mode",
+          "input_source",
+          "recognizer",
+          "background"
+        ],
+        "title": "RoomSummary"
       },
       "Session": {
         "properties": {

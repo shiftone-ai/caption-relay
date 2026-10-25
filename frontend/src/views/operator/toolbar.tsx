@@ -34,7 +34,7 @@ export function ToolbarView({ parameters }: { parameters: ToolbarParameters }) {
             disabled={parameters.dictionarySettingsDisabled} intent={{ type: "dictionary.settings.toggled" }}><BookOpen size={16} /></Button>
           <Button variant="outline" className="operator-icon-button toolbar-display" data-settings-trigger="display" aria-label="表示設定" title="表示設定" disabled={!parameters.localOutput} aria-expanded={parameters.settingsOpen} aria-controls="display-settings"
             intent={{ type: "display.settings.toggled" }}><Settings2 size={16} /></Button>
-          {parameters.localOutput && <a className="operator-output-link" aria-label="観客画面" title="観客画面を開く" href="/view/demo" target="_blank" rel="noopener noreferrer"><Monitor size={16} aria-hidden="true" /></a>}
+          {parameters.localOutput && <a className="operator-output-link" aria-label="観客画面" title="観客画面を開く" href={parameters.audienceHref} target="_blank" rel="noopener noreferrer"><Monitor size={16} aria-hidden="true" /></a>}
         </div>
       )}
     </viewHierarchy.Scope>
