@@ -3,7 +3,7 @@ import { microphoneActor } from "./microphone";
 import type { MicrophoneAdapter, MicrophoneDevice, TranscriptionStatus } from "../domain";
 import { CaptionConflict, OperationError, disclosureIds, type DisclosureId, type ConnectionSettings, type ConnectionStatus, type AiRouting, type AiSettings, type Caption, type DisplaySettings, type Draft, type OperatorApi, type ViewEvent, type PublicationMode, type SaveRequest, type StatusTooltipGeometry } from "../domain";
 import { changeDisplayField, defaultDisplay, selectDisplayPalette } from "../display";
-import { aiStrategies, defaultAi, knownAiModel } from "../ai";
+import { editableAiSettings, defaultAi, knownAiModel } from "../ai";
 import { defaultConnection } from "../connection";
 import { dictionaryUpdate, dictionaryValidation, draftDictionary, emptyDictionary, type DictionaryDraft } from "../dictionary";
 import type { DictionarySnapshot, DictionaryUpdate } from "../domain";
@@ -159,10 +159,8 @@ const operations = {
   "display.save.requested": { guard: "hostMode", target: "settingDisplay", actions: "clearError" },
   "display.field.changed": { guard: "hostMode", actions: "editDisplay" },
   "display.palette.selected": { guard: "hostMode", actions: "editDisplay" },
-  "ai.strategy.selected": { guard: "validAiStrategy", actions: "editAi" },
   "ai.background.changed": { actions: "editAi" },
-  "ai.preferred.selected": { guard: "validAiModel", actions: "editAi" },
-  "ai.candidate.changed": { guard: "canChangeAiCandidate", actions: "editAi" },
+  "ai.model.selected": { guard: "validAiModel", actions: "editAi" },
   "ai.save.requested": { target: "settingAi", actions: "clearError" },
   "dictionary.word.added": { guard: "canAddWord", actions: "addWord" },
   "dictionary.word.changed": { guard: "knownWord", actions: "editWord" },
@@ -259,10 +257,7 @@ export const operatorMachine = setup({
     hasEditor: ({ context }) => context.activeCaptionId !== null,
     canMeasureEditing: ({ context, event }) => event.type === "timeline.editing.measured"
       && context.activeCaptionId === event.captionId && context.editingCaptionVisible !== (event.intersectionRatio > 0),
-    validAiStrategy: ({ event }) => event.type === "ai.strategy.selected" && Object.keys(aiStrategies).includes(event.value),
-    validAiModel: ({ event }) => event.type === "ai.preferred.selected" && knownAiModel(event.modelId),
-    canChangeAiCandidate: ({ context, event }) => event.type === "ai.candidate.changed" && knownAiModel(event.modelId)
-      && (event.included || event.modelId !== (context.aiDraft ?? context.ai.settings).preferred_model),
+    validAiModel: ({ event }) => event.type === "ai.model.selected" && (event.modelId === "off" || knownAiModel(event.modelId)),
     validSave: ({ context, event }) => event.type === "caption.save.requested"
       && canSaveDestination(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim()),
     validSaveDestination: ({ context, event }) => event.type === "caption.save.requested" && canSaveDestination(context, event.captionId),
@@ -344,19 +339,12 @@ export const operatorMachine = setup({
       return {};
     }),
     editAi: assign(({ context, event }) => {
-      const settings = context.aiDraft ?? context.ai.settings;
+      const settings = context.aiDraft ?? editableAiSettings(context.ai);
       if (event.type === "ai.background.changed") return { aiDraft: { ...settings, background: event.value } };
-      if (event.type === "ai.strategy.selected") {
-        const strategy = Object.keys(aiStrategies).find(value => value === event.value) as AiSettings["strategy"];
-        return { aiDraft: { ...settings, strategy } };
-      }
-      if (event.type === "ai.preferred.selected" && knownAiModel(event.modelId)) {
-        return { aiDraft: { ...settings, preferred_model: event.modelId,
-          candidates: [...new Set([...settings.candidates, event.modelId])] } };
-      }
-      if (event.type === "ai.candidate.changed" && knownAiModel(event.modelId)) {
-        return { aiDraft: { ...settings, candidates: event.included ? [...new Set([...settings.candidates, event.modelId])]
-          : settings.candidates.filter(id => id !== event.modelId) } };
+      if (event.type === "ai.model.selected") {
+        if (event.modelId === "off") return { aiDraft: { ...settings, strategy: "off" as const } };
+        if (knownAiModel(event.modelId)) return { aiDraft: { ...settings, strategy: "manual" as const,
+          preferred_model: event.modelId, candidates: [event.modelId] } };
       }
       return {};
     }),

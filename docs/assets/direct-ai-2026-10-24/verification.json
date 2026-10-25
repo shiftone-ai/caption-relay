@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-10-24T22:27:56.129996+09:00",
+  "environment": "既存のループバック開発サーバー、ビルドしたフロントエンドと実FastAPI。UI操作は背景の内蔵ブラウザ。",
+  "operations": [
+    "モデルをLunaへ直接変更し、AIなしへ戻した後も背景を保持",
+    "実UIから保存し、GET /api/ai で manual・gpt-6-luna・候補1件を確認",
+    "設定を閉じて開き直し、保存済みLunaと背景を表示",
+    "AIなしを保存し、再読み込み後の停止状態と背景保持を確認",
+    "準備ポップアップは公開結果の案内と送信ボタンのみ",
+    "コンソールのerror/warnは0件"
+  ],
+  "final_ai_settings": {
+    "strategy": "off",
+    "preferred_model": "gpt-6-luna",
+    "candidates": [
+      "gpt-6-luna"
+    ]
+  },
+  "audio": "このUI確認では音声入力・音声再生を開始していない。",
+  "ui_audit": "別セッションで画像・ソースを確認しP0/P1なし。親セッションでも画像と差分を確認。",
+  "images": [
+    "ai-model.png",
+    "ai-off.png",
+    "preparation.png"
+  ]
+}
