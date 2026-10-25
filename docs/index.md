@@ -22,7 +22,7 @@
 | UDトークへ訂正を戻す接続を調べる | [編集通信の解析](research/udtalk-editor-protocol.md)・[公開資料](research/udtalk-editor-protocol-sources.md) | 純正編集アプリの要求形式、オフライン実行結果、復旧後の実反映と未確認事項 |
 | AIを選び、速度と費用を比較する | [AIの選択と振り分け](ai-routing.md) | GPT-6 Luna・GPT-6.1 Sol・Claude・Gemini、文脈と料金の根拠、振り分けと実接続の確認 |
 | 固有名詞・専門用語を登録する | [単語辞書](dictionary.md) | 表記・読み・誤認識例、認識と校正への反映、保存先 |
-| API モデルを変更する | [API の型生成](generated/README.md) | 生成元、再生成、型の一致確認 |
+| API モデルを変更する | [API の型生成](generated/README.md) | 生成元、再生成、型と入力制限の一致確認 |
 | 新しい機能の要件を検討する | [v0.2 の設計案](design-v0.2.md) | 将来要件、未確定事項、受け入れ条件の案 |
 | マイクから文字起こしする | [マイク入力](microphone-input.md) | OpenAI・Appleの準備、開始・停止、試験上限、確認範囲 |
 | クラウド音声認識を比較する | [クラウド候補の調査](research/2026-10-10-cloud-transcription.md) | Google・Azure・AmiVoice・AWS などの日本語対応、途中結果、料金、データの扱い |

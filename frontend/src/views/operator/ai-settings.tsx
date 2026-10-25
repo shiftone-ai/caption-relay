@@ -17,7 +17,7 @@ export function AiSettingsView({ parameters }: { parameters: AiParameters }) {
           </select></label>
           {parameters.showModelSettings && <>
           <label htmlFor="ai-background">トークの背景
-            <Textarea id="ai-background" value={parameters.background} maxLength={4000} rows={4}
+            <Textarea id="ai-background" value={parameters.background} rows={4}
               placeholder="テーマ、登壇者、作品名など"
               change={value => ({ type: "ai.background.changed", value })}
               keypress={key => ({ type: "settings.keypressed", key: key.key, isComposing: key.isComposing, defaultPrevented: false })} />
@@ -43,6 +43,7 @@ export function AiSettingsView({ parameters }: { parameters: AiParameters }) {
           </Disclosure>
         </fieldset>
         <div className="display-settings-actions">
+          {parameters.error && <p className="operator-error" role="alert">{parameters.error}</p>}
           <Button className="operator-button display-save" disabled={parameters.saveDisabled} intent={{ type: "ai.save.requested" }}>AI設定を保存</Button>
           <p className="caption-hint">{parameters.saveHint}</p>
         </div>

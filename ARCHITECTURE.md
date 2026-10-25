@@ -87,6 +87,8 @@ SSE は購読登録と初期スナップショットの取得を中断なしに�
 
 [API の型生成](docs/generated/README.md)でバックエンドのモデルから OpenAPI と TypeScript 型を生成する。フロントエンドの Adapter は生成した型を使用し、API モデルを独自に再定義しない。
 
+ルーム名とトークの背景の上限はOpenAPIから [form-limits.ts](frontend/src/generated/form-limits.ts) へ生成する。Home MediatorとOperator MediatorがUnicodeコードポイントで保存前に検査し、上限超過時も下書きを保持する。背景の検査は共通の `backgroundValidation` を使う。Viewは入力を途中で切らず、担当するフォーム内に検証結果を表示する。APIのPydantic検証も保持する。
+
 ## 辞書の制限と検証
 
 入力上限は [models.py](backend/app/models.py) の `DICTIONARY_LIMITS` に置き、Pydanticモデルと、[生成した辞書規則](frontend/src/generated/dictionary-rules.ts)で共有する。`check:api` が上限値とUnicode case foldingの一致を検査する。APIの型は従来どおりOpenAPIから生成し、画面の下書きや操作イベントとは分ける。

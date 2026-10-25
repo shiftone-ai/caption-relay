@@ -8,6 +8,7 @@ API モデルを変更するときに参照する。生成の流れは次のと�
 | OpenAPI の生成 | [scripts/export_openapi.py](../../scripts/export_openapi.py) → [openapi.json](openapi.json) |
 | TypeScript の生成 | `openapi-typescript` → [frontend/src/generated/api.d.ts](../../frontend/src/generated/api.d.ts) |
 | 辞書の入力制限と文字変換表 | [scripts/export_openapi.py](../../scripts/export_openapi.py) → [dictionary-rules.ts](../../frontend/src/generated/dictionary-rules.ts)。Pydanticモデルと同じ上限値、サーバーのPythonと同じUnicode case foldingを使う |
+| ルーム名・背景の入力制限 | OpenAPI → [form-limits.ts](../../frontend/src/generated/form-limits.ts)。画面の保存前検査でAPIと同じ文字数を使う |
 
 入力、操作画面用字幕、観客用字幕、セッション、表示切り替えの型をフロントエンドへ渡す。公開モデルの境界は[システム構成](../../ARCHITECTURE.md#api-と公開データの境界)を参照する。
 

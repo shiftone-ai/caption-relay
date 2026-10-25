@@ -8,8 +8,9 @@ export function presentHome(snapshot: HomeSnapshot) {
   return {
     loading: snapshot.matches("loading"), failed: snapshot.matches("failed"), busy,
     newDisabled: !snapshot.can({ type: "home.new.requested" }),
-    message: context.message, destination: context.destination, formOpen: context.formOpen,
+    message: context.formOpen ? "" : context.message, destination: context.destination, formOpen: context.formOpen,
     form: {
+      message: context.message,
       name: context.form.name, background: context.form.ai.background, mode: context.form.mode,
       inputSource: context.form.inputSource, editorUrl: context.form.editorUrl,
       title: context.editingRoomId ? "ルームの接続設定" : "新しいルームに接続",
