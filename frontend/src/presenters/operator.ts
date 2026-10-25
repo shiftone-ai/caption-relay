@@ -1,5 +1,5 @@
 import type { AiSettings, Caption, DisclosureId, DisplaySettings, ConnectionSettings } from "../domain";
-import { aiProviderNames, aiStrategies } from "../ai";
+import { aiProviderNames, editableAiSettings } from "../ai";
 import { displayChoices, displayPalettes } from "../display";
 import type { OperatorSnapshot } from "../machines/operator";
 import { presentDisplayPreview, type DisplayCaption, type DisplayPreviewParameters } from "./display";
@@ -92,21 +92,12 @@ export interface AiParameters {
   connectionDescription: string;
   connectionWarning: boolean;
   showModelSettings: boolean;
-  showCurrentSelection: boolean;
-  preferredLabel: string;
-  preferredHint: string;
-  selectionHeading: string;
-  strategyHint: string;
-  strategy: string;
-  strategies: { value: string; label: string }[];
-  preferredModel: string;
+  model: string;
   saveDisabled: boolean;
   saveHint: string;
   disabled: boolean;
-  selectedLabel: string;
-  selectionNote: string;
   models: { id: AiSettings["preferred_model"]; provider: string; label: string; variant: string; inputPrice: string; outputPrice: string;
-    sampleCost: string; latency: string; selected: boolean; disabled: boolean; pricingUrl: string; checkedOn: string }[];
+    sampleCost: string; latency: string; pricingUrl: string; checkedOn: string }[];
 }
 
 export interface DictionaryParameters {
@@ -258,12 +249,12 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
   const displayedIds = new Set(!clientMode && context.visible
     ? (context.display.display_mode === "scroll" ? publishedCaptions : publishedCaptions.slice(-context.display.history_count)).map(caption => caption.id) : []);
   const displayDraft = context.displayDraft ?? context.display;
-  const aiDraft = context.aiDraft ?? context.ai.settings;
+  const aiDraft = context.aiDraft ?? editableAiSettings(context.ai);
   const dictionaryDraft = context.dictionaryDraft ?? draftDictionary(context.dictionary);
   const dictionaryDirty = JSON.stringify(dictionaryDraft.entries) !== JSON.stringify(draftDictionary(context.dictionary).entries);
   const dictionaryDisabled = !snapshot.can({ type: "dictionary.save.requested" });
   const selectedAi = context.ai.models.find(model => model.id === context.ai.selected_model);
-  const aiDirty = JSON.stringify(aiDraft) !== JSON.stringify(context.ai.settings);
+  const aiDirty = context.aiDraft !== null && JSON.stringify(aiDraft) !== JSON.stringify(context.ai.settings);
   const aiDisabled = !snapshot.can({ type: "ai.save.requested" });
   const connectionDraft: ConnectionSettings = context.connectionDraft ?? { mode: context.connection.mode, editor_url: "", zoom_text_format: context.connection.zoom_text_format,
     input_source: context.connection.input_source, recognizer: context.connection.recognizer };
@@ -410,31 +401,18 @@ export function presentOperator(snapshot: OperatorSnapshot): OperatorParameters 
       comparisonDisclosure: presentDisclosure("ai-comparison", context.openedDisclosures),
       connectionWarning: context.ai.settings.strategy !== "off" && !context.ai.connected,
       showModelSettings: aiDraft.strategy !== "off",
-      showCurrentSelection: context.ai.settings.strategy !== "off" || aiDraft.strategy !== "off",
       connectionDescription: context.ai.settings.strategy === "off" ? "AIはオフです。原文を受け取り、手動で訂正できます。"
         : context.ai.connected ? "確定した字幕を選択したAIへ送って訂正します。API利用料がかかります。"
           : "選択したAIのAPIキーが未設定です。サーバーにキーを設定して再起動してください。",
-      selectionHeading: "現在のAI",
-      preferredLabel: { manual: "指定AI", speed: "未計測時のAI", cost: "候補に残すAI", off: "初期候補のAI" }[aiDraft.strategy],
-      preferredHint: { manual: "指定したAIを使います。候補からは外せません。", speed: "未計測時に使います。キー未設定なら設定済みの候補を選びます。候補からは外せません。",
-        cost: "このAIを候補に含めます。選択先は候補の料金で決まり、ここでの指定とは一致しない場合があります。", off: "AIを使う設定に切り替えたときの候補です。現在は原文を採用します。" }[aiDraft.strategy],
-      strategyHint: { off: "原文を採用し、AIへ送信しません。", manual: "",
-        cost: "キー設定済みの候補から、入力200・出力100トークンの参考費用で選びます。", speed: "キー設定済みの候補の直近20件の実測中央値で比較します。未計測なら指定したAIを優先します。" }[aiDraft.strategy],
-      strategy: aiDraft.strategy, preferredModel: aiDraft.preferred_model,
-      strategies: Object.entries(aiStrategies).map(([value, label]) => ({ value, label })),
+      model: aiDraft.strategy === "off" ? "off" : aiDraft.preferred_model,
       saveDisabled: aiDisabled || !aiDirty, saveHint: aiDirty ? "未保存" : "",
       disabled: aiDisabled,
-      selectedLabel: selectedAi?.label ?? "AIなし",
-      selectionNote: { off: "原文を採用します。", manual: "指定したAIへ振り分けます。", cost: "候補の中から参考条件で最も安いAIを選びます。",
-        speed: "候補の中から実測の応答時間が短いAIを選びます。", unmeasured: "応答時間が未計測のため、キー設定済みの候補では指定AIを優先します。" }[context.ai.reason],
       models: context.ai.models.map(model => ({
         id: model.id, provider: aiProviderNames[model.provider], label: model.label,
-        variant: model.label.replace(/^(Gemini |Claude |Codex · )/, ""),
+        variant: model.label.replace(/^(Gemini |Claude )/, ""),
         inputPrice: "$" + model.input_usd_per_million.toFixed(2), outputPrice: "$" + model.output_usd_per_million.toFixed(2),
         sampleCost: "$" + ((200 * model.input_usd_per_million + 100 * model.output_usd_per_million) / 1000).toFixed(2),
         latency: model.configured === false ? "キー未設定" : model.measured_latency_ms == null ? "未計測" : `${Math.round(model.measured_latency_ms)} ms · ${model.latency_samples ?? 0} 件`,
-        selected: aiDraft.candidates.includes(model.id),
-        disabled: !snapshot.can({ type: "ai.candidate.changed", modelId: model.id, included: !aiDraft.candidates.includes(model.id) }),
         pricingUrl: model.pricing_url, checkedOn: model.pricing_checked_on ?? "",
       })),
     },

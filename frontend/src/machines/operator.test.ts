@@ -395,14 +395,13 @@ it("requires explicit AI settings save, keeps failed drafts and blocks duplicate
   vi.mocked(adapter.setAi).mockReturnValueOnce(pending.promise);
   const actor = await start(adapter);
   actor.send({ type: "ai.settings.toggled" });
-  actor.send({ type: "ai.strategy.selected", value: "manual" });
-  actor.send({ type: "ai.preferred.selected", modelId: "claude-haiku-5-5" });
+  actor.send({ type: "ai.model.selected", modelId: "claude-haiku-5-5" });
   actor.send({ type: "display.settings.toggled" });
   expect(actor.getSnapshot().context.settingsPanel).toBe("display");
   expect(adapter.setAi).not.toHaveBeenCalled();
   actor.send({ type: "ai.save.requested" });
   actor.send({ type: "ai.save.requested" });
-  actor.send({ type: "ai.strategy.selected", value: "cost" });
+  actor.send({ type: "ai.model.selected", modelId: "gpt-6-luna" });
   expect(adapter.setAi).toHaveBeenCalledTimes(1);
   pending.reject(new Error("offline"));
   await waitFor(actor, state => state.matches({ ready: "idle" }));
@@ -413,21 +412,33 @@ it("requires explicit AI settings save, keeps failed drafts and blocks duplicate
   expect(actor.getSnapshot().context.aiDraft).toBeNull();
 });
 
-it("owns AI candidate invariants even when UI restrictions are bypassed", async () => {
+it("selects one AI directly, rejects unknown models and retains background when disabled", async () => {
   const actor = await start();
-  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-5-5", included: false });
-  actor.send({ type: "ai.preferred.selected", modelId: "claude-haiku-5-5" });
-  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-5-5", included: false });
-  actor.send({ type: "ai.candidate.changed", modelId: "claude-haiku-5-5", included: true });
-  actor.send({ type: "ai.preferred.selected", modelId: "unknown-model" });
-  actor.send({ type: "ai.strategy.selected", value: "invalid" });
-  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ preferred_model: "claude-haiku-5-5", strategy: "off" });
-  expect(actor.getSnapshot().context.aiDraft?.candidates.filter(id => id === "claude-haiku-5-5")).toHaveLength(1);
-  actor.send({ type: "ai.candidate.changed", modelId: "gpt-6-luna", included: false });
-  actor.send({ type: "ai.preferred.selected", modelId: "gpt-6-luna" });
-  actor.send({ type: "ai.candidate.changed", modelId: "gpt-6-luna", included: false });
-  expect(actor.getSnapshot().context.aiDraft?.preferred_model).toBe("gpt-6-luna");
-  expect(actor.getSnapshot().context.aiDraft?.candidates.filter(id => id === "gpt-6-luna")).toHaveLength(1);
+  actor.send({ type: "ai.background.changed", value: "写真と布の展示" });
+  actor.send({ type: "ai.model.selected", modelId: "claude-haiku-5-5" });
+  actor.send({ type: "ai.model.selected", modelId: "unknown-model" });
+  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ strategy: "manual", preferred_model: "claude-haiku-5-5", candidates: ["claude-haiku-5-5"] });
+  actor.send({ type: "ai.model.selected", modelId: "off" });
+  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ strategy: "off", background: "写真と布の展示" });
+  actor.send({ type: "ai.model.selected", modelId: "gpt-6-luna" });
+  expect(actor.getSnapshot().context.aiDraft).toMatchObject({ strategy: "manual", preferred_model: "gpt-6-luna", candidates: ["gpt-6-luna"], background: "写真と布の展示" });
+});
+
+it("edits an API-routed model as the displayed direct choice without changing it on open", async () => {
+  const adapter = api();
+  vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [caption], ai: { ...defaultAi,
+    settings: { ...defaultAi.settings, strategy: "speed", preferred_model: "gpt-6-luna" },
+    selected_model: "claude-haiku-5-5", reason: "speed",
+  } });
+  const actor = await start(adapter);
+  actor.send({ type: "ai.settings.toggled" });
+  expect(presentOperator(actor.getSnapshot()).ai.model).toBe("claude-haiku-5-5");
+  expect(presentOperator(actor.getSnapshot()).ai.saveDisabled).toBe(true);
+  expect(adapter.setAi).not.toHaveBeenCalled();
+  actor.send({ type: "ai.background.changed", value: "写真と布の展示" });
+  actor.send({ type: "ai.save.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(adapter.setAi).toHaveBeenCalledWith(expect.objectContaining({ strategy: "manual", preferred_model: "claude-haiku-5-5", candidates: ["claude-haiku-5-5"] }), expect.any(AbortSignal));
 });
 
 it("interprets display fields and palettes without publishing until saved", async () => {

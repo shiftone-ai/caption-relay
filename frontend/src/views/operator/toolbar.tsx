@@ -23,7 +23,6 @@ export function ToolbarView({ parameters }: { parameters: ToolbarParameters }) {
             <div className="operator-preparation-body">
               <p>{parameters.preparationHint}</p>
               <Button variant="outline" className="operator-button toolbar-test" intent={{ type: "test.requested" }} disabled={parameters.testDisabled}>テスト字幕を送る</Button>
-              <p className="caption-hint">編集と配信の確認用です。音声認識や UDトークの接続は確認できません。</p>
             </div>
           </Disclosure>
           <Button variant="outline" className="operator-icon-button toolbar-visibility" aria-label={parameters.toggleLabel} title={parameters.toggleLabel} intent={{ type: "visibility.toggle.requested" }} disabled={parameters.toggleDisabled}><VisibilityIcon size={16} /></Button>
