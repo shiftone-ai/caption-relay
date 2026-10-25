@@ -1,6 +1,6 @@
 # システム構成
 
-実装確認日：2026-10-11
+実装確認日：2026-10-25
 
 Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つローカル PoC。React の操作画面は HTTP で取得・更新し、観客画面は SSE で公開字幕を受け取る。現在の振る舞いは[現行 PoC の仕様](docs/current-behavior.md)、起動方法は[開発手順](docs/development.md)を参照する。
 
@@ -9,6 +9,7 @@ Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つロ
 | 場所 | 責務 |
 |---|---|
 | [backend/app/main.py](backend/app/main.py) | HTTP ルート、エラー応答、SSE、ビルド済み画面の配信 |
+| [backend/app/rooms.py](backend/app/rooms.py)・[room_store.py](backend/app/room_store.py) | 一つの入力接続とルームごとのWorkflow、設定の保存・復元、リセットと古い操作の拒否 |
 | [backend/app/relay.py](backend/app/relay.py) | セッション状態、入力の改版・再送判定、手修正、公開可否、購読キュー |
 | [backend/app/workflow.py](backend/app/workflow.py) | 入力、AI処理の開始・取消、訂正先への送信、保存時の改版照合 |
 | [backend/app/connections.py](backend/app/connections.py) | 接続モードと入力の開始・終了、接続変更と保存の直列化 |
@@ -33,6 +34,8 @@ Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つロ
 
 ## データの流れ
 
+ホームは `Rooms` の接続履歴を読み、ルームごとの `CaptionWorkflow` を選ぶ。同時に入力するのは一つのルームだけで、切り替え時に前の入力とAI要求を終了する。字幕は各Relayのメモリ、名前・接続先・背景・AI・表示・公開設定は `RoomStore` のファイルに保持する。単語辞書は全ルームで共有する。保存範囲と利用手順は[ルームの接続と字幕リセット](docs/rooms.md)を参照する。
+
 ```mermaid
 flowchart LR
     ud[UDトーク] -->|Zoom形式のPOST| api
@@ -56,7 +59,7 @@ flowchart LR
 
 FastAPIはPydanticモデルで入出力を検証し、入力と訂正保存を `CaptionWorkflow` へ渡す。状態遷移と公開可否は `CaptionRelay`、外部接続の寿命と送信先は `Connections` が所有する。AI要求はバックグラウンドで実行し、元の発話の更新とモード変更で終了する。保存と接続変更は同時に実行しない。訂正先への送信前後に原文・表示文の改版を照合し、古い原文で新しい発話を上書きしない。存在しない字幕と改版競合はAPI層で404・409に変換する。
 
-`create_app()`ごとに独立した字幕状態を作る。字幕状態を共有するデータベースはなく、再起動で消えるため、複数ワーカーで運用しない。字幕・接続・AI設定・測定結果をこのプロセスに保持する。各AI提供元のキーは環境変数で読み、画面へ返さない。通常起動では単語辞書とマイク認識の試験使用量を再起動をまたぐファイルに保存する。テスト用の `create_app()` は辞書を注入しない限りメモリ上に保持する。詳細は[単語辞書](docs/dictionary.md)を参照する。
+`create_app()`ごとに独立したルーム管理を作る。字幕状態を共有するデータベースはなく、再起動で消えるため、複数ワーカーで運用しない。字幕とAIの測定結果はこのプロセスに保持する。各AI提供元のキーは環境変数で読み、画面へ返さない。通常起動ではルームの設定、単語辞書、マイク認識の試験使用量をファイルに保存する。テスト用の `create_app()` は保存先を注入しない限りメモリ上に保持する。詳細は[ルーム](docs/rooms.md)と[単語辞書](docs/dictionary.md)を参照する。
 
 接続の初期値は独立配信。Zoom形式の送信先はプロセス内で生成し、再起動と接続変更で更新する。従来のWeb入力Adapterは `CAPTION_RELAY_UDTALK_URL` を設定した場合に開始する。編集参加へ切り替えると両方の入力を止め、有効な編集用URLの参加を開始する。入力の変換は各Adapter、公開と手修正の判断はRelayが所有する。経路・根拠・制約は[UDトークの入力接続](docs/udtalk-input.md)を参照する。
 
@@ -67,6 +70,8 @@ FastAPIはPydanticモデルで入出力を検証し、入力と訂正保存を `
 マイク入力は独立配信だけで利用する。`Connections`が旧入力を停止してから設定を変え、`MicrophoneInput`が録音接続と認識Adapterの寿命を所有する。切断時の解放はASGIの取消から保護し、提供元接続とSwift子プロセスを閉じてから次の入力を許可する。OpenAIの発話区切りはWebRTC VAD、周波数変換はsoxr、途中と確定の対応は各認識Adapterが所有する。詳細は[マイク入力](docs/microphone-input.md)を参照する。
 
 ## API と公開データの境界
+
+操作APIは `X-Caption-Relay-Room` と `X-Caption-Relay-Generation` で対象とリセットの世代を固定する。書き込みは現在接続中のルームだけに許可し、古い世代には409を返す。観客APIの `room_id` とSSEは取得開始時のRelayを保持し、ルーム切り替えで別の字幕へ切り替えない。リセットは保存・外部送信と直列化し、AI要求の取消完了後に字幕を消す。字幕の改版番号を巻き戻さず、リセット済みの発話IDを再送でも採用しない。
 
 Zoom受信先の資格情報は操作画面用の接続状態だけに返す。編集用URLは適用時だけ送信し、応答・字幕ID・ログへ含めない。AIキーは提供元の認証ヘッダーで送り、画面には設定済みかどうかだけを返す。アクセスログはURLの資格情報を記録しないよう起動スクリプトで無効にする。アプリ全体の認証はなく、loopbackでのローカル利用を前提とする。
 

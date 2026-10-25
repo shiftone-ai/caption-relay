@@ -1,6 +1,6 @@
 # 開発手順
 
-設定確認日：2026-10-11
+設定確認日：2026-10-25
 
 リポジトリのルートで以下のコマンドを実行する。Codex Cloud と SSH 接続の固有手順は[リモート開発](remote-development.md)を参照する。
 
@@ -24,7 +24,7 @@ bash scripts/dev.sh
 
 [setup.sh](../scripts/setup.sh) は Node.js の要件を確認し、`backend/uv.lock` と `frontend/package-lock.json` から依存関係を導入して画面をビルドする。対応MacではmacOS 26 SDKでApple認識のSwift補助プログラムもビルドする。SDKがない環境やLinuxではAppleの準備を省略する。依存関係が変わった場合も再実行する。
 
-[dev.sh](../scripts/dev.sh) は FastAPI を `127.0.0.1:24681` で起動し、`frontend/dist/` を配信する。操作画面は `/`、観客画面は `/view/demo`。バックエンドの変更は自動で読み込む。画面を変更した場合は `npm --prefix frontend run build` で再ビルドする。
+[dev.sh](../scripts/dev.sh) は FastAPI を `127.0.0.1:24681` で起動し、`frontend/dist/` を配信する。ホームは `/`、接続後の操作画面は `/rooms/{room_id}`。観客画面は操作画面のモニターアイコンから開く。バックエンドの変更は自動で読み込む。画面を変更した場合は `npm --prefix frontend run build` で再ビルドする。
 
 フロントエンドを変更しながら確認する場合は、バックエンドを起動したまま別のターミナルで実行する。
 
@@ -32,7 +32,7 @@ bash scripts/dev.sh
 npm --prefix frontend run dev
 ```
 
-操作画面は <http://127.0.0.1:24682/static/>、観客画面は <http://127.0.0.1:24682/view/demo>。Viteが `/api` のHTTP・音声WebSocketと `/closedcaption` をバックエンドへ転送するため、接続設定の送信先も利用できる。終了時は各サーバーをCtrl+Cで止める。
+ホームは <http://127.0.0.1:24682/>。接続後の操作画面と、そこから開く観客画面もViteで表示する。Viteが `/api` のHTTP・音声WebSocketと `/closedcaption` をバックエンドへ転送するため、接続設定の送信先も利用できる。終了時は各サーバーをCtrl+Cで止める。
 
 ## 環境変数
 
@@ -48,6 +48,7 @@ npm --prefix frontend run dev
 | `CAPTION_RELAY_STT_JPY_PER_USD` | 音声認識の試験費用の円換算。税・地域処理を含む | 未設定 |
 | `CAPTION_RELAY_STT_USAGE_PATH` | 音声認識の累積使用量台帳 | 利用者のキャッシュ配下 |
 | `CAPTION_RELAY_AI_TIMEOUT_SECONDS` | AI要求全体の制限時間。0より大きく120以下 | `15` |
+| `CAPTION_RELAY_ROOMS_PATH` | [ルームの接続履歴・設定](rooms.md)の保存先。編集用の参加リンクを含む | `$XDG_DATA_HOME/caption-relay/rooms.json`。未設定なら `~/.local/share/caption-relay/rooms.json` |
 | `CAPTION_RELAY_DICTIONARY_PATH` | [単語辞書](dictionary.md)の保存先ファイル | `$XDG_DATA_HOME/caption-relay/dictionary.json`。未設定なら `~/.local/share/caption-relay/dictionary.json` |
 
 バックエンドのポートを変更するときは、`CAPTION_RELAY_PORT` と Vite の `CAPTION_RELAY_API_URL` を合わせて設定する。値の記入例は [.env.example](../.env.example) を参照する。
@@ -64,9 +65,11 @@ bash scripts/dev.sh
 
 入力待ちでキーを貼り付け、Enterを押す。キーをコマンド履歴に書かない。ClaudeとOpenAIも対応する変数で同様に設定する。操作画面のAI設定はキーの有無を表示するが、キー本体を返さない。AIは初期値オフで、画面で設定を保存した次の確定字幕から呼び出す。
 
-UDトークのZoom送信先は画面の接続設定から取得する。編集用の参加リンクもこの画面で適用し、サーバーのメモリだけに保持する。再起動と配信先の変更で受信先の資格情報が変わるため、UDトーク側も設定し直す。「送られる字幕」だけを変更した場合は送信先と受信番号を保つ。送信先と参加リンクをログ・スクリーンショット・PRに含めない。`dev.sh`はURLの資格情報を記録しないようHTTPアクセスログを無効にする。
+UDトークのZoom送信先は画面の接続設定から取得する。編集用の参加リンクはホームまたはこの画面で適用し、ルームの設定ファイルへ0600で保存する。API応答には含めない。再起動と配信先の変更で受信先の資格情報が変わるため、UDトーク側も設定し直す。「送られる字幕」だけを変更した場合は送信先と受信番号を保つ。送信先と参加リンクをログ・スクリーンショット・PRに含めない。`dev.sh`はURLの資格情報を記録しないようHTTPアクセスログを無効にする。
 
 ## 検証
+
+依存関係の導入時に、XStateのPromise取消の修正パッチを `postinstall` で適用する。上流PRと更新時の確認事項は[パッチの説明](../frontend/patches/README.md)を参照する。適用エラーを無視して起動しない。
 
 ```bash
 bash scripts/check.sh

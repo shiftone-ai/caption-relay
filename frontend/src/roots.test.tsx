@@ -744,6 +744,7 @@ it("selects a model directly and saves background after toggling AI off", async 
 });
 
 const toolbar: ToolbarParameters & { preparationHint: string } = {
+  audienceHref: "/view/demo",
   helpDisclosure: { id: "publication-help", open: false }, preparationDisclosure: { id: "preparation", open: false },
   visibilityIcon: "hide",
   testDisabled: false, toggleDisabled: false, toggleLabel: "字幕を隠す", mode: "auto", modeDisabled: false,
