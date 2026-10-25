@@ -25,6 +25,15 @@ rules_source = (
     "export const dictionaryCaseFolding: Readonly<Record<string, string>> = "
     + json.dumps(folding, ensure_ascii=True, separators=(",", ":")) + ";\n"
 )
+form_target = ROOT / "frontend" / "src" / "generated" / "form-limits.ts"
+form_limits = {
+    "roomName": schema["components"]["schemas"]["RoomDraft"]["properties"]["name"]["maxLength"],
+    "background": schema["components"]["schemas"]["AiSettings"]["properties"]["background"]["maxLength"],
+}
+form_source = (
+    "// Generated from OpenAPI by scripts/export_openapi.py; do not edit.\n"
+    "export const formLimits = " + json.dumps(form_limits, separators=(",", ":")) + " as const;\n"
+)
 if arguments.check:
     if not target.exists() or json.loads(target.read_text()) != schema:
         sys.exit("OpenAPI is stale. Run cd frontend && npm run generate:api.")
@@ -32,6 +41,9 @@ if arguments.check:
     if not rules_target.exists() or rules_target.read_text() != rules_source:
         sys.exit("Dictionary rules are stale. Run cd frontend && npm run generate:api.")
     print("Dictionary rules match backend models and Python")
+    if not form_target.exists() or form_target.read_text() != form_source:
+        sys.exit("Form limits are stale. Run cd frontend && npm run generate:api.")
+    print("Form limits match OpenAPI")
     sys.exit(0)
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text(json.dumps(schema, ensure_ascii=False, indent=2) + "\n")
@@ -39,3 +51,5 @@ print(target.relative_to(ROOT))
 rules_target.parent.mkdir(parents=True, exist_ok=True)
 rules_target.write_text(rules_source)
 print(rules_target.relative_to(ROOT))
+form_target.write_text(form_source)
+print(form_target.relative_to(ROOT))

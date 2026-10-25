@@ -87,6 +87,7 @@ export interface ToolbarParameters {
 }
 
 export interface AiParameters {
+  error: string;
   background: string;
   helpDisclosure: DisclosureParameters;
   comparisonDisclosure: DisclosureParameters;
@@ -400,11 +401,12 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
         : "UDトークからの入力ではAI校正で参照します。自前の音声入力では認識にも使います。",
     },
     ai: {
+      error: context.aiError,
       background: aiDraft.background,
       helpDisclosure: presentDisclosure("ai-help", context.openedDisclosures),
       comparisonDisclosure: presentDisclosure("ai-comparison", context.openedDisclosures),
       connectionWarning: context.ai.settings.strategy !== "off" && !context.ai.connected,
-      showModelSettings: aiDraft.strategy !== "off",
+      showModelSettings: aiDraft.strategy !== "off" || context.aiBackgroundExpanded,
       connectionDescription: context.ai.settings.strategy === "off" ? "AIはオフです。原文を受け取り、手動で訂正できます。"
         : context.ai.connected ? "確定した字幕を選択したAIへ送って訂正します。API利用料がかかります。"
           : "選択したAIのAPIキーが未設定です。サーバーにキーを設定して再起動してください。",
