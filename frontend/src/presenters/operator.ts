@@ -4,7 +4,7 @@ import { displayChoices, displayPalettes } from "../display";
 import type { OperatorSnapshot } from "../machines/operator";
 import { presentDisplayPreview, type DisplayCaption, type DisplayPreviewParameters } from "./display";
 import { presentDisclosure, type DisclosureParameters } from "./disclosure";
-import { draftDictionary } from "../dictionary";
+import { dictionaryLimits, draftDictionary } from "../dictionary";
 
 const receivedTime = new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" });
 const receivedDateTime = new Intl.DateTimeFormat("ja-JP", {
@@ -102,6 +102,7 @@ export interface AiParameters {
 }
 
 export interface DictionaryParameters {
+  variantsHint: string;
   entries: { index: number; term: string; reading: string; variantsText: string; enabled: boolean }[];
   countLabel: string;
   empty: boolean;
@@ -385,8 +386,9 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
       context.captions.map(caption => ({ id: caption.id,
         text: caption.public_text ?? caption.text, speaker: caption.published ? caption.public_speaker : caption.speaker })), context.openedDisclosures),
     dictionary: {
+      variantsHint: `任意・1行1件、${dictionaryLimits.maxVariants}件まで`,
       entries: dictionaryDraft.entries.map((word, index) => ({ ...word, index })),
-      countLabel: `${dictionaryDraft.entries.length} / 100件`, empty: dictionaryDraft.entries.length === 0,
+      countLabel: `${dictionaryDraft.entries.length} / ${dictionaryLimits.maxEntries}件`, empty: dictionaryDraft.entries.length === 0,
       disabled: dictionaryDisabled,
       addDisabled: !snapshot.can({ type: "dictionary.word.added" }),
       saveDisabled: dictionaryDisabled || !dictionaryDirty,
