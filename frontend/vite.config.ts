@@ -11,10 +11,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
     {
-      name: "audience-route",
+      name: "app-routes",
       configureServer(server) {
         server.middlewares.use((request, _response, next) => {
-          if (request.url === "/view/demo") request.url = "/static/view.html";
+          const url = new URL(request.url ?? "/", "http://localhost");
+          if (url.pathname === "/view/demo") request.url = "/static/view.html" + url.search;
+          if (url.pathname === "/" || /^\/rooms\/[a-z0-9-]{1,64}\/?$/.test(url.pathname)) request.url = "/static/index.html" + url.search;
           next();
         });
       },

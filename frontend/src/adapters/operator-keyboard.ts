@@ -6,6 +6,7 @@ export function observeOperatorKeys(
   handle: (event: ViewEvent) => boolean,
 ): () => void {
   const notify = (event: KeyboardEvent) => {
+    if (event.target instanceof Element && event.target.closest("dialog[open]")) return;
     if (handle({ type: "settings.keypressed", key: event.key, isComposing: event.isComposing,
       defaultPrevented: event.defaultPrevented })) event.preventDefault();
   };

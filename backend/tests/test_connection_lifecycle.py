@@ -56,6 +56,25 @@ def test_switching_to_client_disables_the_previous_live_web_input():
     asyncio.run(verify())
 
 
+@pytest.mark.parametrize("mode", ["client", "microphone"])
+def test_starting_a_saved_connection_does_not_restart_the_inactive_web_input(mode):
+    async def verify():
+        server = NativeServer()
+        workflow = CaptionWorkflow(CaptionRelay(), URL, {}, editor_transport=httpx.MockTransport(server.handle))
+        settings = (ConnectionSettings(mode="client", editor_url=editor_url()) if mode == "client"
+                    else ConnectionSettings(input_source="microphone"))
+        await workflow.configure(settings)
+        viewer = ViewerServer()
+        workflow.connections.web = UdtalkWebInput(URL, workflow.source_event, httpx.MockTransport(viewer.handle))
+        try:
+            workflow.start()
+            assert workflow.connections.web.status.state == "disabled"
+            assert viewer.polls == []
+        finally:
+            await workflow.stop()
+    asyncio.run(verify())
+
+
 @pytest.mark.parametrize("shutdown", [False, True])
 def test_transition_does_not_schedule_ai_for_input_received_while_cancelling(shutdown):
     async def verify():
