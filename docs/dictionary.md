@@ -29,7 +29,7 @@ Deepgramの認識ヒントとUDトークの単語登録を参考にした機能�
 
 ## 保存先とAPI
 
-通常起動では `$XDG_DATA_HOME/caption-relay/dictionary.json`、未設定なら `~/.local/share/caption-relay/dictionary.json` に保存する。`CAPTION_RELAY_DICTIONARY_PATH` で別のファイルを指定できる。字幕・接続・AI設定のメモリ保存とは異なり、辞書は再起動後も保持する。単一プロセスでのローカル利用を前提とし、同じファイルを複数のサーバーで同時に更新しない。
+通常起動では `$XDG_DATA_HOME/caption-relay/dictionary.json`、未設定なら `~/.local/share/caption-relay/dictionary.json` に保存する。`CAPTION_RELAY_DICTIONARY_PATH` で別のファイルを指定できる。辞書は再起動後も保持する。ルームの接続先やAI設定も、別の設定ファイルへ保存する。単一プロセスでのローカル利用を前提とし、同じファイルを複数のサーバーで同時に更新しない。
 
 一時ファイルへ書いてから置き換え、失敗した場合は旧辞書を保持する。保存済みファイルが不正なら、空辞書で上書きせず起動を止める。保存先の内容を確認して修復する。辞書ファイルは単語・読み・誤認識例・有効状態・改版番号を含む。
 
