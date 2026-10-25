@@ -28,6 +28,7 @@ class CaptionRelay:
         self._caption_positions: dict[str, int] = {}
         self._published_ids: list[str] = []
         self._seen_events: set[str] = set()
+        self._retired_utterances: set[str] = set()
         self._subscribers: set[asyncio.Queue[PublicSnapshot]] = set()
         self._visible = True
         self._revision = 0
@@ -47,6 +48,14 @@ class CaptionRelay:
 
     def captions(self) -> list[Caption]:
         return [caption.model_copy(deep=True) for caption in self._captions.values()]
+
+    def reset_captions(self) -> None:
+        self._retired_utterances.update(self._captions)
+        self._captions.clear()
+        self._caption_positions.clear()
+        self._published_ids.clear()
+        self._revision += 1
+        self.connection_mode(self._connection_mode)
 
     def public_snapshot(self) -> PublicSnapshot:
         if self._connection_mode == "client":
@@ -110,6 +119,8 @@ class CaptionRelay:
             queue.put_nowait(snapshot.model_copy(deep=True))
 
     def source_event(self, event: SourceEvent, *, remote_edit: bool = False) -> Caption | SourceIgnored:
+        if event.utterance_id in self._retired_utterances:
+            return SourceIgnored(status="stale")
         if event.source_event_id in self._seen_events:
             return SourceIgnored(status="duplicate")
         self._seen_events.add(event.source_event_id)

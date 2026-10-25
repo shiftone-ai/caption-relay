@@ -21,6 +21,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/{room_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Room Index */
+        get: operations["room_index_rooms__room_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Room Catalog */
+        get: operations["room_catalog_api_rooms_get"];
+        put?: never;
+        /** Add Room */
+        post: operations["add_room_api_rooms_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Room Details */
+        get: operations["room_details_api_rooms__room_id__get"];
+        /** Update Room */
+        put: operations["update_room_api_rooms__room_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect Room */
+        post: operations["connect_room_api_rooms__room_id__connect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave Room */
+        post: operations["leave_room_api_rooms__room_id__leave_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{room_id}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Room */
+        post: operations["reset_room_api_rooms__room_id__reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/view/demo": {
         parameters: {
             query?: never;
@@ -763,6 +867,81 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** RoomCatalog */
+        RoomCatalog: {
+            /** Active Room Id */
+            active_room_id: string | null;
+            /** Rooms */
+            rooms: components["schemas"]["RoomSummary"][];
+        };
+        /** RoomDetails */
+        RoomDetails: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Generation */
+            generation: number;
+            /** Caption Count */
+            caption_count: number;
+            /** Mode */
+            mode: string;
+            /**
+             * Input Source
+             * @enum {string}
+             */
+            input_source: "udtalk" | "microphone";
+            /**
+             * Recognizer
+             * @enum {string}
+             */
+            recognizer: "openai" | "apple";
+            /** Background */
+            background: string;
+            connection: components["schemas"]["ConnectionSettings"];
+            ai: components["schemas"]["AiSettings"];
+        };
+        /** RoomDraft */
+        RoomDraft: {
+            /** Name */
+            name: string;
+            connection?: components["schemas"]["ConnectionSettings"];
+            ai?: components["schemas"]["AiSettings"];
+        };
+        /** RoomReset */
+        RoomReset: {
+            /** Generation */
+            generation: number;
+        };
+        /** RoomSummary */
+        RoomSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Generation */
+            generation: number;
+            /** Caption Count */
+            caption_count: number;
+            /** Mode */
+            mode: string;
+            /**
+             * Input Source
+             * @enum {string}
+             */
+            input_source: "udtalk" | "microphone";
+            /**
+             * Recognizer
+             * @enum {string}
+             */
+            recognizer: "openai" | "apple";
+            /** Background */
+            background: string;
+        };
         /** Session */
         Session: {
             /**
@@ -903,6 +1082,255 @@ export interface operations {
             };
         };
     };
+    room_index_rooms__room_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    room_catalog_api_rooms_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomCatalog"];
+                };
+            };
+        };
+    };
+    add_room_api_rooms_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomDraft"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    room_details_api_rooms__room_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_room_api_rooms__room_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomDraft"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    connect_room_api_rooms__room_id__connect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    leave_room_api_rooms__room_id__leave_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomReset"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomCatalog"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_room_api_rooms__room_id__reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomReset"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     view_view_demo_get: {
         parameters: {
             query?: never;
@@ -924,7 +1352,10 @@ export interface operations {
     session_api_session_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -939,12 +1370,24 @@ export interface operations {
                     "application/json": components["schemas"]["Session"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     events_api_events_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -959,12 +1402,24 @@ export interface operations {
                     "application/json": components["schemas"]["Caption"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     source_event_api_source_events_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -997,7 +1452,10 @@ export interface operations {
     udtalk_status_api_source_udtalk_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1012,12 +1470,24 @@ export interface operations {
                     "application/json": components["schemas"]["UdtalkStatus"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     connection_api_connection_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1032,12 +1502,24 @@ export interface operations {
                     "application/json": components["schemas"]["ConnectionStatus"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     set_connection_api_connection_put: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1135,7 +1617,10 @@ export interface operations {
     patch_caption_api_captions__caption_id__patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path: {
                 caption_id: string;
             };
@@ -1179,7 +1664,10 @@ export interface operations {
     formatted_result_api_captions__caption_id__formatted_put: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path: {
                 caption_id: string;
             };
@@ -1214,7 +1702,10 @@ export interface operations {
     command_api_commands_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1247,7 +1738,10 @@ export interface operations {
     publication_mode_api_publication_mode_put: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1280,7 +1774,10 @@ export interface operations {
     display_settings_api_display_put: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1313,7 +1810,10 @@ export interface operations {
     ai_routing_api_ai_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1328,12 +1828,24 @@ export interface operations {
                     "application/json": components["schemas"]["AiRouting"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     ai_settings_api_ai_put: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1366,7 +1878,10 @@ export interface operations {
     get_dictionary_api_dictionary_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1381,12 +1896,24 @@ export interface operations {
                     "application/json": components["schemas"]["DictionarySnapshot"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     set_dictionary_api_dictionary_put: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Caption-Relay-Room"?: string | null;
+                "X-Caption-Relay-Generation"?: number | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1436,7 +1963,9 @@ export interface operations {
     };
     public_view_api_view_get: {
         parameters: {
-            query?: never;
+            query?: {
+                room_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1452,11 +1981,22 @@ export interface operations {
                     "application/json": components["schemas"]["PublicSnapshot"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     public_events_api_view_events_get: {
         parameters: {
-            query?: never;
+            query?: {
+                room_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1469,6 +2009,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

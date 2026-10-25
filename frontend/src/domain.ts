@@ -11,6 +11,35 @@ export type TranscriptionStatus = Required<components["schemas"]["TranscriptionS
 export type DictionaryWord = Required<components["schemas"]["DictionaryWord"]>;
 export type DictionarySnapshot = Omit<Required<components["schemas"]["DictionarySnapshot"]>, "entries"> & { entries: DictionaryWord[] };
 export type DictionaryUpdate = Omit<Required<components["schemas"]["DictionaryUpdate"]>, "entries"> & { entries: DictionaryWord[] };
+export type RoomSummary = components["schemas"]["RoomSummary"];
+export type RoomDetails = components["schemas"]["RoomDetails"];
+export type RoomCatalog = components["schemas"]["RoomCatalog"];
+export type RoomDraft = components["schemas"]["RoomDraft"];
+export interface RoomBinding { roomId: string; generation: number }
+export interface RoomsApi {
+  catalog(signal: AbortSignal): Promise<RoomCatalog>;
+  details(roomId: string, signal: AbortSignal): Promise<RoomDetails>;
+  save(draft: RoomDraft, roomId: string | null, signal: AbortSignal): Promise<RoomDetails>;
+  connect(roomId: string, signal: AbortSignal): Promise<RoomDetails>;
+  leave(room: RoomBinding, signal: AbortSignal): Promise<void>;
+  reset(room: RoomBinding, signal: AbortSignal): Promise<RoomDetails>;
+}
+export type HomeEvent =
+  | { type: "home.retry.requested" }
+  | { type: "home.new.requested" }
+  | { type: "home.edit.requested"; roomId: string }
+  | { type: "home.connect.requested"; roomId: string }
+  | { type: "home.form.changed"; field: "name" | "background" | "mode" | "inputSource" | "editorUrl"; value: string }
+  | { type: "home.form.cancelled" }
+  | { type: "home.form.keypressed"; key: string; ctrlKey: boolean; metaKey: boolean; isComposing: boolean }
+  | { type: "home.save.requested" };
+export type RoomEvent =
+  | { type: "room.retry.requested" }
+  | { type: "room.home.requested" }
+  | { type: "room.reset.requested" }
+  | { type: "room.confirm.accepted" }
+  | { type: "room.confirm.cancelled" }
+  | { type: "room.unsaved.changed"; unsaved: boolean };
 export interface MicrophoneDevice { id: string; label: string }
 export interface MicrophoneSession { label: string; stop(): Promise<void> }
 export interface MicrophoneAdapter {
@@ -124,7 +153,7 @@ export type AudienceEvent =
   | { type: "stream.snapshot"; snapshot: PublicSnapshot };
 
 export type AudienceViewEvent = Extract<AudienceEvent, { type: "display.fullscreen.requested" | "display.scrolled" | "display.latest.requested" }>;
-export type ViewEvent = OperatorEvent | AudienceViewEvent;
+export type ViewEvent = OperatorEvent | AudienceViewEvent | HomeEvent | RoomEvent;
 
 export interface FullscreenAdapter {
   available: boolean;

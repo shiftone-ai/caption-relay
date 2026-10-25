@@ -1,0 +1,88 @@
+diff --git a/node_modules/xstate/dist/xstate-actors.cjs.js b/node_modules/xstate/dist/xstate-actors.cjs.js
+index de217a3..198e0ed 100644
+--- a/node_modules/xstate/dist/xstate-actors.cjs.js
++++ b/node_modules/xstate/dist/xstate-actors.cjs.js
+@@ -799,7 +799,7 @@ function fromPromise(promiseCreator) {
+         emit
+       }));
+       resolvedPromise.then(response => {
+-        if (self.getSnapshot().status !== 'active') {
++        if (controller.signal.aborted || self.getSnapshot().status !== 'active') {
+           return;
+         }
+         controllerMap.delete(self);
+@@ -808,7 +808,7 @@ function fromPromise(promiseCreator) {
+           data: response
+         });
+       }, errorData => {
+-        if (self.getSnapshot().status !== 'active') {
++        if (controller.signal.aborted || self.getSnapshot().status !== 'active') {
+           return;
+         }
+         controllerMap.delete(self);
+diff --git a/node_modules/xstate/dist/xstate-actors.development.cjs.js b/node_modules/xstate/dist/xstate-actors.development.cjs.js
+index 0768a2b..b3887da 100644
+--- a/node_modules/xstate/dist/xstate-actors.development.cjs.js
++++ b/node_modules/xstate/dist/xstate-actors.development.cjs.js
+@@ -799,7 +799,7 @@ function fromPromise(promiseCreator) {
+         emit
+       }));
+       resolvedPromise.then(response => {
+-        if (self.getSnapshot().status !== 'active') {
++        if (controller.signal.aborted || self.getSnapshot().status !== 'active') {
+           return;
+         }
+         controllerMap.delete(self);
+@@ -808,7 +808,7 @@ function fromPromise(promiseCreator) {
+           data: response
+         });
+       }, errorData => {
+-        if (self.getSnapshot().status !== 'active') {
++        if (controller.signal.aborted || self.getSnapshot().status !== 'active') {
+           return;
+         }
+         controllerMap.delete(self);
+diff --git a/node_modules/xstate/dist/xstate-actors.development.esm.js b/node_modules/xstate/dist/xstate-actors.development.esm.js
+index e039d2d..e85ee2c 100644
+--- a/node_modules/xstate/dist/xstate-actors.development.esm.js
++++ b/node_modules/xstate/dist/xstate-actors.development.esm.js
+@@ -795,7 +795,7 @@ function fromPromise(promiseCreator) {
+         emit
+       }));
+       resolvedPromise.then(response => {
+-        if (self.getSnapshot().status !== 'active') {
++        if (controller.signal.aborted || self.getSnapshot().status !== 'active') {
+           return;
+         }
+         controllerMap.delete(self);
+@@ -804,7 +804,7 @@ function fromPromise(promiseCreator) {
+           data: response
+         });
+       }, errorData => {
+-        if (self.getSnapshot().status !== 'active') {
++        if (controller.signal.aborted || self.getSnapshot().status !== 'active') {
+           return;
+         }
+         controllerMap.delete(self);
+diff --git a/node_modules/xstate/dist/xstate-actors.esm.js b/node_modules/xstate/dist/xstate-actors.esm.js
+index d1447b4..19dcd16 100644
+--- a/node_modules/xstate/dist/xstate-actors.esm.js
++++ b/node_modules/xstate/dist/xstate-actors.esm.js
+@@ -795,7 +795,7 @@ function fromPromise(promiseCreator) {
+         emit
+       }));
+       resolvedPromise.then(response => {
+-        if (self.getSnapshot().status !== 'active') {
++        if (controller.signal.aborted || self.getSnapshot().status !== 'active') {
+           return;
+         }
+         controllerMap.delete(self);
+@@ -804,7 +804,7 @@ function fromPromise(promiseCreator) {
+           data: response
+         });
+       }, errorData => {
+-        if (self.getSnapshot().status !== 'active') {
++        if (controller.signal.aborted || self.getSnapshot().status !== 'active') {
+           return;
+         }
+         controllerMap.delete(self);

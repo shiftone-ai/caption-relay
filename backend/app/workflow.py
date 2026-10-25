@@ -41,6 +41,16 @@ class CaptionWorkflow:
         finally:
             self._ai_paused -= 1
 
+    async def reset_captions(self) -> None:
+        self._ai_paused += 1
+        try:
+            async def reset() -> None:
+                await self._cancel_ai()
+                self.relay.reset_captions()
+            await self.connections.reset_captions(reset)
+        finally:
+            self._ai_paused -= 1
+
     async def _cancel_ai(self) -> None:
         self._generation += 1
         self._ai_paused += 1

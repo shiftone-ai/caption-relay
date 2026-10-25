@@ -37,14 +37,20 @@ class Connections:
 
     def start(self) -> None:
         self._running = True
-        self.web.start()
+        if self.mode == "host" and self.input_source == "udtalk":
+            self.web.start()
 
     async def stop(self) -> None:
-        await self.microphone.stop()
-        await self.web.stop()
-        if self.editor is not None:
-            await self.editor.stop()
-        self._running = False
+        async with self._changes:
+            await self.microphone.stop()
+            await self.web.stop()
+            if self.editor is not None:
+                await self.editor.stop()
+            self._running = False
+
+    async def reset_captions(self, reset: Callable[[], Awaitable[None]]) -> None:
+        async with self._changes:
+            await reset()
 
     def status(self) -> ConnectionStatus:
         if self.editor is not None:

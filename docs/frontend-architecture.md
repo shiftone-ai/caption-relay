@@ -1,6 +1,6 @@
 # フロントエンドの構成
 
-実装確認日：2026-10-11
+実装確認日：2026-10-25
 
 すべてのアプリケーションコンポーネントを Root 配下に置き、Root、Passive View、Presenter、Mediator、Adapter に責務を分ける。現在の操作画面と観客画面は TypeScript、React、XState、shadcn/ui を使用する。システム全体の責務とバックエンドは[システム構成](../ARCHITECTURE.md)、画面の振る舞いは[現行 PoC の仕様](current-behavior.md)を参照する。
 
@@ -72,6 +72,10 @@ Presenter は操作ごとに `snapshot.can(event)` を参照し、ボタンの�
 Mediatorは字幕IDの索引を保持し、取得・保存・競合結果とともに更新する。操作可否の判定では全履歴を再走査しない。Presenterは変更のない行の描画パラメータを再利用し、履歴行のmemo化で入力・スクロール時の再描画を抑える。操作の可否は引き続きMediatorのguardで判断する。
 
 ## 状態遷移
+
+ホームの `HomeRoot` は `machines/home.ts` を使い、一覧取得、登録・設定変更、接続を順に行う。`RoomRoot` は `machines/room.ts` で接続と確認付きリセット・離脱を裁定する。字幕画面がある間は `OperatorRoot` がRootを一つ所有し、ルームと字幕の各Mediatorへ `snapshot.can(event)` で通知する。Rootを入れ子にしない。
+
+`adapters/rooms.ts` はルームAPIとページ遷移を扱う。操作APIと音声WebSocketにはルームとリセットの世代を付け、観客リンクには `room_id` を付ける。リセットが成功したら新しい世代で操作画面を作り直して下書きを捨てる。ホームへ戻る際は、操作画面と離脱確認の購読を解放した後でページを移る。確認ダイアログ内のEscapeは、背後の字幕編集へ通知しない。
 
 `src/machines/operator.ts`が取得、保存、表示切り替え、公開方法、表示設定、AI設定、接続設定、テスト入力を裁定する。編集行と下書き、最新位置への追従もこのMediatorが保持する。設定パネルは一つの選択状態で管理し、同時に一つだけ開く。閉じても未保存の設定を保持する。接続設定の参加リンクは適用成功時にブラウザの入力状態から消す。
 
