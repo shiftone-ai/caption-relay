@@ -8,13 +8,16 @@ class Model(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, validate_assignment=True)
 
 
-WordText = Annotated[str, Field(min_length=1, max_length=80, pattern=r"^[^\x00-\x1f\x7f<>]+$")]
+DICTIONARY_LIMITS = {"maxWordLength": 80, "maxVariants": 5, "maxEntries": 100, "maxTotalLength": 10000}
+
+
+WordText = Annotated[str, Field(min_length=1, max_length=DICTIONARY_LIMITS["maxWordLength"], pattern=r"^[^\x00-\x1f\x7f<>]+$")]
 
 
 class DictionaryWord(Model):
     term: WordText
-    reading: str = Field(default="", max_length=80, pattern=r"^[^\x00-\x1f\x7f<>]*$")
-    variants: list[WordText] = Field(default_factory=list, max_length=5)
+    reading: str = Field(default="", max_length=DICTIONARY_LIMITS["maxWordLength"], pattern=r"^[^\x00-\x1f\x7f<>]*$")
+    variants: list[WordText] = Field(default_factory=list, max_length=DICTIONARY_LIMITS["maxVariants"])
     enabled: bool = True
 
     @field_validator("term", "reading")
@@ -33,15 +36,15 @@ class DictionaryWord(Model):
 
 
 class DictionarySettings(Model):
-    entries: list[DictionaryWord] = Field(default_factory=lambda: list[DictionaryWord](), max_length=100)
+    entries: list[DictionaryWord] = Field(default_factory=lambda: list[DictionaryWord](), max_length=DICTIONARY_LIMITS["maxEntries"])
 
     @model_validator(mode="after")
     def unique_terms(self) -> "DictionarySettings":
         keys = [unicodedata.normalize("NFKC", entry.term).casefold() for entry in self.entries]
         if len(set(keys)) != len(keys):
             raise ValueError("同じ表記は一度だけ登録してください。")
-        if sum(len(entry.term) + len(entry.reading) + sum(map(len, entry.variants)) for entry in self.entries) > 10000:
-            raise ValueError("辞書は合計10,000文字以内で登録してください。")
+        if sum(len(entry.term) + len(entry.reading) + sum(map(len, entry.variants)) for entry in self.entries) > DICTIONARY_LIMITS["maxTotalLength"]:
+            raise ValueError(f"辞書は合計{DICTIONARY_LIMITS['maxTotalLength']:,}文字以内で登録してください。")
         return self
 
 

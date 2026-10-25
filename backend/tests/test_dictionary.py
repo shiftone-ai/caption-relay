@@ -58,6 +58,17 @@ def test_dictionary_rejects_invalid_or_ambiguous_registration(entries):
         assert client.get("/api/dictionary").json()["entries"] == []
 
 
+def test_dictionary_counts_supplementary_characters_and_keeps_saved_words_on_rejection():
+    text = "𠮷" * 80
+    with TestClient(create_app(environment={})) as client:
+        response = client.put("/api/dictionary", json={"base_revision": 0, "entries": [{"term": text, "reading": text}]})
+        assert response.status_code == 200
+        assert response.json()["entries"][0]["term"] == text
+        response = client.put("/api/dictionary", json={"base_revision": 1, "entries": [{"term": text + "𠮷"}]})
+        assert response.status_code == 422
+        assert client.get("/api/dictionary").json()["entries"][0]["term"] == text
+
+
 def test_failed_atomic_save_preserves_memory_and_file(tmp_path: Path, monkeypatch):
     path = tmp_path / "words" / "dictionary.json"
     dictionary = WordDictionary(path)

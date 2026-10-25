@@ -5,7 +5,7 @@ import { CaptionConflict, OperationError, disclosureIds, type DisclosureId, type
 import { changeDisplayField, defaultDisplay, selectDisplayPalette } from "../display";
 import { editableAiSettings, defaultAi, knownAiModel } from "../ai";
 import { defaultConnection } from "../connection";
-import { dictionaryUpdate, dictionaryValidation, draftDictionary, emptyDictionary, type DictionaryDraft } from "../dictionary";
+import { dictionaryLimits, dictionaryUpdate, dictionaryValidation, draftDictionary, emptyDictionary, type DictionaryDraft } from "../dictionary";
 import type { DictionarySnapshot, DictionaryUpdate } from "../domain";
 
 type StatusTarget = { captionId: string; kind: "source" | "publication" };
@@ -202,7 +202,7 @@ export const operatorMachine = setup({
     connection: fromPromise(async ({ input, signal }: { input: { api: OperatorApi; settings: ConnectionSettings }; signal: AbortSignal }) => input.api.setConnection(input.settings, signal)),
   },
   guards: {
-    canAddWord: ({ context }) => (context.dictionaryDraft ?? draftDictionary(context.dictionary)).entries.length < 100,
+    canAddWord: ({ context }) => (context.dictionaryDraft ?? draftDictionary(context.dictionary)).entries.length < dictionaryLimits.maxEntries,
     knownWord: ({ context, event }) => (event.type === "dictionary.word.changed" || event.type === "dictionary.word.enabled" || event.type === "dictionary.word.removed")
       && Number.isInteger(event.index) && event.index >= 0 && event.index < (context.dictionaryDraft ?? draftDictionary(context.dictionary)).entries.length,
     validDictionary: ({ context }) => !dictionaryValidation(context.dictionaryDraft ?? draftDictionary(context.dictionary)),
