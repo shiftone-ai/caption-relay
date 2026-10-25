@@ -46,6 +46,31 @@ it("edits a dictionary through Root and restores focus when the panel closes", a
   await waitFor(() => expect(document.activeElement).toBe(trigger));
 }, 20000);
 
+it("accepts eighty supplementary characters in dictionary fields and retains an oversized draft", async () => {
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [] }),
+    save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(), setConnection: vi.fn(),
+    setDictionary: vi.fn().mockImplementation(update => Promise.resolve({ revision: update.base_revision + 1, entries: update.entries })),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "単語辞書" }));
+  await user.click(screen.getByRole("button", { name: "単語を追加" }));
+  const term = screen.getByRole<HTMLInputElement>("textbox", { name: "1件目の表記" });
+  const text = "𠮷".repeat(80);
+  await user.click(term);
+  await user.paste(text);
+  expect(term.value).toBe(text);
+  await user.click(screen.getByRole("button", { name: "辞書を保存" }));
+  await screen.findByText("辞書を保存しました。");
+  expect(api.setDictionary).toHaveBeenLastCalledWith(expect.objectContaining({ entries: [expect.objectContaining({ term: text })] }), expect.any(AbortSignal));
+  await user.type(term, "𠮷");
+  await user.click(screen.getByRole("button", { name: "辞書を保存" }));
+  expect(term.value).toBe(text + "𠮷");
+  expect(api.setDictionary).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("alert").textContent).toContain("80文字以内");
+});
+
 it("focuses an editable word when the dictionary is full and restores its trigger", async () => {
   const api: OperatorApi = {
     load: vi.fn().mockResolvedValue({ visible: true, captions: [], dictionary: { revision: 1,

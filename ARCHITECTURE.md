@@ -87,6 +87,14 @@ SSE は購読登録と初期スナップショットの取得を中断なしに�
 
 [API の型生成](docs/generated/README.md)でバックエンドのモデルから OpenAPI と TypeScript 型を生成する。フロントエンドの Adapter は生成した型を使用し、API モデルを独自に再定義しない。
 
+## 辞書の制限と検証
+
+入力上限は [models.py](backend/app/models.py) の `DICTIONARY_LIMITS` に置き、Pydanticモデルと、[生成した辞書規則](frontend/src/generated/dictionary-rules.ts)で共有する。`check:api` が上限値とUnicode case foldingの一致を検査する。APIの型は従来どおりOpenAPIから生成し、画面の下書きや操作イベントとは分ける。
+
+画面の [dictionary.ts](frontend/src/dictionary.ts) は、入力中の下書きを保持しながら保存前にエラーを示す。APIのPydantic検証は画面以外の呼出しも受け付けるため残す。HTMLのUTF-16文字数による切り詰めは使わず、画面とAPIがUnicodeコードポイントで上限を判定する。
+
+辞書の保存・改版照合は `WordDictionary` が担当する。音声認識は次の開始時に有効な表記を取得し、AI校正は入力を受け取った時点の辞書を保持する。手修正の保護と公開可否は `CaptionRelay`、提供元通信と処理の取消は各Adapterと `CaptionWorkflow` に保つ。この整理では入力・応答の形式、上限値、辞書の保存形式を変更しない。
+
 ## 画面の責務
 
 画面と共有の Button・Textarea はそれぞれの Scope を持って Root の配下に置き、Passive View、Presenter、Mediator、Adapter に責務を分ける。親へ伝播する操作イベントと XState の状態遷移の詳細は[フロントエンドの構成](docs/frontend-architecture.md)を参照する。
