@@ -9,8 +9,11 @@ export function presentHome(snapshot: HomeSnapshot) {
     loading: snapshot.matches("loading"), failed: snapshot.matches("failed"), busy,
     newDisabled: !snapshot.can({ type: "home.new.requested" }),
     message: context.formOpen ? "" : context.message, destination: context.destination, formOpen: context.formOpen,
+    focusReturn: !context.formOpen && context.focusVersion > 0 ? { version: context.focusVersion,
+      selector: context.focusReturnRoomId ? `[data-room-settings="${context.focusReturnRoomId}"]` : "[data-room-create]" } : null,
     form: {
       message: context.message,
+      invalidField: context.invalidField,
       name: context.form.name, background: context.form.ai.background, mode: context.form.mode,
       inputSource: context.form.inputSource, editorUrl: context.form.editorUrl,
       title: context.editingRoomId ? "ルームの接続設定" : "新しいルームに接続",

@@ -88,6 +88,7 @@ export interface ToolbarParameters {
 
 export interface AiParameters {
   error: string;
+  backgroundInvalid: boolean;
   background: string;
   helpDisclosure: DisclosureParameters;
   comparisonDisclosure: DisclosureParameters;
@@ -104,7 +105,7 @@ export interface AiParameters {
 
 export interface DictionaryParameters {
   variantsHint: string;
-  entries: { index: number; term: string; reading: string; variantsText: string; enabled: boolean }[];
+  entries: { index: number; term: string; reading: string; variantsText: string; enabled: boolean; invalidField: "term" | "reading" | "variantsText" | null }[];
   countLabel: string;
   empty: boolean;
   disabled: boolean;
@@ -200,7 +201,7 @@ function presentDisplay(settings: DisplaySettings, saved: DisplaySettings, disab
 }
 
 export interface OperatorParameters {
-  inspector: { width: number; maximum: number; resizing: boolean };
+  inspector: { width: number; maximum: number; resizing: boolean; widenDisabled: boolean; narrowDisabled: boolean };
   panelFocus: { selector: string; version: number } | null;
   toolbar: ToolbarParameters;
   message: string;
@@ -233,6 +234,15 @@ export interface OperatorParameters {
 }
 
 const rowCache = new WeakMap<Caption, { dependencies: readonly unknown[]; parameters: RowParameters }>();
+
+function settingsFocusSelector(target: NonNullable<OperatorSnapshot["context"]["settingsFocusTarget"]>): string {
+  if (target.destination === "word") return `#dictionary-word-${target.index}-${target.field}`;
+  if (target.destination === "add") return "#dictionary-add";
+  if (target.destination === "error") return "#dictionary-error";
+  return target.destination === "field"
+    ? `#${target.panel}-settings [data-setting-autofocus]:not(:disabled), #${target.panel}-settings select:not(:disabled)`
+    : `[data-settings-trigger="${target.panel}"]`;
+}
 
 export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): OperatorParameters {
   const { context } = snapshot;
@@ -336,11 +346,11 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
   });
   return {
     inspector: { width: context.inspectorPreviewWidth ?? Math.min(context.inspectorWidth, context.inspectorMaxWidth),
-      maximum: context.inspectorMaxWidth, resizing: context.inspectorResize !== null },
+      maximum: context.inspectorMaxWidth, resizing: context.inspectorResize !== null,
+      widenDisabled: !snapshot.can({ type: "inspector.width.adjusted", direction: "wider" }),
+      narrowDisabled: !snapshot.can({ type: "inspector.width.adjusted", direction: "narrower" }) },
     panelFocus: context.settingsFocusTarget ? {
-      selector: context.settingsFocusTarget.destination === "field"
-        ? `#${context.settingsFocusTarget.panel}-settings [data-setting-autofocus]:not(:disabled), #${context.settingsFocusTarget.panel}-settings select:not(:disabled)`
-        : `[data-settings-trigger="${context.settingsFocusTarget.panel}"]`,
+      selector: settingsFocusSelector(context.settingsFocusTarget),
       version: context.settingsFocusRequest,
     } : null,
     toolbar: {
@@ -388,20 +398,22 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
         text: caption.public_text ?? caption.text, speaker: caption.published ? caption.public_speaker : caption.speaker })), context.openedDisclosures),
     dictionary: {
       variantsHint: `任意・1行1件、${dictionaryLimits.maxVariants}件まで`,
-      entries: dictionaryDraft.entries.map((word, index) => ({ ...word, index })),
+      entries: dictionaryDraft.entries.map((word, index) => ({ ...word, index,
+        invalidField: context.dictionaryError?.index === index ? context.dictionaryError.field ?? null : null })),
       countLabel: `${dictionaryDraft.entries.length} / ${dictionaryLimits.maxEntries}件`, empty: dictionaryDraft.entries.length === 0,
       disabled: dictionaryDisabled,
       addDisabled: !snapshot.can({ type: "dictionary.word.added" }),
       saveDisabled: dictionaryDisabled || !dictionaryDirty,
       discardDisabled: !snapshot.can({ type: "dictionary.draft.discarded" }) || (!dictionaryDirty && !context.dictionaryError),
       saveHint: snapshot.matches({ ready: "settingDictionary" }) ? "保存中" : dictionaryDirty ? "未保存" : "",
-      error: context.dictionaryError, notice: context.dictionaryNotice,
+      error: context.dictionaryError?.message ?? "", notice: context.dictionaryNotice,
       recognitionHint: context.connection.input_source === "microphone"
         ? "表記は次に音声認識を開始したときから使います。読みと誤認識の表記はAI校正で参照します。"
         : "UDトークからの入力ではAI校正で参照します。自前の音声入力では認識にも使います。",
     },
     ai: {
       error: context.aiError,
+      backgroundInvalid: context.aiBackgroundInvalid,
       background: aiDraft.background,
       helpDisclosure: presentDisclosure("ai-help", context.openedDisclosures),
       comparisonDisclosure: presentDisclosure("ai-comparison", context.openedDisclosures),

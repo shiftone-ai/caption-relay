@@ -33,15 +33,17 @@ it("edits a dictionary through Root and restores focus when the panel closes", a
   const add = screen.getByRole("button", { name: "単語を追加" });
   await waitFor(() => expect(document.activeElement).toBe(add));
   await user.click(add);
+  expect(document.activeElement).toBe(screen.getByLabelText("1件目の表記"));
   await user.type(screen.getByLabelText("1件目の表記"), "Caption Relay");
   fireEvent.change(screen.getByLabelText("1件目の読み"), { target: { value: "きゃぷしょんりれー" } });
-  fireEvent.change(screen.getByLabelText("1件目の誤認識の表記"), { target: { value: "キャプションリレー" } });
+  fireEvent.change(screen.getByLabelText("1件目の誤認識されやすい表記"), { target: { value: "キャプションリレー" } });
   await user.click(screen.getByLabelText("1件目を有効にする"));
   await user.click(screen.getByRole("button", { name: "辞書を保存" }));
   await screen.findByText("辞書を保存しました。");
   expect(api.setDictionary).toHaveBeenCalledWith({ base_revision: 0, entries: [{ term: "Caption Relay", reading: "きゃぷしょんりれー", variants: ["キャプションリレー"], enabled: false }] }, expect.any(AbortSignal));
   await user.click(screen.getByRole("button", { name: "1件目を削除" }));
   expect(screen.queryByLabelText("1件目の表記")).toBeNull();
+  expect(document.activeElement).toBe(add);
   await user.click(screen.getByRole("button", { name: "単語辞書を閉じる" }));
   await waitFor(() => expect(document.activeElement).toBe(trigger));
 }, 20000);
@@ -69,6 +71,9 @@ it("accepts eighty supplementary characters in dictionary fields and retains an 
   expect(term.value).toBe(text + "𠮷");
   expect(api.setDictionary).toHaveBeenCalledTimes(1);
   expect(screen.getByRole("alert").textContent).toContain("80文字以内");
+  expect(term.getAttribute("aria-invalid")).toBe("true");
+  expect(document.getElementById(term.getAttribute("aria-describedby")!)?.textContent).toContain("80文字以内");
+  expect(document.activeElement).toBe(term);
 });
 
 it("focuses an editable word when the dictionary is full and restores its trigger", async () => {
@@ -86,6 +91,59 @@ it("focuses an editable word when the dictionary is full and restores its trigge
   expect(document.activeElement).toBe(screen.getByLabelText("1件目の表記"));
   await user.keyboard("{Escape}");
   expect(document.activeElement).toBe(trigger);
+});
+
+it("focuses the dictionary field with an error and its neighbour after deleting an entry", async () => {
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [] }), save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "単語辞書" }));
+  const add = screen.getByRole("button", { name: "単語を追加" });
+  await user.click(add);
+  await user.type(screen.getByLabelText("1件目の表記"), "写真");
+  await user.click(add);
+  const term = screen.getByRole<HTMLInputElement>("textbox", { name: "2件目の表記" });
+  expect(document.activeElement).toBe(term);
+  await user.type(term, "布");
+  const reading = screen.getByLabelText("2件目の読み");
+  fireEvent.change(reading, { target: { value: "あ".repeat(81) } });
+  await user.click(screen.getByRole("button", { name: "辞書を保存" }));
+  expect(document.activeElement).toBe(reading);
+  expect(reading.getAttribute("aria-invalid")).toBe("true");
+  expect(term.getAttribute("aria-invalid")).not.toBe("true");
+  await user.clear(reading);
+  const variants = screen.getByRole("textbox", { name: "2件目の誤認識されやすい表記" });
+  fireEvent.change(variants, { target: { value: "ぬの\nぬの" } });
+  await user.click(screen.getByRole("button", { name: "辞書を保存" }));
+  expect(document.activeElement).toBe(variants);
+  expect(variants.getAttribute("aria-invalid")).toBe("true");
+  expect(reading.getAttribute("aria-invalid")).not.toBe("true");
+  await user.click(screen.getByRole("button", { name: "1件目を削除" }));
+  const remaining = screen.getByRole<HTMLInputElement>("textbox", { name: "1件目の表記" });
+  expect(remaining.value).toBe("布");
+  expect(document.activeElement).toBe(remaining);
+});
+
+it("changes the inspector width with clicks and preserves the editor draft", async () => {
+  const api: OperatorApi = {
+    load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }), save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
+    setPublicationMode: vi.fn(), setDisplay: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
+  };
+  render(<OperatorRoot api={api} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "編集：字幕" }));
+  const input = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "表示文" });
+  await user.type(input, "の下書き");
+  const width = screen.getByRole("separator", { name: "右ペインの幅" });
+  expect(width.getAttribute("aria-valuenow")).toBe("384");
+  await user.click(screen.getByRole("button", { name: "右ペインを広げる" }));
+  expect(width.getAttribute("aria-valuenow")).toBe("408");
+  await user.click(screen.getByRole("button", { name: "右ペインを狭める" }));
+  expect(width.getAttribute("aria-valuenow")).toBe("384");
+  expect(input.value).toBe("字幕の下書き");
 });
 
 it("applies microphone input without starting recognition and explains a missing key", async () => {
@@ -636,6 +694,7 @@ it("routes fullscreen controls through the audience Mediator and releases both s
 });
 
 const ai: AiParameters = {
+  backgroundInvalid: false,
   error: "",
   background: "",
   helpDisclosure: { id: "ai-help", open: false }, comparisonDisclosure: { id: "ai-comparison", open: false },
@@ -798,6 +857,8 @@ it("saves supplementary Unicode background and retains an oversized AI-off draft
   expect(api.setAi).toHaveBeenCalledTimes(1);
   expect(Array.from(background.value)).toHaveLength(4001);
   expect(screen.getByRole("alert").textContent).toContain("4,000文字以内");
+  expect(background.getAttribute("aria-invalid")).toBe("true");
+  expect(document.getElementById(background.getAttribute("aria-describedby")!)?.textContent).toContain("4,000文字以内");
   await user.clear(background);
   expect(screen.getByRole("textbox", { name: "トークの背景" })).toBe(background);
   await user.type(background, "短い背景");

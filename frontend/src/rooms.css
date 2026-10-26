@@ -10,9 +10,10 @@
 .home-form { max-width: 640px; margin-top: 16px; }
 .home-form fieldset { display: grid; min-width: 0; gap: 8px; }
 .home-form label:not(:first-child) { margin-top: 8px; }
-.home-form input, .home-form select, .home-form textarea { width: 100%; min-width: 0; border: 1px solid #a3a3a3; border-radius: 4px; padding: 8px; color: #171717; background: #fff; font: inherit; line-height: 24px; }
+.home-form input, .home-form select, .home-form textarea { width: 100%; min-width: 0; border: 1px solid var(--input); border-radius: 4px; padding: 8px; color: #171717; background: #fff; font: inherit; line-height: 24px; }
 .home-form textarea { resize: vertical; box-shadow: none; }
 .home-form input::placeholder, .home-form textarea::placeholder { color: #525252; }
+.home-form [aria-invalid="true"] { border-color: var(--destructive); }
 .home-form-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .home-hint { color: #525252; font-size: 12px; line-height: 24px; }
 .home-room { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 0; border-bottom: 1px solid #e5e5e5; }

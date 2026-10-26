@@ -89,8 +89,9 @@ def test_apps_have_independent_sessions(client: TestClient) -> None:
 
 
 def test_frontend_build_is_served(client: TestClient) -> None:
-    for path in ["/", "/view/demo"]:
+    for path in ["/", "/rooms/default", "/view/demo"]:
         response = client.get(path)
+        assert response.headers["cache-control"] == "no-cache"
         assert response.status_code == 200
         assert 'id="root"' in response.text
         assert "/static/assets/" in response.text
