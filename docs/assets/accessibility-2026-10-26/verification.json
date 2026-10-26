@@ -1,0 +1,106 @@
+{
+  "checked_at": "2026-10-26T10:45:40.083840+09:00",
+  "environment": "隔離した実FastAPIと背景の実ブラウザ。認証のないローカルPoC。架空の文字列だけを使用。",
+  "before": {
+    "home_invalid_attribute": null,
+    "home_error_description": null,
+    "cancel_focus": "BODY",
+    "dictionary_delete_focus": "BODY",
+    "dictionary_variants_label": "1件目の誤認識の表記",
+    "input_border": "#a3a3a3",
+    "border_white_contrast": 2.5225067929953044,
+    "audience_log_role": false
+  },
+  "after": {
+    "home_error_linked": true,
+    "home_cancel_focus": "起点の新規ボタンまたはルーム設定ボタン",
+    "saved_room_form_clears_old_error": true,
+    "dictionary_add_focus": "追加した表記欄",
+    "dictionary_delete_focus": "隣の表記欄、空になった場合は追加ボタン",
+    "dictionary_error_targets_checked": [
+      "term",
+      "reading",
+      "variantsText"
+    ],
+    "dictionary_save_revision": 1,
+    "dictionary_variants_label": "1件目の誤認識されやすい表記",
+    "input_border": "#737373",
+    "border_white_contrast": 4.741667181590045,
+    "border_panel_contrast": 4.542848413958313,
+    "click_widths": [
+      384,
+      408,
+      384
+    ],
+    "resize_preserves_draft": true,
+    "viewport": [
+      390,
+      844
+    ],
+    "document_width": 390,
+    "mobile_width_controls_hidden": true,
+    "tabbed_setting": "文字サイズ",
+    "confirmation_escape_restores_trigger": true,
+    "audience_role": "log",
+    "audience_relevant": "additions text",
+    "audience_paragraph_counts": [
+      16,
+      17
+    ],
+    "audience_latest": "作品の見え方は、歩く速さによって変わります。",
+    "preview_log_count": 0,
+    "html_cache_control": {
+      "home": "no-cache",
+      "operator": "no-cache",
+      "audience": "no-cache"
+    },
+    "home_and_room_use_same_latest_bundle": true,
+    "browser_console_errors": 0
+  },
+  "detector": {
+    "after": [
+      {
+        "target": "source",
+        "exit_code": 0,
+        "findings": [],
+        "stderr": ""
+      },
+      {
+        "target": "home",
+        "exit_code": 0,
+        "findings": [],
+        "stderr": ""
+      },
+      {
+        "target": "operator",
+        "exit_code": 0,
+        "findings": [],
+        "stderr": ""
+      }
+    ],
+    "audience_url_scan": "タイムアウトしたため成功として扱わず、実ブラウザで代替"
+  },
+  "checks": {
+    "command": "bash scripts/check.sh",
+    "node": "22.23.4",
+    "frontend_passed": 150,
+    "frontend_includes_one_preexisting_uncommitted_test": true,
+    "backend_passed": 196,
+    "pyright_errors": 0
+  },
+  "limitations": [
+    "実スクリーンリーダーの発話",
+    "音声操作",
+    "物理端末のタッチ",
+    "強制配色",
+    "ブラウザ200%拡大"
+  ],
+  "audio_started": false,
+  "preexisting_work_items_preserved": 6,
+  "audit": {
+    "separate_session": true,
+    "remaining_p0_p1": 0,
+    "source_detector_exit": 0,
+    "source_detector_findings": []
+  }
+}

@@ -13,9 +13,10 @@ function RoomFormView({ parameters }: { parameters: HomeParameters["form"] }) {
     {emit => <section className="home-form-section" aria-labelledby="room-form-title">
       <h2 id="room-form-title">{parameters.title}</h2>
       <Form intent={{ type: "home.save.requested" }} className="home-form">
-        <fieldset disabled={parameters.busy}>
+        <fieldset disabled={parameters.busy} aria-describedby={parameters.message ? "room-form-error" : undefined}>
           <label htmlFor="room-name">ルーム名</label>
           <input ref={name} id="room-name" value={parameters.name} required
+            aria-invalid={parameters.invalidField === "name"} aria-describedby={parameters.invalidField === "name" ? "room-form-error" : undefined}
             onChange={event => emit({ type: "home.form.changed", field: "name", value: event.currentTarget.value })} />
           <label htmlFor="room-mode">配信先</label>
           <select id="room-mode" value={parameters.mode} onChange={event => emit({ type: "home.form.changed", field: "mode", value: event.currentTarget.value })}>
@@ -36,9 +37,10 @@ function RoomFormView({ parameters }: { parameters: HomeParameters["form"] }) {
           </>}
           <label htmlFor="room-background">トークの背景</label>
           <Textarea id="room-background" value={parameters.background} rows={4} placeholder="テーマ、登壇者、作品名など"
+            aria-invalid={parameters.invalidField === "background"} aria-describedby={parameters.invalidField === "background" ? "room-form-error" : undefined}
             change={value => ({ type: "home.form.changed", field: "background", value })}
             keypress={key => ({ type: "home.form.keypressed", ...key })} />
-          {parameters.message && <p className="home-error" role="alert">{parameters.message}</p>}
+          {parameters.message && <p id="room-form-error" className="home-error" role="alert">{parameters.message}</p>}
           <div className="home-form-actions">
             <Button type="submit" disabled={parameters.saveDisabled}>{parameters.busy && <LoaderCircle size={16} className="home-loading-icon" aria-hidden="true" />}{parameters.submitLabel}</Button>
             <Button type="button" variant="ghost" intent={{ type: "home.form.cancelled" }}>キャンセル</Button>
@@ -50,10 +52,14 @@ function RoomFormView({ parameters }: { parameters: HomeParameters["form"] }) {
 }
 
 export function HomeView({ parameters }: { parameters: HomeParameters }) {
+  const screen = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (parameters.focusReturn) screen.current?.querySelector<HTMLElement>(parameters.focusReturn.selector)?.focus();
+  }, [parameters.focusReturn?.version, parameters.focusReturn?.selector]);
   return <viewHierarchy.Scope name="home-screen">
-    <main className="home-screen">
+    <main ref={screen} className="home-screen">
       <header className="home-header"><h1>Caption Relay</h1>
-        <Button disabled={parameters.newDisabled} intent={{ type: "home.new.requested" }}><Plus size={16} aria-hidden="true" />新しいルームに接続</Button>
+        <Button data-room-create disabled={parameters.newDisabled} intent={{ type: "home.new.requested" }}><Plus size={16} aria-hidden="true" />新しいルームに接続</Button>
       </header>
       {parameters.message && <p className="home-error" role="alert">{parameters.message}</p>}
       {parameters.loading && <p className="home-loading" role="status"><LoaderCircle size={16} className="home-loading-icon" aria-hidden="true" />ルームを読み込んでいます</p>}
@@ -66,7 +72,7 @@ export function HomeView({ parameters }: { parameters: HomeParameters }) {
             {room.lastUsed && <span>最終利用 {room.lastUsed}</span>}
             {room.captionCount > 0 && <span>字幕 {room.captionCount}件</span>}
           </div></div>
-          <div className="home-room-actions"><Button variant="ghost" className="home-room-settings" disabled={room.disabled}
+          <div className="home-room-actions"><Button data-room-settings={room.id} variant="ghost" className="home-room-settings" disabled={room.disabled}
             aria-label={room.name + "の接続設定"} title="接続設定" intent={{ type: "home.edit.requested", roomId: room.id }}><Settings2 size={16} /></Button>
             <Button variant="outline" disabled={room.disabled} aria-label={room.name + "に接続"} intent={{ type: "home.connect.requested", roomId: room.id }}>
               {room.connecting ? <LoaderCircle size={16} className="home-loading-icon" aria-hidden="true" /> : <ArrowRight size={16} aria-hidden="true" />}

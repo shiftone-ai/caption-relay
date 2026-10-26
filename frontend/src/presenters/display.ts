@@ -8,6 +8,7 @@ export interface CaptionDisplayParameters {
   scrollVersion: string;
   followLatest: boolean;
   keyboardScrollable: boolean;
+  announceChanges: boolean;
   focusVersion: number;
   screenStyle: CSSProperties;
   frameStyle: CSSProperties;
@@ -55,6 +56,7 @@ export function presentCaptionDisplay(settings: DisplaySettings, captions: reado
   return {
     texts: utterances.map(caption => caption.text), utterances, followLatest: true, focusVersion: 0,
     keyboardScrollable: settings.display_mode === "scroll" && !referenceWidth,
+    announceChanges: !referenceWidth,
     scrollVersion: JSON.stringify([utterances, settings.display_mode, settings.speaker_display, settings.font, settings.font_size, settings.font_weight, settings.line_height,
       settings.padding, settings.align, settings.aspect, settings.position, referenceWidth]),
     screenStyle: { background: settings.background, color: settings.foreground },

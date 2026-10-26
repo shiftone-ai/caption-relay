@@ -75,11 +75,11 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
 
     @application.get("/", response_class=FileResponse)
     async def index() -> FileResponse:
-        return FileResponse(FRONTEND / "index.html")
+        return FileResponse(FRONTEND / "index.html", headers={"Cache-Control": "no-cache"})
 
     @application.get("/rooms/{room_id}", response_class=FileResponse)
     async def room_index(room_id: str) -> FileResponse:
-        return FileResponse(FRONTEND / "index.html")
+        return FileResponse(FRONTEND / "index.html", headers={"Cache-Control": "no-cache"})
 
     @application.get("/api/rooms", response_model=RoomCatalog)
     async def room_catalog() -> RoomCatalog:
@@ -120,7 +120,7 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
 
     @application.get("/view/demo", response_class=FileResponse)
     async def view() -> FileResponse:
-        return FileResponse(FRONTEND / "view.html")
+        return FileResponse(FRONTEND / "view.html", headers={"Cache-Control": "no-cache"})
 
     @application.get("/api/session", response_model=Session)
     async def session(scope: Annotated[RoomScope, Depends(room_scope)]) -> Session:
