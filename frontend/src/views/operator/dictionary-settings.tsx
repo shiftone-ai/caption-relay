@@ -15,7 +15,7 @@ export function DictionarySettingsView({ parameters }: { parameters: DictionaryP
         <p className="caption-hint">人名、会社名、専門用語など、認識してほしい表記を登録します。</p>
         <p className="caption-hint">{parameters.recognitionHint}</p>
         <p className="caption-hint">AI校正は保存後の確定字幕から参照します。辞書は接続先の端末に保存され、再起動後も残ります。</p>
-        <Button variant="outline" className="operator-button" data-setting-autofocus intent={{ type: "dictionary.word.added" }} disabled={parameters.addDisabled}><Plus size={16} aria-hidden="true" />単語を追加</Button>
+        <Button id="dictionary-add" variant="outline" className="operator-button" data-setting-autofocus intent={{ type: "dictionary.word.added" }} disabled={parameters.addDisabled}><Plus size={16} aria-hidden="true" />単語を追加</Button>
         {parameters.empty && <p className="caption-hint">単語はまだ登録されていません。</p>}
         {parameters.entries.map(word => <fieldset key={word.index} className="dictionary-word" disabled={parameters.disabled}>
           <legend>{word.index + 1}件目</legend>
@@ -25,19 +25,22 @@ export function DictionarySettingsView({ parameters }: { parameters: DictionaryP
             <Button variant="ghost" className="operator-icon-button" aria-label={`${word.index + 1}件目を削除`} title="単語を削除" disabled={parameters.disabled}
               intent={{ type: "dictionary.word.removed", index: word.index }}><Trash2 size={16} aria-hidden="true" /></Button>
           </div>
-          <label>表記<input data-setting-autofocus aria-label={`${word.index + 1}件目の表記`} value={word.term} placeholder="例：Caption Relay"
+          <label>表記<input id={`dictionary-word-${word.index}-term`} data-setting-autofocus aria-label={`${word.index + 1}件目の表記`} value={word.term} placeholder="例：Caption Relay"
+            aria-invalid={word.invalidField === "term"} aria-describedby={word.invalidField === "term" ? "dictionary-error" : undefined}
             onChange={event => emit({ type: "dictionary.word.changed", index: word.index, field: "term", value: event.currentTarget.value })} /></label>
-          <label>読み <span className="caption-hint">任意</span><input aria-label={`${word.index + 1}件目の読み`} value={word.reading} placeholder="例：きゃぷしょんりれー"
+          <label>読み <span className="caption-hint">任意</span><input id={`dictionary-word-${word.index}-reading`} aria-label={`${word.index + 1}件目の読み`} value={word.reading} placeholder="例：きゃぷしょんりれー"
+            aria-invalid={word.invalidField === "reading"} aria-describedby={word.invalidField === "reading" ? "dictionary-error" : undefined}
             onChange={event => emit({ type: "dictionary.word.changed", index: word.index, field: "reading", value: event.currentTarget.value })} /></label>
           <label>誤認識されやすい表記 <span className="caption-hint">{parameters.variantsHint}</span>
-            <Textarea aria-label={`${word.index + 1}件目の誤認識の表記`} rows={2} value={word.variantsText} disabled={parameters.disabled}
+            <Textarea id={`dictionary-word-${word.index}-variantsText`} aria-label={`${word.index + 1}件目の誤認識されやすい表記`} rows={2} value={word.variantsText} disabled={parameters.disabled}
+              aria-invalid={word.invalidField === "variantsText"} aria-describedby={word.invalidField === "variantsText" ? "dictionary-error" : undefined}
               placeholder="例：キャプションリレー" change={value => ({ type: "dictionary.word.changed", index: word.index, field: "variantsText", value })}
               keypress={key => ({ type: "settings.keypressed", key: key.key, isComposing: key.isComposing, defaultPrevented: false })} />
           </label>
         </fieldset>)}
       </div>
       <div className="display-settings-actions">
-        {parameters.error && <p role="alert" className="dictionary-error">{parameters.error}</p>}
+        {parameters.error && <p id="dictionary-error" tabIndex={-1} role="alert" className="dictionary-error">{parameters.error}</p>}
         {parameters.notice && <p role="status" className="caption-hint">{parameters.notice}</p>}
         <Button className="operator-button" intent={{ type: "dictionary.save.requested" }} disabled={parameters.saveDisabled}>辞書を保存</Button>
         <Button variant="outline" className="operator-button" intent={{ type: "dictionary.draft.discarded" }} disabled={parameters.discardDisabled}>保存済みに戻す</Button>

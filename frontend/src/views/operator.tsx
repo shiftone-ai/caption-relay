@@ -28,7 +28,7 @@ export function OperatorView({ parameters }: { parameters: OperatorParameters })
         <CaptionMonitorView parameters={parameters.monitor} />
         <div className="operator-workspace">
           <CaptionListView parameters={parameters} />
-          {(activePanel || parameters.editor) && <div className="operator-side-panel" style={{ width: parameters.inspector.width }} data-resizing={parameters.inspector.resizing}>
+          {(activePanel || parameters.editor) && <div id="operator-inspector-panel" className="operator-side-panel" style={{ width: parameters.inspector.width }} data-resizing={parameters.inspector.resizing}>
           <InspectorResizeView parameters={parameters.inspector} />
           {parameters.toolbar.settingsOpen && <DisplaySettingsView parameters={parameters.displaySettings} />}
           {parameters.toolbar.aiSettingsOpen && <AiSettingsView parameters={parameters.ai} />}

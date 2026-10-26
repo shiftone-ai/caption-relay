@@ -22,7 +22,9 @@ export function CaptionDisplayView({ parameters, captionId }: { parameters: Capt
     <div className="caption-display" style={parameters.screenStyle}>
       <div className="caption-display-frame" data-aspect={parameters.aspect} data-position={parameters.position} style={parameters.frameStyle}>
         <div ref={captions} id={captionId} className="caption-display-captions" style={parameters.captionStyle}
-          tabIndex={parameters.keyboardScrollable ? 0 : undefined} aria-label={parameters.keyboardScrollable ? "字幕" : undefined}
+          role={parameters.announceChanges ? "log" : undefined} aria-label={parameters.announceChanges ? "字幕" : undefined}
+          aria-relevant={parameters.announceChanges ? "additions text" : undefined}
+          tabIndex={parameters.keyboardScrollable ? 0 : undefined}
           onScroll={event => emit({ type: "display.scrolled", scrollHeight: event.currentTarget.scrollHeight,
             clientHeight: event.currentTarget.clientHeight, scrollTop: event.currentTarget.scrollTop })}>
           {parameters.utterances.map(caption => <p key={caption.id} style={parameters.paragraphStyle}>

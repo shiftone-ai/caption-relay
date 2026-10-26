@@ -23,6 +23,7 @@
 | AIを選び、速度と費用を比較する | [AIの選択と振り分け](ai-routing.md) | GPT-6 Luna・GPT-6.1 Sol・Claude・Gemini、文脈と料金の根拠、振り分けと実接続の確認 |
 | 固有名詞・専門用語を登録する | [単語辞書](dictionary.md) | 表記・読み・誤認識例、認識と校正への反映、保存先 |
 | API モデルを変更する | [API の型生成](generated/README.md) | 生成元、再生成、型と入力制限の一致確認 |
+| キーボード・読み上げへの対応を調べる | [アクセシビリティの確認](accessibility.md) | 入力エラー、フォーカス、字幕更新、画面幅と検証の限界 |
 | 新しい機能の要件を検討する | [v0.2 の設計案](design-v0.2.md) | 将来要件、未確定事項、受け入れ条件の案 |
 | マイクから文字起こしする | [マイク入力](microphone-input.md) | OpenAI・Appleの準備、開始・停止、試験上限、確認範囲 |
 | クラウド音声認識を比較する | [クラウド候補の調査](research/2026-10-10-cloud-transcription.md) | Google・Azure・AmiVoice・AWS などの日本語対応、途中結果、料金、データの扱い |

@@ -83,6 +83,8 @@ it("saves supplementary Unicode at the room limits and retains oversized form in
   expect(Array.from(background.value)).toHaveLength(4000);
   fireEvent.change(name, { target: { value: nameText + "𠮷" } });
   expect(screen.getByRole("alert").textContent).toContain("120文字以内");
+  expect(name.getAttribute("aria-invalid")).toBe("true");
+  expect(document.getElementById(name.getAttribute("aria-describedby")!)?.textContent).toContain("120文字以内");
   fireEvent.submit(name.closest("form")!);
   expect(api.save).not.toHaveBeenCalled();
   expect(Array.from(name.value)).toHaveLength(121);
@@ -90,11 +92,38 @@ it("saves supplementary Unicode at the room limits and retains oversized form in
   fireEvent.change(background, { target: { value: backgroundText + "𠮷" } });
   await user.keyboard("{Control>}{Enter}{/Control}");
   expect(screen.getByRole("alert").textContent).toContain("4,000文字以内");
+  expect(background.getAttribute("aria-invalid")).toBe("true");
+  expect(name.getAttribute("aria-invalid")).not.toBe("true");
   expect(api.save).not.toHaveBeenCalled();
   expect(Array.from(background.value)).toHaveLength(4001);
   fireEvent.change(background, { target: { value: backgroundText } });
   await user.click(screen.getByRole("button", { name: "登録して接続" }));
   await waitFor(() => expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ name: nameText, ai: expect.objectContaining({ background: backgroundText }) }), null, expect.any(AbortSignal)));
+});
+
+it("returns focus to the opener when cancelling a new or existing room form", async () => {
+  render(<HomeRoot api={rooms()} go={vi.fn()} />);
+  const user = userEvent.setup();
+  const create = await screen.findByRole("button", { name: "新しいルームに接続" });
+  await user.click(create);
+  await user.click(screen.getByRole("button", { name: "キャンセル" }));
+  expect(document.activeElement).toBe(create);
+  const edit = screen.getByRole("button", { name: room.name + "の接続設定" });
+  await user.click(edit);
+  await screen.findByLabelText("ルーム名");
+  await user.click(screen.getByRole("button", { name: "キャンセル" }));
+  expect(document.activeElement).toBe(edit);
+});
+
+it("clears validation when replacing an invalid draft with a saved room form", async () => {
+  render(<HomeRoot api={rooms()} go={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "新しいルームに接続" }));
+  fireEvent.change(screen.getByLabelText("ルーム名"), { target: { value: "あ".repeat(121) } });
+  await user.click(screen.getByRole("button", { name: room.name + "の接続設定" }));
+  await waitFor(() => expect(screen.getByRole<HTMLInputElement>("textbox", { name: "ルーム名" }).value).toBe(room.name));
+  expect(screen.getByLabelText("ルーム名").getAttribute("aria-invalid")).not.toBe("true");
+  expect(screen.getByLabelText("ルーム名").getAttribute("aria-describedby")).toBeNull();
 });
 
 it("retains a rejected link for correction and can reconnect from the room list", async () => {

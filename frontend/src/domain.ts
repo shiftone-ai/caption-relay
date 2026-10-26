@@ -91,6 +91,7 @@ export type DisclosureId = typeof disclosureIds[number] | `caption-saved:${strin
 
 export type OperatorEvent =
   | { type: "inspector.measured"; workspaceWidth: number }
+  | { type: "inspector.width.adjusted"; direction: "wider" | "narrower" }
   | { type: "inspector.resize.started"; pointerId: number; clientX: number; right: number; workspaceWidth: number }
   | { type: "inspector.resize.moved"; pointerId: number; clientX: number }
   | { type: "inspector.resize.ended"; pointerId: number; clientX: number }

@@ -21,7 +21,9 @@ interface Context {
   requestedRoomId: string;
   destination: string | null;
   message: string;
+  invalidField: "name" | "background" | null;
   focusVersion: number;
+  focusReturnRoomId: string | null;
 }
 
 const emptyForm = (): Form => ({ name: "", mode: "client", inputSource: "udtalk", editorUrl: "", ai: { ...defaultAiSettings }, storedLink: false,
@@ -29,8 +31,11 @@ const emptyForm = (): Form => ({ name: "", mode: "client", inputSource: "udtalk"
 const message = (error: unknown) => error instanceof OperationError ? error.message : "ルームの接続を確認できませんでした。もう一度お試しください。";
 const knownRoom = (context: Context, event: HomeEvent) => "roomId" in event && context.catalog.rooms.some(room => room.id === event.roomId);
 
-const roomFormValidation = (form: Form) => Array.from(form.name.trim()).length > formLimits.roomName
-  ? `ルーム名は${formLimits.roomName}文字以内で入力してください。` : backgroundValidation(form.ai.background);
+const roomFormValidation = (form: Form) => {
+  if (Array.from(form.name.trim()).length > formLimits.roomName) return { field: "name" as const, message: `ルーム名は${formLimits.roomName}文字以内で入力してください。` };
+  const background = backgroundValidation(form.ai.background);
+  return background ? { field: "background" as const, message: background } : null;
+};
 const canSubmitRoom = (context: Context) => context.formOpen && Boolean(context.form.name.trim())
   && !roomFormValidation(context.form) && (context.form.mode === "host" || Boolean(context.form.editorUrl.trim()) || context.form.storedLink);
 
@@ -51,7 +56,7 @@ export const homeMachine = setup({
       && canSubmitRoom(context),
   },
   actions: {
-    newForm: assign(({ context }) => ({ form: emptyForm(), formOpen: true, editingRoomId: null, message: "", focusVersion: context.focusVersion + 1 })),
+    newForm: assign(({ context }) => ({ form: emptyForm(), formOpen: true, editingRoomId: null, message: "", invalidField: null, focusVersion: context.focusVersion + 1 })),
     changeForm: assign(({ context, event }) => {
       if (event.type !== "home.form.changed" || !context.formOpen) return {};
       const form = { ...context.form };
@@ -60,14 +65,15 @@ export const homeMachine = setup({
       if (event.field === "editorUrl") form.editorUrl = event.value;
       if (event.field === "mode" && (event.value === "host" || event.value === "client")) form.mode = event.value;
       if (event.field === "inputSource" && (event.value === "udtalk" || event.value === "microphone")) form.inputSource = event.value;
-      return { form, message: roomFormValidation(form) };
+      const issue = roomFormValidation(form);
+      return { form, message: issue?.message ?? "", invalidField: issue?.field ?? null };
     }),
     requestRoom: assign(({ event }) => "roomId" in event ? { requestedRoomId: event.roomId, message: "" } : {}),
   },
 }).createMachine({
   id: "home", initial: "loading",
   context: ({ input }) => ({ api: input.api, catalog: { active_room_id: null, rooms: [] }, form: emptyForm(), formOpen: false,
-    editingRoomId: null, requestedRoomId: "", destination: null, message: "", focusVersion: 0 }),
+    editingRoomId: null, requestedRoomId: "", destination: null, message: "", invalidField: null, focusVersion: 0, focusReturnRoomId: null }),
   states: {
     loading: { invoke: { src: "catalog", input: ({ context }) => context.api,
       onDone: { target: "ready", actions: assign(({ event }) => ({ catalog: event.output, message: "" })) },
@@ -76,7 +82,8 @@ export const homeMachine = setup({
     ready: { on: {
       "home.new.requested": { actions: "newForm" },
       "home.form.changed": { actions: "changeForm" },
-      "home.form.cancelled": { actions: assign({ formOpen: false, message: "", editingRoomId: null }) },
+      "home.form.cancelled": { actions: assign(({ context }) => ({ formOpen: false, message: "", invalidField: null, editingRoomId: null,
+        focusReturnRoomId: context.editingRoomId, focusVersion: context.focusVersion + 1 })) },
       "home.save.requested": { guard: "validForm", target: "saving" },
       "home.form.keypressed": { guard: "submitKey", target: "saving" },
       "home.connect.requested": { guard: "knownRoom", target: "connecting", actions: "requestRoom" },
@@ -84,7 +91,7 @@ export const homeMachine = setup({
     } },
     reading: { invoke: { src: "details", input: ({ context }) => ({ api: context.api, id: context.requestedRoomId }),
       onDone: { target: "ready", actions: assign(({ context, event }) => { const room: RoomDetails = event.output; return {
-        editingRoomId: room.id, formOpen: true, form: { name: room.name, mode: room.connection.mode ?? "host", inputSource: room.connection.input_source ?? "udtalk",
+        editingRoomId: room.id, formOpen: true, invalidField: null, form: { name: room.name, mode: room.connection.mode ?? "host", inputSource: room.connection.input_source ?? "udtalk",
           editorUrl: "", storedLink: room.connection.mode === "client", ai: { ...defaultAiSettings, ...room.ai }, connectionSettings: room.connection }, focusVersion: context.focusVersion + 1,
       }; }) }, onError: { target: "ready", actions: assign(({ event }) => ({ message: message(event.error) })) } } },
     saving: { invoke: { src: "save", input: ({ context }) => context,

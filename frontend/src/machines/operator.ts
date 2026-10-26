@@ -5,7 +5,7 @@ import { CaptionConflict, OperationError, disclosureIds, type DisclosureId, type
 import { changeDisplayField, defaultDisplay, selectDisplayPalette } from "../display";
 import { backgroundValidation, editableAiSettings, defaultAi, knownAiModel } from "../ai";
 import { defaultConnection } from "../connection";
-import { dictionaryLimits, dictionaryUpdate, dictionaryValidation, draftDictionary, emptyDictionary, type DictionaryDraft } from "../dictionary";
+import { dictionaryLimits, dictionaryUpdate, dictionaryValidation, draftDictionary, emptyDictionary, type DictionaryDraft, type DictionaryIssue } from "../dictionary";
 import type { DictionarySnapshot, DictionaryUpdate } from "../domain";
 
 type StatusTarget = { captionId: string; kind: "source" | "publication" };
@@ -49,7 +49,9 @@ interface OperatorContext {
   historyFocusRequest: number;
   historyFocusCaptionId: string | null;
   settingsPanel: SettingsPanel | null;
-  settingsFocusTarget: { panel: SettingsPanel; destination: "field" | "trigger" } | null;
+  settingsFocusTarget: { panel: SettingsPanel; destination: "field" | "trigger" }
+    | { panel: "dictionary"; destination: "word"; index: number; field: NonNullable<DictionaryIssue["field"]> }
+    | { panel: "dictionary"; destination: "add" | "error" } | null;
   settingsFocusRequest: number;
   openedDisclosures: Set<DisclosureId>;
   statusTooltip: { pointer: StatusTarget | null; focus: StatusTarget | null; dismissed: StatusTarget | null;
@@ -63,10 +65,11 @@ interface OperatorContext {
   ai: AiRouting;
   aiDraft: AiSettings | null;
   aiError: string;
+  aiBackgroundInvalid: boolean;
   aiBackgroundExpanded: boolean;
   dictionary: DictionarySnapshot;
   dictionaryDraft: DictionaryDraft | null;
-  dictionaryError: string;
+  dictionaryError: DictionaryIssue | null;
   dictionaryNotice: string;
   connection: ConnectionStatus;
   receiverUrl: string;
@@ -276,26 +279,37 @@ export const operatorMachine = setup({
       && context.pendingSave?.captionId !== event.captionId,
   },
   actions: {
-    invalidAi: assign(({ context }) => ({ aiError: backgroundValidation((context.aiDraft ?? context.ai.settings).background) })),
-    discardDictionary: assign({ dictionaryDraft: null, dictionaryError: "", dictionaryNotice: "保存済みの辞書に戻しました。" }),
-    clearDictionaryMessage: assign({ dictionaryError: "", dictionaryNotice: "" }),
+    invalidAi: assign(({ context }) => ({ aiError: backgroundValidation((context.aiDraft ?? context.ai.settings).background), aiBackgroundInvalid: true })),
+    discardDictionary: assign({ dictionaryDraft: null, dictionaryError: null, dictionaryNotice: "保存済みの辞書に戻しました。" }),
+    clearDictionaryMessage: assign({ dictionaryError: null, dictionaryNotice: "" }),
     addWord: assign(({ context }) => {
       const draft = context.dictionaryDraft ?? draftDictionary(context.dictionary);
-      return { dictionaryDraft: { ...draft, entries: [...draft.entries, { term: "", reading: "", variantsText: "", enabled: true }] }, dictionaryError: "", dictionaryNotice: "" };
+      return { dictionaryDraft: { ...draft, entries: [...draft.entries, { term: "", reading: "", variantsText: "", enabled: true }] }, dictionaryError: null, dictionaryNotice: "",
+        settingsFocusTarget: { panel: "dictionary" as const, destination: "word" as const, index: draft.entries.length, field: "term" as const },
+        settingsFocusRequest: context.settingsFocusRequest + 1 };
     }),
     editWord: assign(({ context, event }) => {
       const draft = context.dictionaryDraft ?? draftDictionary(context.dictionary);
       if (event.type !== "dictionary.word.changed" && event.type !== "dictionary.word.enabled") return {};
       const entries = draft.entries.map((word, index) => index !== event.index ? word : event.type === "dictionary.word.enabled"
         ? { ...word, enabled: event.enabled } : { ...word, [event.field]: event.value });
-      return { dictionaryDraft: { ...draft, entries }, dictionaryError: "", dictionaryNotice: "" };
+      return { dictionaryDraft: { ...draft, entries }, dictionaryError: null, dictionaryNotice: "" };
     }),
     removeWord: assign(({ context, event }) => {
       if (event.type !== "dictionary.word.removed") return {};
       const draft = context.dictionaryDraft ?? draftDictionary(context.dictionary);
-      return { dictionaryDraft: { ...draft, entries: draft.entries.filter((_, index) => index !== event.index) }, dictionaryError: "", dictionaryNotice: "" };
+      const entries = draft.entries.filter((_, index) => index !== event.index);
+      return { dictionaryDraft: { ...draft, entries }, dictionaryError: null, dictionaryNotice: "",
+        settingsFocusTarget: entries.length
+          ? { panel: "dictionary" as const, destination: "word" as const, index: Math.min(event.index, entries.length - 1), field: "term" as const }
+          : { panel: "dictionary" as const, destination: "add" as const }, settingsFocusRequest: context.settingsFocusRequest + 1 };
     }),
-    invalidDictionary: assign(({ context }) => ({ dictionaryError: dictionaryValidation(context.dictionaryDraft ?? draftDictionary(context.dictionary)), dictionaryNotice: "" })),
+    invalidDictionary: assign(({ context }) => {
+      const issue = dictionaryValidation(context.dictionaryDraft ?? draftDictionary(context.dictionary));
+      return { dictionaryError: issue, dictionaryNotice: "", settingsFocusTarget: issue?.index !== undefined && issue.field
+        ? { panel: "dictionary" as const, destination: "word" as const, index: issue.index, field: issue.field }
+        : { panel: "dictionary" as const, destination: "error" as const }, settingsFocusRequest: context.settingsFocusRequest + 1 };
+    }),
     startMicrophone: sendTo("microphone", ({ context }) => ({ type: "start", deviceId: context.microphoneDeviceId, recognizer: context.connection.recognizer })),
     stopMicrophone: sendTo("microphone", { type: "stop" }),
     toggleDisclosure: assign(({ context, event }) => {
@@ -347,10 +361,10 @@ export const operatorMachine = setup({
     }),
     editAi: assign(({ context, event }) => {
       const settings = context.aiDraft ?? editableAiSettings(context.ai);
-      if (event.type === "ai.background.changed") return { aiError: "", aiBackgroundExpanded: context.aiBackgroundExpanded || Boolean(backgroundValidation(event.value)), aiDraft: { ...settings, background: event.value } };
+      if (event.type === "ai.background.changed") return { aiError: "", aiBackgroundInvalid: false, aiBackgroundExpanded: context.aiBackgroundExpanded || Boolean(backgroundValidation(event.value)), aiDraft: { ...settings, background: event.value } };
       if (event.type === "ai.model.selected") {
-        if (event.modelId === "off") return { aiError: "", aiDraft: { ...settings, strategy: "off" as const } };
-        if (knownAiModel(event.modelId)) return { aiError: "", aiDraft: { ...settings, strategy: "manual" as const,
+        if (event.modelId === "off") return { aiError: "", aiBackgroundInvalid: false, aiDraft: { ...settings, strategy: "off" as const } };
+        if (knownAiModel(event.modelId)) return { aiError: "", aiBackgroundInvalid: false, aiDraft: { ...settings, strategy: "manual" as const,
           preferred_model: event.modelId, candidates: [event.modelId] } };
       }
       return {};
@@ -420,8 +434,8 @@ export const operatorMachine = setup({
     openedDisclosures: new Set<DisclosureId>(["display-speaker", "display-appearance"]),
     requestedMode: { auto_publish: true },
     display: defaultDisplay, displayDraft: null,
-    ai: defaultAi, aiDraft: null, aiError: "", aiBackgroundExpanded: false,
-    dictionary: emptyDictionary, dictionaryDraft: null, dictionaryError: "", dictionaryNotice: "",
+    ai: defaultAi, aiDraft: null, aiError: "", aiBackgroundInvalid: false, aiBackgroundExpanded: false,
+    dictionary: emptyDictionary, dictionaryDraft: null, dictionaryError: null, dictionaryNotice: "",
     connection: defaultConnection, receiverUrl: "", connectionDraft: null,
   }),
   on: { "disclosure.toggled": { guard: "knownDisclosure", actions: "toggleDisclosure" } },
@@ -461,6 +475,10 @@ export const operatorMachine = setup({
         "caption.status.measured": { guard: "canMeasureStatus", actions: "measureStatus" },
         "inspector.measured": { guard: ({ event }) => Number.isFinite(event.workspaceWidth) && event.workspaceWidth > 0,
           actions: assign(({ event }) => ({ inspectorMaxWidth: Math.max(288, event.workspaceWidth - 320) })) },
+        "inspector.width.adjusted": { guard: ({ context, event }) => Boolean(context.settingsPanel || context.activeCaptionId) && context.inspectorResize === null
+          && (event.direction === "wider" ? context.inspectorWidth < context.inspectorMaxWidth : Math.min(context.inspectorWidth, context.inspectorMaxWidth) > 288),
+          actions: assign(({ context, event }) => ({ inspectorWidth: boundedInspectorWidth(Math.min(context.inspectorWidth, context.inspectorMaxWidth)
+            + (event.direction === "wider" ? 24 : -24), context.inspectorMaxWidth) })) },
         "inspector.resize.started": { guard: ({ context, event }) => Boolean(context.settingsPanel || context.activeCaptionId)
           && Number.isFinite(event.clientX) && Number.isFinite(event.right) && Number.isFinite(event.workspaceWidth) && event.workspaceWidth > 720,
           actions: assign(({ event }) => ({ inspectorResize: { pointerId: event.pointerId, right: event.right },
@@ -615,16 +633,16 @@ export const operatorMachine = setup({
         settingAi: {
           invoke: {
             src: "ai", input: ({ context }) => ({ api: context.api, settings: context.aiDraft ?? context.ai.settings }),
-            onDone: { target: "idle", actions: assign(({ event }) => ({ ai: event.output, aiDraft: null, aiError: "", aiBackgroundExpanded: false })) },
+            onDone: { target: "idle", actions: assign(({ event }) => ({ ai: event.output, aiDraft: null, aiError: "", aiBackgroundInvalid: false, aiBackgroundExpanded: false })) },
             onError: { target: "idle", actions: assign({ aiError: "AI設定を保存できませんでした。設定内容は保持しています。" }) },
           },
         },
         settingDictionary: {
           invoke: {
             src: "dictionary", input: ({ context }) => ({ api: context.api, settings: dictionaryUpdate(context.dictionaryDraft ?? draftDictionary(context.dictionary)) }),
-            onDone: { target: "idle", actions: assign(({ event }) => ({ dictionary: event.output, dictionaryDraft: null, dictionaryError: "", dictionaryNotice: "辞書を保存しました。" })) },
-            onError: { target: "idle", actions: assign(({ event }) => ({ dictionaryError: event.error instanceof OperationError
-              ? event.error.message : "辞書を保存できませんでした。入力内容は保持しています。", dictionaryNotice: "" })) },
+            onDone: { target: "idle", actions: assign(({ event }) => ({ dictionary: event.output, dictionaryDraft: null, dictionaryError: null, dictionaryNotice: "辞書を保存しました。" })) },
+            onError: { target: "idle", actions: assign(({ event }) => ({ dictionaryError: { message: event.error instanceof OperationError
+              ? event.error.message : "辞書を保存できませんでした。入力内容は保持しています。" }, dictionaryNotice: "" })) },
           },
         },
         settingConnection: {

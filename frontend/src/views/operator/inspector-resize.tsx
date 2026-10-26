@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
+import { Button } from "../../components/ui/button";
 import { viewHierarchy } from "../../events/hierarchy";
 import type { OperatorParameters } from "../../presenters/operator";
 
@@ -43,8 +45,15 @@ export function InspectorResizeView({ parameters }: { parameters: OperatorParame
     };
   }, []);
   return <viewHierarchy.Scope name="inspector-resize">
-    {emit => { notify.current = emit; return <div ref={handle} className="inspector-resize-handle" role="separator" tabIndex={0}
+    {emit => { notify.current = emit; return <><div ref={handle} className="inspector-resize-handle" role="separator" tabIndex={0}
       aria-label="右ペインの幅" aria-orientation="vertical" aria-valuemin={0} aria-valuemax={parameters.maximum}
-      aria-valuenow={Math.round(parameters.width)} aria-valuetext={Math.round(parameters.width) + "ピクセル"} />; }}
+      aria-valuenow={Math.round(parameters.width)} aria-valuetext={Math.round(parameters.width) + "ピクセル"} />
+      <div className="inspector-width-controls" role="group" aria-label="右ペインの幅調整">
+        <Button variant="ghost" className="operator-icon-button" aria-label="右ペインを広げる" title="右ペインを広げる" aria-controls="operator-inspector-panel"
+          disabled={parameters.widenDisabled} intent={{ type: "inspector.width.adjusted", direction: "wider" }}><ArrowLeftToLine size={16} aria-hidden="true" /></Button>
+        <output aria-label="右ペインの幅">{Math.round(parameters.width)}px</output>
+        <Button variant="ghost" className="operator-icon-button" aria-label="右ペインを狭める" title="右ペインを狭める" aria-controls="operator-inspector-panel"
+          disabled={parameters.narrowDisabled} intent={{ type: "inspector.width.adjusted", direction: "narrower" }}><ArrowRightToLine size={16} aria-hidden="true" /></Button>
+      </div></>; }}
   </viewHierarchy.Scope>;
 }
