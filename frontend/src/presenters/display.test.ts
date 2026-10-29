@@ -68,7 +68,8 @@ it("uses the same color, typeface, weight and alignment in audience output and p
     const settings = { ...defaultDisplay, font, background: "#ffffff", foreground: "#171717", font_weight: "normal" as const, align: "center" as const };
     const actual = presentCaptionDisplay(settings, savedCaptions);
     const preview = presentDisplayPreview(settings, savedCaptions).display;
-    expect(preview.screenStyle).toEqual(actual.screenStyle);
+    expect(preview.screenStyle).toMatchObject(actual.screenStyle);
+    expect(presentDisplayPreview(settings, savedCaptions).surfaceStyle).toEqual(actual.screenStyle);
     expect(preview.screenStyle).toMatchObject({ background: "#ffffff", color: "#171717" });
     expect(preview.captionStyle.fontFamily).toBe(actual.captionStyle.fontFamily);
     expect(preview.captionStyle.fontWeight).toBe("normal");

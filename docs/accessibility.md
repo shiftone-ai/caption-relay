@@ -40,6 +40,12 @@ impeccableのソース・ホーム・操作画面の検出は指摘なしで終�
 
 回帰テストは `rooms.test.tsx`、`roots.test.tsx`、`presenters/display-scroll.test.tsx`、`backend/tests/test_api.py` にある。[画面と検証記録](assets/accessibility-2026-10-26/verification.json)を参照する。
 
+## モバイル表示の追加確認
+
+[画面全体の確認](mobile-verification.md)に従い、ホーム、各設定、訂正・確認、観客画面の狭い幅・横向き・長文・エラーも確認する。ブラウザ回帰テストでは主要操作の44pxの領域と、その中心が別の要素に覆われていないことを検査する。
+
+追加の実ブラウザ確認では、標準の200%拡大で各画面の操作と表示、合成タッチによる横の幅調整と縦のスクロールを確認した。上記の実機、OSキーボード・IME、スクリーンリーダーの制約は残る。
+
 ## 判断の根拠
 
 - [W3C：入力エラーの通知](https://www.w3.org/WAI/tutorials/forms/notifications/)と[aria-invalid](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA21.html)
