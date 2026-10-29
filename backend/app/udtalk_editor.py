@@ -121,6 +121,8 @@ class UdtalkEditor:
         self._task = asyncio.create_task(self._run())
 
     async def stop(self) -> None:
+        if self._client.is_closed:
+            return
         if self._task is not None:
             self._task.cancel()
             await asyncio.gather(self._task, return_exceptions=True)

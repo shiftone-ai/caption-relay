@@ -97,6 +97,21 @@ async def wait_until(predicate):
             await asyncio.sleep(0.01)
 
 
+def test_editor_connection_can_be_stopped_twice() -> None:
+    async def verify() -> None:
+        server = NativeServer()
+        workflow = CaptionWorkflow(CaptionRelay(), None, {}, editor_transport=httpx.MockTransport(server.handle))
+        workflow.start()
+        try:
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+        finally:
+            await workflow.stop()
+        await workflow.stop()
+        assert [path for path, _ in server.requests].count("/push/awayTalk/") == 1
+    asyncio.run(verify())
+
+
 def test_repeated_save_uses_one_native_write_even_with_concurrent_retries() -> None:
     async def verify() -> None:
         server = NativeServer()
