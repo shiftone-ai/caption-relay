@@ -299,13 +299,13 @@ button, textarea { font: inherit; }
   .display-settings-actions { position: sticky; bottom: -16px; z-index: 2; background: #fafafa; padding-bottom: var(--space); }
 }
 @media (max-width: 720px) {
-  .operator-header { display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, 40px); padding: 16px; gap: 8px; }
+  .operator-header { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, 40px); padding: 16px; gap: 8px; }
   .operator-header h1 { grid-column: 1; grid-row: 1; font-size: 18px; line-height: 24px; }
   .operator-toolbar { display: contents; }
-  .operator-preparation { grid-column: 2; grid-row: 1; }
+  .operator-preparation { position: static; grid-column: 2; grid-row: 1; }
   .operator-preparation > summary { justify-content: center; height: 40px; width: 40px; padding: 0; font-size: 12px; }
   .operator-preparation > summary svg { display: none; }
-  .operator-preparation-body { position: fixed; top: 64px; left: 16px; right: 16px; width: auto; }
+  .operator-preparation-body { top: calc(100% + 8px); left: 16px; right: 16px; width: auto; }
   .operator-preparation-body .toolbar-test span { display: inline; }
   .operator-output-link span { display: none; }
   .toolbar-ai { grid-column: 3; grid-row: 1; }
@@ -316,9 +316,9 @@ button, textarea { font: inherit; }
   .operator-shell .operator-button, .operator-shell .operator-icon-button, .operator-shell select, .operator-output-link { min-height: 40px; height: 40px; }
   .operator-shell .operator-icon-button { width: 40px; }
   .operator-mode { width: 100%; grid-column: 1 / 4; grid-row: 2; font-size: 12px; gap: 8px; padding-right: 32px; }
-  .operator-mode-help { grid-column: 3; grid-row: 2; justify-self: end; align-self: center; }
+  .operator-mode-help { position: static; grid-column: 3; grid-row: 2; justify-self: end; align-self: center; }
   .operator-mode-help > summary { width: 24px; height: 40px; }
-  .operator-mode-help-body { position: fixed; top: 112px; left: 16px; right: 16px; width: auto; }
+  .operator-mode-help-body { top: calc(100% + 8px); left: 16px; right: 16px; width: auto; }
   .operator-mode select { flex: 1; }
   .caption-list-heading h2 { padding-inline: var(--space-2); }
   .caption-row { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 8px; padding: 8px 16px; }

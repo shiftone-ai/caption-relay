@@ -10,15 +10,17 @@ export function ToolbarView({ parameters }: { parameters: ToolbarParameters }) {
     <viewHierarchy.Scope name="toolbar">
       {emit => (
         <div className="operator-toolbar">
-          <label className="operator-mode">新着の公開
-            <select aria-label="新着の公開" value={parameters.mode} disabled={parameters.modeDisabled}
-              onChange={event => emit({ type: "publication.mode.requested", mode: event.currentTarget.value })}>
-              <option value="auto">自動公開</option><option value="manual">確認して公開</option>
-            </select>
-          </label>
-          <Disclosure parameters={parameters.helpDisclosure} className="operator-mode-help" summaryLabel="公開方法の説明" summary={<Info size={16} aria-hidden="true" />}>
-            <p className="operator-mode-help-body">新しく届く確定字幕の公開方法です。どちらの方法でも、編集した文は保存するまで観客に送られません。</p>
-          </Disclosure>
+          {parameters.localOutput && <>
+            <label className="operator-mode">新着の公開
+              <select aria-label="新着の公開" value={parameters.mode} disabled={parameters.modeDisabled}
+                onChange={event => emit({ type: "publication.mode.requested", mode: event.currentTarget.value })}>
+                <option value="auto">自動公開</option><option value="manual">確認して公開</option>
+              </select>
+            </label>
+            <Disclosure parameters={parameters.helpDisclosure} className="operator-mode-help" summaryLabel="公開方法の説明" summary={<Info size={16} aria-hidden="true" />}>
+              <p className="operator-mode-help-body">新しく届く確定字幕の公開方法です。どちらの方法でも、編集した文は保存するまで観客に送られません。</p>
+            </Disclosure>
+          </>}
           <Disclosure parameters={parameters.preparationDisclosure} className="operator-preparation" summary={<><FlaskConical size={16} aria-hidden="true" /><span>準備</span></>}>
             <div className="operator-preparation-body">
               <p>{parameters.preparationHint}</p>
