@@ -20,7 +20,7 @@ Codex Cloud と SSH 接続で開発する手順を記載する。推奨バージ
 
 接続先と利用者名は自分の SSH 設定で管理する。内部のホスト名、利用者名、ホームディレクトリの絶対パスをリポジトリに記録しない。
 
-SSH で接続したサーバー上で、このリポジトリを作業用ディレクトリへ取得する。非公開の間は GitHub の認証が必要。
+SSH で接続したサーバー上で、このリポジトリを作業用ディレクトリへ取得する。
 
 ```bash
 git clone https://github.com/shiftone-ai/caption-relay.git
@@ -40,6 +40,6 @@ ssh -N -o ExitOnForwardFailure=yes \
   -- "$CAPTION_RELAY_SSH_TARGET"
 ```
 
-既定の転送では、操作画面は <http://127.0.0.1:24681/>、観客画面は <http://127.0.0.1:24681/view/demo>。Vite を起動した場合は <http://127.0.0.1:24682/static/> も使える。終了時はサーバーとポート転送をそれぞれ Ctrl+C で止める。
+既定の転送では、ホームは <http://127.0.0.1:24681/>、デモ用の観客画面は <http://127.0.0.1:24681/view/demo>。Vite を起動した場合は <http://127.0.0.1:24682/> も使える。終了時はサーバーとポート転送をそれぞれ Ctrl+C で止める。
 
 更新は作業前に `git status` を確認し、変更がない場合に `git pull --ff-only` を実行する。依存関係が変わったら `bash scripts/setup.sh` を再実行する。

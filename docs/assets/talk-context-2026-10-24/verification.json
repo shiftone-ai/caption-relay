@@ -599,7 +599,7 @@
           "role": "作家",
           "voice": "OpenAI.fm / GPT-4o mini TTS / marin",
           "text": "布には光を通すところと、通さないところがあって、その違いを、違いを使いたかったんです。きれいに説明するより、見る人が少し立ち止まれるような余白を残しています。正解を、正解を見つける展示ではなくて、ご自身の記憶と重ねて見てもらえたらと思います。ゆっくり、ゆっくりイメージいただければと思います。展示は十三点です。予約は取り消しません。",
-          "audio_path": "[redacted-path]",
+          "audio_path": "artist.mp3",
           "checks": {
             "audio_success": true,
             "received": true,

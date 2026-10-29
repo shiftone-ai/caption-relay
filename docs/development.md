@@ -26,7 +26,7 @@ bash scripts/dev.sh
 
 Nodeの下限は[2026-10-21の公式セキュリティ更新](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases)に合わせている。CIも `.node-version` を読み、Node・npmの実行版とNode実行ファイルのSHA-256を記録する。
 
-[dev.sh](../scripts/dev.sh) は FastAPI を `127.0.0.1:24681` で起動し、`frontend/dist/` を配信する。ホームは `/`、接続後の操作画面は `/rooms/{room_id}`。観客画面は操作画面のモニターアイコンから開く。バックエンドの変更は自動で読み込む。画面を変更した場合は `npm --prefix frontend run build` で再ビルドする。
+[dev.sh](../scripts/dev.sh) は FastAPI を `127.0.0.1:24681` で起動し、`frontend/dist/` を配信する。ホームは `/`、接続後の操作画面は `/rooms/{room_id}`。観客画面は操作画面のモニターアイコンから開く。Ctrl+Cで終了する際は、観客画面などの接続の終了待ちを5秒で打ち切る。バックエンドの変更は自動で読み込む。画面を変更した場合は `npm --prefix frontend run build` で再ビルドする。
 
 フロントエンドを変更しながら確認する場合は、バックエンドを起動したまま別のターミナルで実行する。
 
