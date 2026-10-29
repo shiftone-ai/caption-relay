@@ -115,6 +115,15 @@ def test_repeated_save_uses_one_native_write_even_with_concurrent_retries() -> N
             assert first == second
             assert server.edit_count == 1
             assert [edit.text for edit in relay.caption(caption.id).edit_history] == ["原文", "訂正"]
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            assert caption.id not in workflow.connections.status().editable_caption_ids
+            assert await workflow.patch_caption(caption.id, patch) == first
+            latest = relay.caption(caption.id)
+            with pytest.raises(EditorError, match="接続中のUDトーク"):
+                await workflow.patch_caption(caption.id, CaptionPatch(text="新しい訂正", base_revision=latest.revision,
+                    base_source_revision=latest.source_revision, request_id="uncached-after-reconnect"))
+            assert server.edit_count == 1
         finally:
             await workflow.stop()
     asyncio.run(verify())

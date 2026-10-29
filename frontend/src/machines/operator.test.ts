@@ -45,6 +45,62 @@ it("retries an uncertain save with the same identity and preserves a newer loade
   expect(actor.getSnapshot().context.drafts.size).toBe(0);
 });
 
+it("keeps the current publication state when confirming a save after hide and show", async () => {
+  const adapter = api();
+  const saved = { ...caption, text: "訂正", revision: 2, human_edited: true, public_text: "訂正", public_revision: 2 };
+  let state: Snapshot = { visible: true, captions: [caption] };
+  vi.mocked(adapter.load).mockImplementation(async () => state);
+  vi.mocked(adapter.save).mockImplementationOnce(async () => {
+    state = { visible: true, captions: [saved] };
+    throw new TypeError("response lost");
+  }).mockResolvedValue(saved);
+  vi.mocked(adapter.setVisible).mockImplementation(async visible => {
+    state = { visible, captions: [{ ...saved, published: false, publish_eligible: false }] };
+    return visible;
+  });
+  const actor = await start(adapter);
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "caption.draft.changed", captionId: "one", text: "訂正" });
+  actor.send({ type: "caption.save.requested", captionId: "one" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  for (const visible of [false, true]) {
+    actor.send({ type: "visibility.toggle.requested" });
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    expect(actor.getSnapshot().context.visible).toBe(visible);
+  }
+  expect(presentOperator(actor.getSnapshot()).monitor.liveText).toBe("");
+  actor.send({ type: "caption.save.requested", captionId: "one" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.captions[0].published).toBe(false);
+  expect(actor.getSnapshot().context.captions[0].publish_eligible).toBe(false);
+  expect(presentOperator(actor.getSnapshot()).monitor.liveText).toBe("");
+  expect(presentOperator(actor.getSnapshot()).editor?.republishVisible).toBe(true);
+});
+
+it("confirms a pending save after reconnecting without enabling new edits of the old caption", async () => {
+  const adapter = api();
+  const connection = { ...defaultConnection, mode: "client" as const, state: "live" as const, editable_caption_ids: [caption.id] };
+  const saved = { ...caption, text: "訂正", revision: 2, human_edited: true };
+  vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [caption], connection });
+  vi.mocked(adapter.save).mockRejectedValueOnce(new TypeError("response lost")).mockResolvedValue(saved);
+  const actor = await start(adapter);
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "caption.draft.changed", captionId: "one", text: "訂正" });
+  actor.send({ type: "caption.save.requested", captionId: "one" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  const first = vi.mocked(adapter.save).mock.calls[0][0];
+  vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [saved],
+    connection: { ...connection, editable_caption_ids: ["new-connection-caption"] } });
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().can({ type: "caption.save.requested", captionId: "one" })).toBe(true);
+  actor.send({ type: "caption.save.requested", captionId: "one" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(vi.mocked(adapter.save).mock.calls[1][0]).toEqual(first);
+  expect(actor.getSnapshot().context.drafts.size).toBe(0);
+  expect(actor.getSnapshot().can({ type: "caption.save.requested", captionId: "one" })).toBe(false);
+});
+
 it("selects old text as a draft using current revisions and requires an explicit save", async () => {
   const adapter = api();
   const saved: Caption = { ...caption, revision: 4, source_revision: 3, human_edited: true,

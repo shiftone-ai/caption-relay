@@ -119,8 +119,8 @@ function boundedInspectorWidth(width: number, maximum: number) {
   return Math.max(288, Math.min(width, maximum));
 }
 
-function canSaveDestination(context: OperatorContext, captionId: string) {
-  return context.connection.mode === "host" || (context.connection.state === "live"
+function canSubmitSave(context: OperatorContext, captionId: string) {
+  return Boolean(context.drafts.get(captionId)?.requestId) || context.connection.mode === "host" || (context.connection.state === "live"
     && context.connection.editable_caption_ids.includes(captionId));
 }
 
@@ -241,9 +241,9 @@ export const operatorMachine = setup({
       || context.connectionDraft.editor_url?.trim())),
     validMode: ({ context, event }) => context.connection.mode === "host" && event.type === "publication.mode.requested" && (event.mode === "auto" || event.mode === "manual"),
     validShortcutSave: ({ context, event }) => isSaveShortcut(event) && event.type === "caption.editor.keypressed"
-      && context.activeCaptionId === event.captionId && canSaveDestination(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim()),
+      && context.activeCaptionId === event.captionId && canSubmitSave(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim()),
     invalidShortcutSave: ({ context, event }) => isSaveShortcut(event) && event.type === "caption.editor.keypressed"
-      && context.activeCaptionId === event.captionId && canSaveDestination(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId))
+      && context.activeCaptionId === event.captionId && canSubmitSave(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId))
       && !getSaveRequest(context, event.captionId)?.text.trim(),
     closeShortcut: ({ context, event }) => event.type === "caption.editor.keypressed" && !event.isComposing
       && event.key === "Escape" && context.activeCaptionId === event.captionId,
@@ -269,9 +269,9 @@ export const operatorMachine = setup({
       && context.activeCaptionId === event.captionId && context.editingCaptionVisible !== (event.intersectionRatio > 0),
     validAiModel: ({ event }) => event.type === "ai.model.selected" && (event.modelId === "off" || knownAiModel(event.modelId)),
     validSave: ({ context, event }) => event.type === "caption.save.requested"
-      && canSaveDestination(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim())
+      && canSubmitSave(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim())
       && (!event.republish || (context.connection.mode === "host" && context.visible && context.captionsById.get(event.captionId)?.source_final !== false)),
-    validSaveDestination: ({ context, event }) => event.type === "caption.save.requested" && canSaveDestination(context, event.captionId)
+    validSaveDestination: ({ context, event }) => event.type === "caption.save.requested" && canSubmitSave(context, event.captionId)
       && (!event.republish || (context.connection.mode === "host" && context.visible && context.captionsById.get(event.captionId)?.source_final !== false)),
     canSelectHistory: ({ context, event }) => event.type === "caption.history.selected"
       && context.pendingSave?.captionId !== event.captionId
@@ -587,14 +587,18 @@ export const operatorMachine = setup({
               drafts.delete(event.output.id);
               const current = context.captionsById.get(event.output.id);
               const newer = current && (current.revision > event.output.revision || current.source_revision > event.output.source_revision);
-              const caption = newer ? current : event.output;
+              const confirming = context.drafts.get(event.output.id)?.requestId === context.pendingSave?.requestId;
+              const keepCurrent = current && (newer || (confirming && current.revision === event.output.revision
+                && current.source_revision === event.output.source_revision));
+              const caption = keepCurrent ? current : event.output;
               const captionsById = new Map(context.captionsById);
               captionsById.set(caption.id, caption);
               return {
                 captions: context.captions.map(item => item.id === caption.id ? caption : item),
                 captionsById,
                 drafts, pendingSave: null,
-                saveStatus: { captionId: event.output.id, message: newer ? "保存済みの訂正を確認しました。現在は新しい更新があります。" : context.connection.mode === "client"
+                saveStatus: { captionId: event.output.id, message: newer ? "保存済みの訂正を確認しました。現在は新しい更新があります。" : confirming
+                  ? "保存済みの訂正を確認しました。" : context.connection.mode === "client"
                   ? "UDトークが訂正を受け付けました。純正画面の表示を確認してください。" : context.visible && event.output.publish_eligible && event.output.source_final !== false
                   && event.output.published && (event.output.public_text ?? event.output.text) === event.output.text
                   ? "保存して公開しました。" : "保存しました。観客の表示は変わりません。" },
