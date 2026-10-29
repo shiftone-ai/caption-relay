@@ -44,6 +44,9 @@ export interface RowParameters {
   saveSuccess: string;
   saveConsequence: string;
   saveConsequenceVisible: boolean;
+  historyOptions: { revision: string; label: string }[];
+  republishVisible: boolean;
+  republishDisabled: boolean;
   sourceStatusOpen: boolean;
   publicationStatusOpen: boolean;
   statusTooltipPosition: { top: number; left: number; maxWidth: number; maxHeight: number;
@@ -247,18 +250,17 @@ function settingsFocusSelector(target: NonNullable<OperatorSnapshot["context"]["
 export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): OperatorParameters {
   const { context } = snapshot;
   const clientMode = context.connection.mode === "client";
+  const publicationOrder = [...context.captions].sort((left, right) => left.publication_epoch - right.publication_epoch);
+  const publishedCaptions = publicationOrder.filter(caption => caption.published);
   let currentCaption: Caption | undefined;
   if (clientMode) {
     for (let index = context.captions.length - 1; index >= 0; index--) {
       if (context.connection.editable_caption_ids.includes(context.captions[index].id)) { currentCaption = context.captions[index]; break; }
     }
   } else if (context.visible) {
-    for (let index = context.captions.length - 1; index >= 0; index--) {
-      if (context.captions[index].published) { currentCaption = context.captions[index]; break; }
-    }
+    currentCaption = publishedCaptions.at(-1);
   }
   const currentId = currentCaption?.id;
-  const publishedCaptions = context.captions.filter(caption => caption.published);
   const displayedIds = new Set(!clientMode && context.visible
     ? (context.display.display_mode === "scroll" ? publishedCaptions : publishedCaptions.slice(-context.display.history_count)).map(caption => caption.id) : []);
   const displayDraft = context.displayDraft ?? context.display;
@@ -298,17 +300,18 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
     const readOnly = !snapshot.can({ type: "caption.draft.changed", captionId: caption.id, text: draft?.text ?? caption.text });
     const discardDisabled = !snapshot.can({ type: "caption.draft.discarded", captionId: caption.id });
     const editDisabled = !snapshot.can({ type: "caption.edit.requested", captionId: caption.id });
+    const republishDisabled = !snapshot.can({ type: "caption.save.requested", captionId: caption.id, republish: true });
     const sourceModelName = caption.ai_result ? modelNames.get(caption.ai_result.model_id) ?? caption.ai_result.model_id : "";
     const sourceStatusOpen = statusOpen && statusTarget?.captionId === caption.id && statusTarget.kind === "source";
     const publicationStatusOpen = statusOpen && statusTarget?.captionId === caption.id && statusTarget.kind === "publication";
     const statusTooltipPosition = (sourceStatusOpen || publicationStatusOpen) && context.statusTooltip.measurement?.captionId === caption.id
       && context.statusTooltip.measurement.kind === statusTarget?.kind ? context.statusTooltip.measurement.position : null;
     const savedDisclosure = presentDisclosure(`caption-saved:${caption.id}`, context.openedDisclosures);
-    const dependencies = [draft, saving, rowError, editing, focusVersion, saveSuccess, disabled, readOnly, discardDisabled, editDisabled,
+    const dependencies = [draft, saving, rowError, editing, focusVersion, saveSuccess, disabled, readOnly, discardDisabled, editDisabled, republishDisabled,
       sourceModelName, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition, context.visible, currentId === caption.id, displayedIds.has(caption.id), firstUnreadId === caption.id, clientMode, savedDisclosure.open];
     const cached = rowCache.get(caption);
     if (cached && dependencies.every((dependency, index) => dependency === cached.dependencies[index])) return cached.parameters;
-    const dirty = Boolean(draft && draft.text !== caption.text);
+    const dirty = Boolean(draft && (draft.text !== caption.text || draft.requestId));
     const aiPending = caption.ai_status === "running" || caption.ai_status === "queued";
     const source = saving ? "saving" : dirty ? "unsaved" : caption.human_edited ? "human" : aiPending ? "processing" : caption.formatted_text ? "ai" : "original";
     const differentPublic = caption.published && caption.public_text != null && caption.public_text !== caption.text;
@@ -327,15 +330,21 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
       contentDescription: `字幕：${caption.text}`,
 
       editing, dirty,
-      saveLabel: saving ? "保存中…" : clientMode ? (draft?.conflict ? "再送して" : "保存して") + "UDトークへ反映" : (draft?.conflict ? "再保存" : "保存") + (publishes ? "して公開" : ""),
+      saveLabel: saving ? "保存中…" : draft?.requestId ? "保存結果を確認" : clientMode ? (draft?.conflict ? "再送して" : "保存して") + "UDトークへ反映" : (draft?.conflict ? "再保存" : "保存") + (publishes ? "して公開" : ""),
       saveConsequence: clientMode ? "編集権と発話の更新を確認し、UDトークへ訂正を送ります。通信失敗時は下書きを保持します。" : publishes ? "保存した文を観客に公開します。" : caption.source_final === false
-        ? "発話が未確定のため、保存しても観客の表示は変わりません。" : "保存しても観客の表示は変わりません。",
+        ? "発話が未確定のため、保存しても観客の表示は変わりません。" : "「保存」は観客の表示を変えません。",
       saveConsequenceVisible: !clientMode && !publishes,
+      historyOptions: [...(caption.edit_history ?? [])].reverse().filter(edit => edit.revision !== caption.revision).map(edit => ({
+        revision: String(edit.revision), label: ({ source: "原文", ai: "AI修正", manual: "手修正" }[edit.kind]) + "　" + edit.text,
+      })),
+      republishVisible: !clientMode && context.visible && caption.source_final !== false && !draft?.requestId
+        && (!caption.publish_eligible || !displayedIds.has(caption.id)),
+      republishDisabled,
       disabled, readOnly, discardDisabled, editDisabled,
       message: draft?.conflict ?? (rowError || caption.ai_error || ""),
       invalid: Boolean(rowError && !draft?.text.trim()),
       aiPending, aiProgressLabel: caption.ai_status === "queued" ? "AI待機中" : "AI校正中",
-      source, state: source === "ai" && caption.ai_result
+      source, state: draft?.requestId && !saving ? "保存結果が未確認です。修正内容を保持しています。" : source === "ai" && caption.ai_result
         ? "AI修正 · " + sourceModelName
         : { saving: "保存中", unsaved: "未保存の下書きがあります。一覧には変更前の字幕を表示しています。", human: "手修正済み", processing: caption.ai_status === "queued" ? "AI待機中" : "AI校正中", ai: "AI修正", original: caption.ai_status === "running" || caption.ai_status === "queued" ? "AIの訂正待ち" : caption.ai_error ? "原文採用 · " + caption.ai_error : "原文採用" }[source],
       showPublicationStatus: !clientMode, publicationState, publication, current: currentId === caption.id,
@@ -394,7 +403,7 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
     followLabel: context.followLatest ? "最新に追従中" : "履歴を確認中",
     loading: snapshot.matches("loading"),
     displaySettings: presentDisplay(displayDraft, context.display, !snapshot.can({ type: "display.save.requested" }),
-      context.captions.map(caption => ({ id: caption.id,
+      publicationOrder.map(caption => ({ id: caption.id,
         text: caption.public_text ?? caption.text, speaker: caption.published ? caption.public_speaker : caption.speaker })), context.openedDisclosures),
     dictionary: {
       variantsHint: `任意・1行1件、${dictionaryLimits.maxVariants}件まで`,

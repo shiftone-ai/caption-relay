@@ -32,7 +32,7 @@ def test_returned_captions_cannot_mutate_session_state() -> None:
 def test_received_time_stays_at_first_input_through_revisions_and_edits(monkeypatch: MonkeyPatch) -> None:
     first_time = datetime(2026, 10, 6, 1, 2, 3, tzinfo=UTC)
     later_time = datetime(2026, 10, 6, 1, 4, 5, tzinfo=UTC)
-    times = iter([first_time, later_time])
+    times = iter([first_time, later_time, later_time])
 
     class Clock:
         @staticmethod

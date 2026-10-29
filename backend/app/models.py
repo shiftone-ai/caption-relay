@@ -161,6 +161,8 @@ class CaptionPatch(Model):
     text: str
     base_revision: int = Field(ge=1)
     base_source_revision: int | None = Field(default=None, ge=1)
+    request_id: str | None = Field(default=None, min_length=1, max_length=128)
+    republish: bool = False
 
     @field_validator("text")
     @classmethod
@@ -172,6 +174,14 @@ class CaptionPatch(Model):
 
 class Command(Model):
     command: Literal["show", "hide"]
+
+
+class CaptionEdit(Model):
+    revision: int
+    source_revision: int
+    text: str
+    saved_at: AwareDatetime
+    kind: Literal["source", "ai", "manual"]
 
 
 class Caption(Model):
@@ -186,6 +196,7 @@ class Caption(Model):
     human_edited: bool = False
     published: bool
     publish_eligible: bool
+    publication_epoch: int = 0
     formatted_text: str | None = None
     source_final: bool = True
     public_text: str | None = None
@@ -195,6 +206,7 @@ class Caption(Model):
     ai_result: AiResultInfo | None = None
     ai_status: Literal["off", "queued", "running", "succeeded", "failed", "unavailable"] = "off"
     ai_error: str | None = None
+    edit_history: list[CaptionEdit] = Field(default_factory=list[CaptionEdit])
 
 
 RecognizerId = Literal["openai", "apple"]

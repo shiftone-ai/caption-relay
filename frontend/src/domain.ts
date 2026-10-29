@@ -66,6 +66,8 @@ export interface Draft {
   baseRevision: number;
   baseSourceRevision?: number;
   conflict?: string;
+  requestId?: string;
+  republish?: boolean;
 }
 
 export interface SaveRequest extends Draft {
@@ -99,7 +101,8 @@ export type OperatorEvent =
   | { type: "inspector.resize.keypressed"; key: string; shiftKey: boolean }
   | { type: "disclosure.toggled"; id: DisclosureId }
   | { type: "caption.draft.changed"; captionId: string; text: string }
-  | { type: "caption.save.requested"; captionId: string }
+  | { type: "caption.save.requested"; captionId: string; republish?: boolean }
+  | { type: "caption.history.selected"; captionId: string; revision: string }
   | { type: "caption.edit.requested"; captionId: string }
   | { type: "caption.edit.closed" }
   | { type: "caption.editor.keypressed"; captionId: string; key: string; ctrlKey: boolean; metaKey: boolean; isComposing: boolean }

@@ -9,7 +9,7 @@ from .ai_provider import AiFailure, AiProvider, AiUnavailable
 from .connections import Connections
 from .dictionary import WordDictionary
 from .models import AiCorrectionContext, Caption, CaptionPatch, ConnectionSettings, ConnectionStatus, DictionarySnapshot, FormattedResult, SourceEvent, SourceIgnored
-from .relay import CaptionRelay, RevisionConflict
+from .relay import CaptionRelay, InvalidCaptionOperation, RevisionConflict
 from .udtalk_editor import EditorError
 from .transcription.openai import Connector, openai_connect
 
@@ -29,6 +29,8 @@ class CaptionWorkflow:
         self._slots = asyncio.Semaphore(2)
         self._generation = 0
         self._ai_paused = 0
+        self._saved_patches: dict[str, tuple[str, CaptionPatch, Caption]] = {}
+        self._save_lock = asyncio.Lock()
 
     def start(self) -> None:
         self.connections.start()
@@ -47,6 +49,7 @@ class CaptionWorkflow:
             async def reset() -> None:
                 await self._cancel_ai()
                 self.relay.reset_captions()
+                self._saved_patches.clear()
             await self.connections.reset_captions(reset)
         finally:
             self._ai_paused -= 1
@@ -118,6 +121,18 @@ class CaptionWorkflow:
                 self._tasks.pop(caption.id, None)
 
     async def patch_caption(self, caption_id: str, patch: CaptionPatch) -> Caption:
+        async with self._save_lock:
+            if patch.request_id is not None and patch.request_id in self._saved_patches:
+                saved_id, saved_patch, result = self._saved_patches[patch.request_id]
+                if saved_id != caption_id or saved_patch != patch:
+                    raise InvalidCaptionOperation("同じ保存番号で内容を変更できません。字幕を編集してから保存し直してください。")
+                return result.model_copy(deep=True)
+            result = await self._patch_caption(caption_id, patch)
+            if patch.request_id is not None:
+                self._saved_patches[patch.request_id] = (caption_id, patch.model_copy(deep=True), result.model_copy(deep=True))
+            return result
+
+    async def _patch_caption(self, caption_id: str, patch: CaptionPatch) -> Caption:
         before = self.relay.validate_patch(caption_id, patch)
         # Always protect the original version across the network await, including old clients.
         guarded = patch.model_copy(update={"base_source_revision": before.source_revision})

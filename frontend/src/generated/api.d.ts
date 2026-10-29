@@ -557,6 +557,11 @@ export interface components {
             published: boolean;
             /** Publish Eligible */
             publish_eligible: boolean;
+            /**
+             * Publication Epoch
+             * @default 0
+             */
+            publication_epoch: number;
             /** Formatted Text */
             formatted_text?: string | null;
             /**
@@ -580,6 +585,27 @@ export interface components {
             ai_status: "off" | "queued" | "running" | "succeeded" | "failed" | "unavailable";
             /** Ai Error */
             ai_error?: string | null;
+            /** Edit History */
+            edit_history?: components["schemas"]["CaptionEdit"][];
+        };
+        /** CaptionEdit */
+        CaptionEdit: {
+            /** Revision */
+            revision: number;
+            /** Source Revision */
+            source_revision: number;
+            /** Text */
+            text: string;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "source" | "ai" | "manual";
         };
         /** CaptionPatch */
         CaptionPatch: {
@@ -589,6 +615,13 @@ export interface components {
             base_revision: number;
             /** Base Source Revision */
             base_source_revision?: number | null;
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Republish
+             * @default false
+             */
+            republish: boolean;
         };
         /** Command */
         Command: {

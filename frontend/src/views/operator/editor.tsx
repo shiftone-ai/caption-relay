@@ -18,6 +18,7 @@ export function CaptionEditorView({ row }: { row: RowParameters }) {
   useEffect(() => { input.current?.focus({ preventScroll: true }); }, [row.focusVersion]);
   return (
     <Scope name={"caption-editor:" + row.id}>
+      {emit => <>
       <aside className="caption-editor" aria-labelledby={titleId} aria-describedby={timeId}>
         <header className="caption-editor-header">
           <div className="caption-editor-title"><h2 id={titleId}>字幕の訂正</h2>
@@ -35,18 +36,29 @@ export function CaptionEditorView({ row }: { row: RowParameters }) {
             change={text => ({ type: "caption.draft.changed", captionId: row.id, text })}
             keypress={key => ({ type: "caption.editor.keypressed", captionId: row.id, ...key })} />
           {row.dirty && <Disclosure parameters={row.savedDisclosure} className="caption-saved-reference" summary="変更前の字幕"><p>{row.text}</p></Disclosure>}
+          {row.historyOptions.length > 0 && <div className="caption-edit-history">
+            <label htmlFor={inputId + "-history"}>訂正履歴</label>
+            <select id={inputId + "-history"} value="" disabled={row.readOnly}
+              onChange={event => emit({ type: "caption.history.selected", captionId: row.id, revision: event.currentTarget.value })}>
+              <option value="" disabled>以前の文を選ぶ</option>
+              {row.historyOptions.map(edit => <option key={edit.revision} value={edit.revision}>{edit.label}</option>)}
+            </select>
+          </div>}
         </div>
         <footer className="caption-editor-footer">
           {row.message && <p id={messageId} role="status" className="operator-error">{row.message}</p>}
           <p className="caption-save-success" role="status" aria-live="polite">{row.saveSuccess}</p>
           <div className="caption-editor-actions">
             <Button className="operator-button" disabled={row.disabled} intent={{ type: "caption.save.requested", captionId: row.id }}>{row.saveLabel}</Button>
+            {row.republishVisible && <Button variant="outline" className="operator-button" disabled={row.republishDisabled}
+              intent={{ type: "caption.save.requested", captionId: row.id, republish: true }}>保存して再公開</Button>}
             <Button variant="ghost" className="operator-button" disabled={row.discardDisabled} intent={{ type: "caption.draft.discarded", captionId: row.id }}>変更を破棄</Button>
           </div>
           <p id={hintId} className="sr-only">Ctrl / ⌘ + Enter で保存 · Esc で閉じる</p>
           <p className={row.saveConsequenceVisible ? "caption-save-consequence" : "sr-only"}>{row.saveConsequence}</p>
         </footer>
       </aside>
+      </>}
     </Scope>
   );
 }

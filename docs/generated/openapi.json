@@ -1988,6 +1988,11 @@
             "type": "boolean",
             "title": "Publish Eligible"
           },
+          "publication_epoch": {
+            "type": "integer",
+            "title": "Publication Epoch",
+            "default": 0
+          },
           "formatted_text": {
             "anyOf": [
               {
@@ -2081,6 +2086,13 @@
               }
             ],
             "title": "Ai Error"
+          },
+          "edit_history": {
+            "items": {
+              "$ref": "#/components/schemas/CaptionEdit"
+            },
+            "type": "array",
+            "title": "Edit History"
           }
         },
         "additionalProperties": false,
@@ -2097,6 +2109,46 @@
           "publish_eligible"
         ],
         "title": "Caption"
+      },
+      "CaptionEdit": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "source_revision": {
+            "type": "integer",
+            "title": "Source Revision"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "saved_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Saved At"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "source",
+              "ai",
+              "manual"
+            ],
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "source_revision",
+          "text",
+          "saved_at",
+          "kind"
+        ],
+        "title": "CaptionEdit"
       },
       "CaptionPatch": {
         "properties": {
@@ -2120,6 +2172,24 @@
               }
             ],
             "title": "Base Source Revision"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "republish": {
+            "type": "boolean",
+            "title": "Republish",
+            "default": false
           }
         },
         "additionalProperties": false,

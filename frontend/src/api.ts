@@ -48,7 +48,8 @@ export function createOperatorApi(room?: RoomBinding): OperatorApi {
     },
     save(draft, signal) {
       return scopedRequest<Caption>(`/api/captions/${encodeURIComponent(draft.captionId)}`, signal,
-        json("PATCH", { text: draft.text, base_revision: draft.baseRevision, base_source_revision: draft.baseSourceRevision } satisfies components["schemas"]["CaptionPatch"]));
+        json("PATCH", { text: draft.text, base_revision: draft.baseRevision, base_source_revision: draft.baseSourceRevision,
+          request_id: draft.requestId, republish: draft.republish ?? false } satisfies components["schemas"]["CaptionPatch"]));
     },
     async setVisible(visible, signal) {
       const result = await scopedRequest<components["schemas"]["Visibility"]>("/api/commands", signal,

@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from .ai import AiRouter
 from .models import (
-    AiCorrectionContext, AiModelId, AiRouting, AiSettings, Caption, CaptionPatch, Command, PublicCaption, PublicSnapshot,
+    AiCorrectionContext, AiModelId, AiRouting, AiSettings, Caption, CaptionEdit, CaptionPatch, Command, PublicCaption, PublicSnapshot,
     DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
 )
 
@@ -20,12 +20,17 @@ class RevisionConflict(Exception):
         super().__init__("revision conflict")
 
 
+class InvalidCaptionOperation(Exception):
+    pass
+
+
 class CaptionRelay:
     """Owns the in-memory session. Run with a single server process."""
 
     def __init__(self) -> None:
         self._captions: dict[str, Caption] = {}
         self._caption_positions: dict[str, int] = {}
+        self._publication_epoch = 0
         self._published_ids: list[str] = []
         self._seen_events: set[str] = set()
         self._retired_utterances: set[str] = set()
@@ -53,6 +58,7 @@ class CaptionRelay:
         self._retired_utterances.update(self._captions)
         self._captions.clear()
         self._caption_positions.clear()
+        self._publication_epoch = 0
         self._published_ids.clear()
         self._revision += 1
         self.connection_mode(self._connection_mode)
@@ -157,6 +163,7 @@ class CaptionRelay:
                 original=event.text, text=event.formatted_text or event.text, speaker=event.speaker,
                 formatted_text=event.formatted_text, source_final=event.is_final,
                 published=False,
+                publication_epoch=self._publication_epoch,
                 publish_eligible=self._visible and self._connection_mode == "host",
             )
             self._caption_positions[event.utterance_id] = len(self._captions)
@@ -184,6 +191,8 @@ class CaptionRelay:
             patch.base_source_revision is not None and patch.base_source_revision != caption.source_revision
         ):
             raise RevisionConflict(caption)
+        if patch.republish and (self._connection_mode != "host" or not self._visible or not caption.source_final):
+            raise InvalidCaptionOperation("独立配信で字幕を表示している間だけ、確定した字幕を再公開できます。")
         return caption
 
     def ai_availability(self, models: set[AiModelId]) -> None:
@@ -200,10 +209,23 @@ class CaptionRelay:
     def patch_caption(self, caption_id: str, patch: CaptionPatch) -> Caption:
         self.validate_patch(caption_id, patch)
         caption = self._captions[caption_id]
+        saved_at = datetime.now(UTC)
+        if not caption.edit_history:
+            caption.edit_history.append(CaptionEdit(revision=caption.revision, source_revision=caption.source_revision,
+                text=caption.text, saved_at=saved_at, kind="manual" if caption.human_edited else "ai" if caption.formatted_text else "source"))
         self._revision += 1
         caption.text = patch.text
         caption.revision = self._revision
         caption.human_edited = True
+        caption.edit_history.append(CaptionEdit(revision=caption.revision, source_revision=caption.source_revision,
+            text=caption.text, saved_at=saved_at, kind="manual"))
+        if patch.republish:
+            self._publication_epoch += 1
+            caption.publication_epoch = self._publication_epoch
+            if caption.published:
+                self._published_ids.remove(caption_id)
+            caption.published = False
+            caption.publish_eligible = True
         if self._visible and caption.publish_eligible and caption.source_final:
             self._publish_caption(caption)
         self._publish()
@@ -212,11 +234,14 @@ class CaptionRelay:
     def _publish_caption(self, caption: Caption) -> None:
         if not caption.published:
             # A late final result or manual save keeps the original input order.
-            insort(self._published_ids, caption.id, key=self._caption_positions.__getitem__)
+            insort(self._published_ids, caption.id, key=self._publication_key)
         caption.published = True
         caption.public_text = caption.text
         caption.public_speaker = caption.speaker
         caption.public_revision = caption.revision
+
+    def _publication_key(self, caption_id: str) -> tuple[int, int]:
+        return self._captions[caption_id].publication_epoch, self._caption_positions[caption_id]
 
     def formatted_result(self, caption_id: str, result: FormattedResult) -> Caption | SourceIgnored:
         caption = self._captions.get(caption_id)

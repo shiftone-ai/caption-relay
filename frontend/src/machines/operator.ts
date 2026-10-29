@@ -154,6 +154,7 @@ function positionStatusTooltip(geometry: StatusTooltipGeometry): StatusTooltipPo
 
 const operations = {
   "caption.save.requested": saveTransitions,
+  "caption.history.selected": { guard: "canSelectHistory", actions: "selectHistory" },
   "caption.editor.keypressed": [
     { guard: "validShortcutSave", target: "saving", actions: "prepareSave" },
     { guard: "invalidShortcutSave", actions: "invalidSave" },
@@ -268,8 +269,13 @@ export const operatorMachine = setup({
       && context.activeCaptionId === event.captionId && context.editingCaptionVisible !== (event.intersectionRatio > 0),
     validAiModel: ({ event }) => event.type === "ai.model.selected" && (event.modelId === "off" || knownAiModel(event.modelId)),
     validSave: ({ context, event }) => event.type === "caption.save.requested"
-      && canSaveDestination(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim()),
-    validSaveDestination: ({ context, event }) => event.type === "caption.save.requested" && canSaveDestination(context, event.captionId),
+      && canSaveDestination(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim())
+      && (!event.republish || (context.connection.mode === "host" && context.visible && context.captionsById.get(event.captionId)?.source_final !== false)),
+    validSaveDestination: ({ context, event }) => event.type === "caption.save.requested" && canSaveDestination(context, event.captionId)
+      && (!event.republish || (context.connection.mode === "host" && context.visible && context.captionsById.get(event.captionId)?.source_final !== false)),
+    canSelectHistory: ({ context, event }) => event.type === "caption.history.selected"
+      && context.pendingSave?.captionId !== event.captionId
+      && Boolean(context.captionsById.get(event.captionId)?.edit_history?.some(edit => String(edit.revision) === event.revision)),
     canEdit: ({ context, event }) => event.type === "caption.draft.changed"
       && context.pendingSave?.captionId !== event.captionId
       && context.captionsById.has(event.captionId),
@@ -344,13 +350,26 @@ export const operatorMachine = setup({
         geometry: event.geometry, position: positionStatusTooltip(event.geometry) } } } : {}),
     dismissStatus: assign(({ context }) => ({ statusTooltip: { ...context.statusTooltip,
       dismissed: context.statusTooltip.focus ?? context.statusTooltip.pointer } })),
-    clearError: assign({ error: "", errorSource: null, errorCaptionId: null }),
+    clearError: assign({ error: "", errorSource: null, errorCaptionId: null, saveStatus: null }),
     invalidSave: assign(({ event }) => ({ error: "字幕を入力してください。", errorSource: "save" as const, saveStatus: null,
       errorCaptionId: event.type === "caption.save.requested" || event.type === "caption.editor.keypressed" ? event.captionId : null })),
-    prepareSave: assign(({ context, event }) => ({
-      pendingSave: event.type === "caption.save.requested" || event.type === "caption.editor.keypressed" ? getSaveRequest(context, event.captionId) : null,
-      error: "", errorSource: null, errorCaptionId: null, saveStatus: null,
-    })),
+    prepareSave: assign(({ context, event }) => {
+      if (event.type !== "caption.save.requested" && event.type !== "caption.editor.keypressed") return {};
+      const request = getSaveRequest(context, event.captionId)!;
+      const republish = (event.type === "caption.save.requested" && event.republish) || request.republish || false;
+      return { pendingSave: { ...request, republish,
+        requestId: request.requestId && republish === Boolean(request.republish) ? request.requestId : crypto.randomUUID() },
+        error: "", errorSource: null, errorCaptionId: null, saveStatus: null };
+    }),
+    selectHistory: assign(({ context, event }) => {
+      if (event.type !== "caption.history.selected") return {};
+      const caption = context.captionsById.get(event.captionId)!;
+      const edit = caption.edit_history!.find(edit => String(edit.revision) === event.revision)!;
+      const drafts = new Map(context.drafts);
+      drafts.set(caption.id, { text: edit.text, baseRevision: caption.revision, baseSourceRevision: caption.source_revision });
+      return { drafts, saveStatus: null, error: "", errorSource: null, errorCaptionId: null,
+        editorFocusRequest: context.editorFocusRequest + 1 };
+    }),
     prepareMode: assign(({ event }) => ({ requestedMode: { auto_publish: event.type === "publication.mode.requested" && event.mode === "auto" },
       error: "", errorSource: null, errorCaptionId: null })),
     editDisplay: assign(({ context, event }) => {
@@ -566,13 +585,16 @@ export const operatorMachine = setup({
             onDone: { target: "idle", actions: assign(({ context, event }) => {
               const drafts = new Map(context.drafts);
               drafts.delete(event.output.id);
+              const current = context.captionsById.get(event.output.id);
+              const newer = current && (current.revision > event.output.revision || current.source_revision > event.output.source_revision);
+              const caption = newer ? current : event.output;
               const captionsById = new Map(context.captionsById);
-              captionsById.set(event.output.id, event.output);
+              captionsById.set(caption.id, caption);
               return {
-                captions: context.captions.map(caption => caption.id === event.output.id ? event.output : caption),
+                captions: context.captions.map(item => item.id === caption.id ? caption : item),
                 captionsById,
                 drafts, pendingSave: null,
-                saveStatus: { captionId: event.output.id, message: context.connection.mode === "client"
+                saveStatus: { captionId: event.output.id, message: newer ? "保存済みの訂正を確認しました。現在は新しい更新があります。" : context.connection.mode === "client"
                   ? "UDトークが訂正を受け付けました。純正画面の表示を確認してください。" : context.visible && event.output.publish_eligible && event.output.source_final !== false
                   && event.output.published && (event.output.public_text ?? event.output.text) === event.output.text
                   ? "保存して公開しました。" : "保存しました。観客の表示は変わりません。" },
@@ -597,8 +619,9 @@ export const operatorMachine = setup({
                   captionsById,
                 };
               }
-              drafts.set(pending.captionId, { text: retainedText, baseRevision: pending.baseRevision, baseSourceRevision: pending.baseSourceRevision });
-              return { drafts, pendingSave: null, error: event.error instanceof OperationError ? event.error.message : "保存できませんでした。修正内容は保持しています。もう一度保存してください。", errorSource: "save" as const, errorCaptionId: pending.captionId };
+              drafts.set(pending.captionId, { text: retainedText, baseRevision: pending.baseRevision, baseSourceRevision: pending.baseSourceRevision,
+                requestId: pending.requestId, republish: pending.republish });
+              return { drafts, pendingSave: null, error: event.error instanceof OperationError ? event.error.message : "保存結果を確認できませんでした。修正内容は保持しています。保存結果を確認してください。", errorSource: "save" as const, errorCaptionId: pending.captionId };
             }) },
           },
         },

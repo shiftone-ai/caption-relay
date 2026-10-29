@@ -5,7 +5,7 @@ import type { Caption, OperatorApi } from "../domain";
 import { operatorMachine } from "../machines/operator";
 import { presentOperator } from "./operator";
 
-const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
+const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publication_epoch: 0, publish_eligible: true, source_final: true, ai_status: "off" };
 const actors: ReturnType<typeof createActor<typeof operatorMachine>>[] = [];
 afterEach(() => { actors.splice(0).forEach(actor => actor.stop()); });
 
