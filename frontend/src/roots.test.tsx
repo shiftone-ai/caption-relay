@@ -13,7 +13,7 @@ import { AiSettingsView } from "./views/operator/ai-settings";
 import { ToolbarView } from "./views/operator/toolbar";
 
 afterEach(cleanup);
-const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
+const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1, original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publication_epoch: 0, publish_eligible: true, source_final: true, ai_status: "off" };
 
 it("edits a dictionary through Root and restores focus when the panel closes", async () => {
   let resolveLoad!: (value: Snapshot) => void;

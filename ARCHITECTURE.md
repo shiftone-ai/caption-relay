@@ -1,6 +1,6 @@
 # システム構成
 
-実装確認日：2026-10-25
+実装確認日：2026-10-29
 
 Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つローカル PoC。React の操作画面は HTTP で取得・更新し、観客画面は SSE で公開字幕を受け取る。現在の振る舞いは[現行 PoC の仕様](docs/current-behavior.md)、起動方法は[開発手順](docs/development.md)を参照する。
 
@@ -10,8 +10,8 @@ Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つロ
 |---|---|
 | [backend/app/main.py](backend/app/main.py) | HTTP ルート、エラー応答、SSE、ビルド済み画面の配信 |
 | [backend/app/rooms.py](backend/app/rooms.py)・[room_store.py](backend/app/room_store.py) | 一つの入力接続とルームごとのWorkflow、設定の保存・復元、リセットと古い操作の拒否 |
-| [backend/app/relay.py](backend/app/relay.py) | セッション状態、入力の改版・再送判定、手修正、公開可否、購読キュー |
-| [backend/app/workflow.py](backend/app/workflow.py) | 入力、AI処理の開始・取消、訂正先への送信、保存時の改版照合 |
+| [backend/app/relay.py](backend/app/relay.py) | セッション状態、入力の改版・再送判定、手修正と訂正履歴、公開可否と明示的な再公開、購読キュー |
+| [backend/app/workflow.py](backend/app/workflow.py) | 入力、AI処理の開始・取消、訂正先への送信、保存時の改版照合と成功済み要求の再照合 |
 | [backend/app/connections.py](backend/app/connections.py) | 接続モードと入力の開始・終了、接続変更と保存の直列化 |
 | [backend/app/transcription/](backend/app/transcription/) | ブラウザ音声の単一接続、周波数変換、提供元の認識結果と累積試験使用量 |
 | [native/speech-helper.swift](native/speech-helper.swift) | SpeechAnalyzerを呼ぶSwift子プロセス。標準入力の音声と標準出力の認識結果 |
@@ -77,7 +77,9 @@ Zoom受信先の資格情報は操作画面用の接続状態だけに返す。�
 
 バックエンドは FastAPI と Pydantic v2 を使用する。入力・応答と内部の状態をモデルで型付けし、`backend/pyproject.toml` の pyright 厳格モードを通す。基底の `Model` は余分な項目と暗黙の型変換を拒否し、代入も検証する。
 
-操作画面用の `Caption` と観客用の `PublicCaption` を分ける。`PublicSnapshot` は表示可否・表示設定・公開字幕、`PublicCaption` は字幕 ID・改版・表示文・発話者名を定義する。公開用モデルへ原文や入力側の管理情報を追加しない。操作画面用の全履歴は保持し、公開済みIDの索引から、スクロール方式では全件、直近の字幕では設定した件数を取り出す。順序は最初の入力の受信順で、古い発話を後から公開・訂正しても末尾へ移さない。
+操作画面用の `Caption` と観客用の `PublicCaption` を分ける。`PublicSnapshot` は表示可否・表示設定・公開字幕、`PublicCaption` は字幕 ID・改版・表示文・発話者名を定義する。公開用モデルへ原文・訂正履歴・入力側の管理情報を追加しない。操作画面用の全履歴は保持し、公開済みIDの索引から、スクロール方式では全件、直近の字幕では設定した件数を取り出す。通常の公開・訂正は最初の受信順を保つ。明示的な再公開だけ表示順を更新し、新着はその後へ続く。
+
+`Caption.edit_history` は初回の手修正前の文と手動保存の改版を保持する。履歴選択はMediatorの下書き操作とし、保存には現在の字幕・原文改版を指定する。`CaptionWorkflow` は成功した `request_id` ごとの要求と応答をメモリに保持し、同じ要求の再送では訂正先へ送信せず元の応答を返す。番号の使い回しは409で拒否する。リセット時は字幕とともに保存結果の記録を消す。
 
 発話者名は本文とは別に保持し、公開時点の名前を `public_speaker` に残す。名前の非表示設定では公開スナップショットの名前もnullにする。AIと手動訂正は本文を更新し、名前を保持する。
 

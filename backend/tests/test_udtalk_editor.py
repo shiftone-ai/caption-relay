@@ -97,6 +97,53 @@ async def wait_until(predicate):
             await asyncio.sleep(0.01)
 
 
+def test_editor_connection_can_be_stopped_twice() -> None:
+    async def verify() -> None:
+        server = NativeServer()
+        workflow = CaptionWorkflow(CaptionRelay(), None, {}, editor_transport=httpx.MockTransport(server.handle))
+        workflow.start()
+        try:
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+        finally:
+            await workflow.stop()
+        await workflow.stop()
+        assert [path for path, _ in server.requests].count("/push/awayTalk/") == 1
+    asyncio.run(verify())
+
+
+def test_repeated_save_uses_one_native_write_even_with_concurrent_retries() -> None:
+    async def verify() -> None:
+        server = NativeServer()
+        relay = CaptionRelay()
+        workflow = CaptionWorkflow(relay, None, {}, editor_transport=httpx.MockTransport(server.handle))
+        workflow.start()
+        try:
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            server.history.append(speech())
+            await wait_until(lambda: len(relay.captions()) == 1)
+            caption = relay.captions()[0]
+            patch = CaptionPatch(text="訂正", base_revision=caption.revision,
+                                 base_source_revision=caption.source_revision, request_id="repeat-save")
+            first, second = await asyncio.gather(workflow.patch_caption(caption.id, patch), workflow.patch_caption(caption.id, patch))
+            assert first == second
+            assert server.edit_count == 1
+            assert [edit.text for edit in relay.caption(caption.id).edit_history] == ["原文", "訂正"]
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            assert caption.id not in workflow.connections.status().editable_caption_ids
+            assert await workflow.patch_caption(caption.id, patch) == first
+            latest = relay.caption(caption.id)
+            with pytest.raises(EditorError, match="接続中のUDトーク"):
+                await workflow.patch_caption(caption.id, CaptionPatch(text="新しい訂正", base_revision=latest.revision,
+                    base_source_revision=latest.source_revision, request_id="uncached-after-reconnect"))
+            assert server.edit_count == 1
+        finally:
+            await workflow.stop()
+    asyncio.run(verify())
+
+
 def test_native_sharing_url_preserves_edit_only_permission_and_sharing_metadata():
     limit = time() - 3600
     parsed = decode_editor_url(editor_url(wrapped=True, readOnly=1, editOnly=1, sharingLimit=limit))

@@ -24,7 +24,7 @@ const rooms = (): RoomsApi => ({
   reset: vi.fn().mockResolvedValue({ ...room, generation: 1 }),
 });
 const caption: Caption = { id: "one", utterance_id: "one", received_at: "2026-10-06T01:02:03Z", source_revision: 1,
-  original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publish_eligible: true, source_final: true, ai_status: "off" };
+  original: "原文", text: "字幕", revision: 1, human_edited: false, published: true, publication_epoch: 0, publish_eligible: true, source_final: true, ai_status: "off" };
 const operator = (): OperatorApi => ({
   load: vi.fn().mockResolvedValue({ visible: true, captions: [caption] }), save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(),
   setPublicationMode: vi.fn(), setDisplay: vi.fn(), setAi: vi.fn(), setConnection: vi.fn(), setDictionary: vi.fn(),

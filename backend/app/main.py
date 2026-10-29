@@ -17,7 +17,7 @@ from .models import (
     ConnectionSettings, ConnectionStatus, DictionaryError, DictionarySnapshot, DictionaryUpdate, DisplaySettings, FormattedResult, PublicationMode, Session, SourceEvent, SourceIgnored, Visibility,
 )
 from .dictionary import DictionaryConflict, DictionaryStorageError, WordDictionary, dictionary_path
-from .relay import CaptionNotFound, CaptionRelay, RevisionConflict
+from .relay import CaptionNotFound, CaptionRelay, InvalidCaptionOperation, RevisionConflict
 from .udtalk_web import UdtalkStatus
 from .udtalk_editor import EditorError
 from .workflow import CaptionWorkflow
@@ -61,6 +61,10 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
 
     @application.exception_handler(RoomConflict)
     async def room_conflict(_: Request, error: RoomConflict) -> JSONResponse:
+        return JSONResponse({"detail": str(error)}, status_code=409)
+
+    @application.exception_handler(InvalidCaptionOperation)
+    async def invalid_caption_operation(_: Request, error: InvalidCaptionOperation) -> JSONResponse:
         return JSONResponse({"detail": str(error)}, status_code=409)
 
     @application.exception_handler(RoomStorageError)
