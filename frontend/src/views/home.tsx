@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import { ArrowRight, Cable, LoaderCircle, Plus, Settings2 } from "lucide-react";
+import { ArrowRight, Cable, LoaderCircle, Plus, Settings2, Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { ConfirmationDialog } from "../components/ui/confirmation-dialog";
 import { Form } from "../components/ui/form";
 import { Textarea } from "../components/ui/textarea";
 import { viewHierarchy } from "../events/hierarchy";
@@ -61,6 +62,7 @@ export function HomeView({ parameters }: { parameters: HomeParameters }) {
       <header className="home-header"><h1>Caption Relay</h1>
         <Button data-room-create disabled={parameters.newDisabled} intent={{ type: "home.new.requested" }}><Plus size={16} aria-hidden="true" />新しいルームに接続</Button>
       </header>
+      {parameters.notice && <p className="home-notice" role="status">{parameters.notice}</p>}
       {parameters.message && <p className="home-error" role="alert">{parameters.message}</p>}
       {parameters.loading && <p className="home-loading" role="status"><LoaderCircle size={16} className="home-loading-icon" aria-hidden="true" />ルームを読み込んでいます</p>}
       {parameters.failed && <Button variant="outline" intent={{ type: "home.retry.requested" }}>再読み込み</Button>}
@@ -72,7 +74,8 @@ export function HomeView({ parameters }: { parameters: HomeParameters }) {
             {room.lastUsed && <span>最終利用 {room.lastUsed}</span>}
             {room.captionCount > 0 && <span>字幕 {room.captionCount}件</span>}
           </div></div>
-          <div className="home-room-actions"><Button data-room-settings={room.id} variant="ghost" className="home-room-settings" disabled={room.disabled}
+          <div className="home-room-actions">{room.deleteVisible && <Button variant="ghost" className="home-room-delete" disabled={room.deleteDisabled}
+            aria-label={room.name + "を削除"} title="ルームを削除" intent={{ type: "home.delete.requested", roomId: room.id }}><Trash2 size={16} aria-hidden="true" /></Button>}<Button data-room-settings={room.id} variant="ghost" className="home-room-settings" disabled={room.disabled}
             aria-label={room.name + "の接続設定"} title="接続設定" intent={{ type: "home.edit.requested", roomId: room.id }}><Settings2 size={16} /></Button>
             <Button variant="outline" disabled={room.disabled} aria-label={room.name + "に接続"} intent={{ type: "home.connect.requested", roomId: room.id }}>
               {room.connecting ? <LoaderCircle size={16} className="home-loading-icon" aria-hidden="true" /> : <ArrowRight size={16} aria-hidden="true" />}
@@ -80,6 +83,7 @@ export function HomeView({ parameters }: { parameters: HomeParameters }) {
             </Button></div>
         </li>)}</ul>
       </section>}
+      <ConfirmationDialog parameters={parameters.confirmation} />
     </main>
   </viewHierarchy.Scope>;
 }

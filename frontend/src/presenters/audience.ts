@@ -10,6 +10,7 @@ export interface AudienceParameters extends CaptionDisplayParameters {
   fullscreenLabel: string;
   fullscreenIcon: "maximize" | "minimize";
   fullscreenError: string;
+  connectionNotice: string;
   latestVisible: boolean;
   controlsStyle: CSSProperties;
 }
@@ -28,6 +29,9 @@ export function presentAudience(snapshot: AudienceSnapshot): AudienceParameters 
     fullscreenLabel: context.fullscreenActive ? "全画面を解除" : "全画面",
     fullscreenIcon: context.fullscreenActive ? "minimize" : "maximize",
     fullscreenError: context.fullscreenError,
+    connectionNotice: snapshot.matches({ connection: "connecting" }) ? "字幕に接続しています…"
+      : snapshot.matches({ connection: "reconnecting" }) ? "接続が切れました。再接続しています…"
+      : snapshot.matches({ connection: "unavailable" }) ? "字幕に接続できません。ページを開き直してください。" : "",
     controlsStyle: { minHeight: audienceControlsHeight },
   };
 }

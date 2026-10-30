@@ -1,6 +1,7 @@
 """Saved room settings and the credential-free home API."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 
@@ -49,6 +50,7 @@ class RoomSummary(Model):
     input_source: InputSource
     recognizer: RecognizerId
     background: str
+    deletable: bool = False
 
 
 class RoomDetails(RoomSummary):
@@ -63,3 +65,11 @@ class RoomCatalog(Model):
 
 class RoomReset(Model):
     generation: int = Field(ge=0)
+
+
+RoomStateCode = Literal["room_reset", "room_inactive", "room_missing"]
+
+
+class RoomStateError(Model):
+    detail: str
+    code: RoomStateCode | None = None

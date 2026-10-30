@@ -32,6 +32,7 @@ export function OperatorRoot({ api = operatorApi, microphone, room, controls }: 
   const input = useMemo(() => microphone ?? createMicrophoneAdapter(), [microphone]);
   const actor = useActorRef(operatorMachine, { input: { api, microphone: input } });
   const parameters = useSelector(actor, snapshot => presentOperator(snapshot, room?.roomId));
+  useEffect(() => { actor.send({ type: "operator.binding.changed", api, microphone: input }); }, [actor, api, input]);
   useEffect(() => parameters.hasUnsavedChanges ? protectUnsavedChanges(window) : undefined, [parameters.hasUnsavedChanges]);
   const onUnsavedChange = controls?.onUnsavedChange;
   useEffect(() => { onUnsavedChange?.(parameters.hasUnsavedChanges); }, [onUnsavedChange, parameters.hasUnsavedChanges]);
@@ -75,7 +76,7 @@ export function RoomRoot({ id, api = roomsApi, go = navigate, operator = createO
   }, [actor]);
   const onUnsavedChange = useCallback((unsaved: boolean) => actor.send({ type: "room.unsaved.changed", unsaved }), [actor]);
   useEffect(() => { if (parameters.destination) go("/"); }, [go, parameters.destination]);
-  if (parameters.showOperator) return <OperatorRoot key={id + ":" + generation} api={operatorAdapter} microphone={microphoneAdapter} room={binding}
+  if (parameters.showOperator) return <OperatorRoot key={id} api={operatorAdapter} microphone={microphoneAdapter} room={binding}
     controls={{ parameters, handle, onUnsavedChange }} />;
   return <viewHierarchy.Root handle={handle}><div className="room-screen"><RoomActionsView parameters={parameters} /></div></viewHierarchy.Root>;
 }

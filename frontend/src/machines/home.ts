@@ -21,6 +21,7 @@ interface Context {
   requestedRoomId: string;
   destination: string | null;
   message: string;
+  notice: string;
   invalidField: "name" | "background" | null;
   focusVersion: number;
   focusReturnRoomId: string | null;
@@ -42,6 +43,10 @@ const canSubmitRoom = (context: Context) => context.formOpen && Boolean(context.
 export const homeMachine = setup({
   types: {} as { context: Context; events: ViewEvent; input: { api: RoomsApi } },
   actors: {
+    delete: fromPromise(({ input, signal }: { input: Context; signal: AbortSignal }) => {
+      const room = input.catalog.rooms.find(room => room.id === input.requestedRoomId)!;
+      return input.api.delete({ roomId: room.id, generation: room.generation }, signal);
+    }),
     catalog: fromPromise(({ input, signal }: { input: RoomsApi; signal: AbortSignal }) => input.catalog(signal)),
     details: fromPromise(({ input, signal }: { input: { api: RoomsApi; id: string }; signal: AbortSignal }) => input.api.details(input.id, signal)),
     connect: fromPromise(({ input, signal }: { input: { api: RoomsApi; id: string }; signal: AbortSignal }) => input.api.connect(input.id, signal)),
@@ -50,13 +55,14 @@ export const homeMachine = setup({
         editor_url: input.form.mode === "client" ? input.form.editorUrl.trim() || null : null } }, input.editingRoomId, signal)),
   },
   guards: {
+    canDelete: ({ context, event }) => event.type === "home.delete.requested" && !context.formOpen && context.catalog.rooms.some(room => room.id === event.roomId && room.deletable),
     knownRoom: ({ context, event }) => knownRoom(context, event as HomeEvent),
     validForm: ({ context }) => canSubmitRoom(context),
     submitKey: ({ context, event }) => event.type === "home.form.keypressed" && event.key === "Enter" && (event.ctrlKey || event.metaKey) && !event.isComposing
       && canSubmitRoom(context),
   },
   actions: {
-    newForm: assign(({ context }) => ({ form: emptyForm(), formOpen: true, editingRoomId: null, message: "", invalidField: null, focusVersion: context.focusVersion + 1 })),
+    newForm: assign(({ context }) => ({ form: emptyForm(), formOpen: true, editingRoomId: null, message: "", notice: "", invalidField: null, focusVersion: context.focusVersion + 1 })),
     changeForm: assign(({ context, event }) => {
       if (event.type !== "home.form.changed" || !context.formOpen) return {};
       const form = { ...context.form };
@@ -68,18 +74,19 @@ export const homeMachine = setup({
       const issue = roomFormValidation(form);
       return { form, message: issue?.message ?? "", invalidField: issue?.field ?? null };
     }),
-    requestRoom: assign(({ event }) => "roomId" in event ? { requestedRoomId: event.roomId, message: "" } : {}),
+    requestRoom: assign(({ event }) => "roomId" in event ? { requestedRoomId: event.roomId, message: "", notice: "" } : {}),
   },
 }).createMachine({
   id: "home", initial: "loading",
   context: ({ input }) => ({ api: input.api, catalog: { active_room_id: null, rooms: [] }, form: emptyForm(), formOpen: false,
-    editingRoomId: null, requestedRoomId: "", destination: null, message: "", invalidField: null, focusVersion: 0, focusReturnRoomId: null }),
+    editingRoomId: null, requestedRoomId: "", destination: null, message: "", notice: "", invalidField: null, focusVersion: 0, focusReturnRoomId: null }),
   states: {
     loading: { invoke: { src: "catalog", input: ({ context }) => context.api,
       onDone: { target: "ready", actions: assign(({ event }) => ({ catalog: event.output, message: "" })) },
       onError: { target: "failed", actions: assign(({ event }) => ({ message: message(event.error) })) } } },
     failed: { on: { "home.retry.requested": "loading" } },
     ready: { on: {
+      "home.delete.requested": { guard: "canDelete", target: "confirmDelete", actions: "requestRoom" },
       "home.new.requested": { actions: "newForm" },
       "home.form.changed": { actions: "changeForm" },
       "home.form.cancelled": { actions: assign(({ context }) => ({ formOpen: false, message: "", invalidField: null, editingRoomId: null,
@@ -89,6 +96,17 @@ export const homeMachine = setup({
       "home.connect.requested": { guard: "knownRoom", target: "connecting", actions: "requestRoom" },
       "home.edit.requested": { guard: "knownRoom", target: "reading", actions: "requestRoom" },
     } },
+    confirmDelete: { on: {
+      "home.delete.cancelled": { target: "ready" },
+      "home.delete.confirmed": { target: "deleting" },
+    } },
+    deleting: { invoke: { src: "delete", input: ({ context }) => context,
+      onDone: { target: "ready", actions: assign(({ context, event }) => ({ catalog: event.output, message: "", notice: "ルームを削除しました。",
+        focusReturnRoomId: null, focusVersion: context.focusVersion + 1 })) },
+      onError: { target: "refreshing", actions: assign(({ event }) => ({ message: message(event.error) })) } } },
+    refreshing: { invoke: { src: "catalog", input: ({ context }) => context.api,
+      onDone: { target: "ready", actions: assign(({ event }) => ({ catalog: event.output })) },
+      onError: { target: "ready" } } },
     reading: { invoke: { src: "details", input: ({ context }) => ({ api: context.api, id: context.requestedRoomId }),
       onDone: { target: "ready", actions: assign(({ context, event }) => { const room: RoomDetails = event.output; return {
         editingRoomId: room.id, formOpen: true, invalidField: null, form: { name: room.name, mode: room.connection.mode ?? "host", inputSource: room.connection.input_source ?? "udtalk",

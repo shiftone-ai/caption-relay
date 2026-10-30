@@ -9,7 +9,7 @@ from .models import (
     AiRouting, AiSettings, Caption, CaptionPatch, Command, ConnectionSettings, ConnectionStatus,
     DisplaySettings, FormattedResult, PublicationMode, SourceIgnored, Visibility,
 )
-from .room_models import RoomCatalog, RoomDetails, RoomDraft, RoomSummary, SavedRoom
+from .room_models import RoomCatalog, RoomDetails, RoomDraft, RoomSummary, SavedRoom, RoomStateCode
 from .room_store import RoomStore
 from .udtalk_editor import EditorError, decode_editor_url
 from .workflow import CaptionWorkflow
@@ -20,7 +20,9 @@ class RoomNotFound(Exception):
 
 
 class RoomConflict(Exception):
-    pass
+    def __init__(self, message: str, code: RoomStateCode | None = None) -> None:
+        super().__init__(message)
+        self.code = code
 
 
 def validate_connection(settings: ConnectionSettings) -> None:
@@ -61,9 +63,9 @@ class Rooms:
         identifier = room_id or self.active_room_id or "default"
         room = self._record(identifier)
         if generation is not None and generation != room.generation:
-            raise RoomConflict("字幕がリセットされました。画面を読み直してください。")
+            raise RoomConflict("字幕がリセットされました。画面を読み直してください。", "room_reset")
         if active and self.active_room_id != identifier:
-            raise RoomConflict("このルームの接続は終了しました。ホームから接続してください。")
+            raise RoomConflict("このルームの接続は終了しました。ホームから接続してください。", "room_inactive")
         if identifier not in self._workflows:
             workflow = self._factory()
             workflow.relay.ai_settings(room.ai)
@@ -78,6 +80,7 @@ class Rooms:
         room = self._record(room_id)
         workflow = self._workflows.get(room_id)
         return RoomDetails(id=room.id, name=room.name, generation=room.generation,
+            deletable=room.id != "default" and room.id != self.active_room_id,
             last_used_at=room.last_used_at, caption_count=workflow.relay.session().count if workflow else 0,
             mode=room.connection.mode, input_source=room.connection.input_source, recognizer=room.connection.recognizer,
             background=room.ai.background, ai=room.ai,
@@ -143,6 +146,24 @@ class Rooms:
             self.store.put(room)
             await target.reset_captions()
             return self.details(room_id)
+
+    async def delete(self, room_id: str, generation: int) -> RoomCatalog:
+        async with self._changes:
+            room = self._record(room_id)
+            if room_id == "default":
+                raise RoomConflict("既定のルームは削除できません。")
+            if self.active_room_id == room_id:
+                raise RoomConflict("使用中のルームは削除できません。操作画面からホームへ戻り、接続を終了してください。")
+            if room.generation != generation:
+                raise RoomConflict("ルームが更新されています。ホームを読み直してください。", "room_reset")
+            self.store.remove(room_id)
+            target = self._workflows.pop(room_id, None)
+            self._configured.pop(room_id, None)
+            if target is not None:
+                await target.stop()
+                target.relay.reset_captions()
+                target.relay.close_subscriptions()
+            return self.catalog()
 
     async def configure(self, room_id: str | None, generation: int | None, settings: ConnectionSettings) -> ConnectionStatus:
         async with self._changes:

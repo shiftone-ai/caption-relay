@@ -13,6 +13,7 @@ export function AudienceView({ parameters, screenRef }: { parameters: AudiencePa
     <main ref={screenRef} className="audience-screen" style={parameters.screenStyle}>
       <CaptionDisplayView parameters={parameters} captionId="caption" />
       <footer className="audience-controls" style={parameters.controlsStyle}>
+        <p className="audience-connection-notice" role="status" aria-live="polite">{parameters.connectionNotice}</p>
         <div className="audience-actions">
           {parameters.latestVisible && <Button variant="ghost" className="audience-latest" intent={{ type: "display.latest.requested" }}><ArrowDown size={16} />最新へ</Button>}
           {parameters.fullscreenAvailable && <Button variant="ghost" className="audience-fullscreen" aria-label={parameters.fullscreenLabel} title={parameters.fullscreenLabel}

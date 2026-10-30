@@ -23,7 +23,8 @@
 .home-room-meta > span { display: inline-flex; align-items: center; gap: 8px; }
 .home-room-meta .home-room-active { color: #15406a; font-weight: 600; }
 .home-room-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.home-screen .home-room-settings, .room-actions-bar .room-home-button { width: 44px; padding: 8px; }
+.home-screen .home-room-delete, .home-screen .home-room-settings, .room-actions-bar .room-home-button { width: 44px; padding: 8px; }
+.home-notice { margin: 24px 0; color: #404040; }
 .home-error { margin: 24px 0; color: #991b1b; }
 .home-loading { display: flex; align-items: center; gap: 8px; margin-top: 32px; color: #525252; }
 .room-screen { display: flex; flex-direction: column; height: 100svh; min-height: 400px; }

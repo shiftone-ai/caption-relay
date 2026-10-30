@@ -18,6 +18,7 @@ export type RoomDraft = components["schemas"]["RoomDraft"];
 export interface RoomBinding { roomId: string; generation: number }
 export interface RoomsApi {
   catalog(signal: AbortSignal): Promise<RoomCatalog>;
+  delete(room: RoomBinding, signal: AbortSignal): Promise<RoomCatalog>;
   details(roomId: string, signal: AbortSignal): Promise<RoomDetails>;
   save(draft: RoomDraft, roomId: string | null, signal: AbortSignal): Promise<RoomDetails>;
   connect(roomId: string, signal: AbortSignal): Promise<RoomDetails>;
@@ -25,6 +26,9 @@ export interface RoomsApi {
   reset(room: RoomBinding, signal: AbortSignal): Promise<RoomDetails>;
 }
 export type HomeEvent =
+  | { type: "home.delete.requested"; roomId: string }
+  | { type: "home.delete.confirmed" }
+  | { type: "home.delete.cancelled" }
   | { type: "home.retry.requested" }
   | { type: "home.new.requested" }
   | { type: "home.edit.requested"; roomId: string }
@@ -37,6 +41,7 @@ export type RoomEvent =
   | { type: "room.retry.requested" }
   | { type: "room.home.requested" }
   | { type: "room.reset.requested" }
+  | { type: "room.reload.requested" }
   | { type: "room.confirm.accepted" }
   | { type: "room.confirm.cancelled" }
   | { type: "room.unsaved.changed"; unsaved: boolean };
@@ -154,6 +159,7 @@ export type AudienceEvent =
   | { type: "display.fullscreen.changed"; active: boolean }
   | { type: "stream.opened" }
   | { type: "stream.failed" }
+  | { type: "stream.closed" }
   | { type: "stream.snapshot"; snapshot: PublicSnapshot };
 
 export type AudienceViewEvent = Extract<AudienceEvent, { type: "display.fullscreen.requested" | "display.scrolled" | "display.latest.requested" }>;
@@ -189,3 +195,7 @@ export class CaptionConflict extends Error {
 }
 
 export class OperationError extends Error {}
+
+export class RoomStateError extends OperationError {
+  constructor(public readonly code: "room_reset" | "room_inactive" | "room_missing", message: string) { super(message); }
+}

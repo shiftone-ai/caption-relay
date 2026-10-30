@@ -67,9 +67,10 @@ export const audienceMachine = setup({
       on: {
         "stream.opened": { target: ".live" },
         "stream.failed": { target: ".reconnecting" },
+        "stream.closed": { target: ".unavailable" },
         "stream.snapshot": { target: ".live", actions: "receiveSnapshot" },
       },
-      states: { connecting: {}, live: {}, reconnecting: {} },
+      states: { connecting: {}, live: {}, reconnecting: {}, unavailable: {} },
     },
     fullscreen: {
       initial: "idle",

@@ -34,7 +34,7 @@ class CaptionRelay:
         self._published_ids: list[str] = []
         self._seen_events: set[str] = set()
         self._retired_utterances: set[str] = set()
-        self._subscribers: set[asyncio.Queue[PublicSnapshot]] = set()
+        self._subscribers: set[asyncio.Queue[PublicSnapshot | None]] = set()
         self._visible = True
         self._revision = 0
         self._auto_publish = True
@@ -297,12 +297,21 @@ class CaptionRelay:
         return self._ai.configure(settings)
 
     async def snapshots(self) -> AsyncIterator[PublicSnapshot]:
-        queue: asyncio.Queue[PublicSnapshot] = asyncio.Queue(maxsize=4)
+        queue: asyncio.Queue[PublicSnapshot | None] = asyncio.Queue(maxsize=4)
         # Registration and initial snapshot happen without an await between them.
         self._subscribers.add(queue)
         try:
             yield self.public_snapshot()
             while True:
-                yield await queue.get()
+                snapshot = await queue.get()
+                if snapshot is None:
+                    break
+                yield snapshot
         finally:
             self._subscribers.discard(queue)
+
+    def close_subscriptions(self) -> None:
+        for queue in self._subscribers:
+            if queue.full():
+                queue.get_nowait()
+            queue.put_nowait(None)

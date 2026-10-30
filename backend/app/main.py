@@ -22,7 +22,7 @@ from .udtalk_web import UdtalkStatus
 from .udtalk_editor import EditorError
 from .workflow import CaptionWorkflow
 from .rooms import RoomConflict, RoomNotFound, Rooms
-from .room_models import RoomCatalog, RoomDetails, RoomDraft, RoomReset
+from .room_models import RoomCatalog, RoomDetails, RoomDraft, RoomReset, RoomStateError
 from .room_scope import RoomScope, room_scope
 from .room_store import RoomStorageError, RoomStore, rooms_path
 from .zoom_input import ReceiverError
@@ -53,15 +53,16 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
         finally:
             await rooms.stop()
 
-    application = FastAPI(title="Caption Relay", version="0.2.0", lifespan=lifespan)
+    application = FastAPI(title="Caption Relay", version="0.2.0", lifespan=lifespan,
+                          responses={409: {"model": RoomStateError}, 404: {"model": RoomStateError}})
 
     @application.exception_handler(RoomNotFound)
     async def room_not_found(_: Request, error: RoomNotFound) -> JSONResponse:
-        return JSONResponse({"detail": str(error)}, status_code=404)
+        return JSONResponse({"detail": str(error), "code": "room_missing"}, status_code=404)
 
     @application.exception_handler(RoomConflict)
     async def room_conflict(_: Request, error: RoomConflict) -> JSONResponse:
-        return JSONResponse({"detail": str(error)}, status_code=409)
+        return JSONResponse({"detail": str(error), "code": error.code}, status_code=409)
 
     @application.exception_handler(InvalidCaptionOperation)
     async def invalid_caption_operation(_: Request, error: InvalidCaptionOperation) -> JSONResponse:
@@ -107,6 +108,10 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
         except EditorError as error:
             raise HTTPException(422, str(error)) from None
 
+    @application.delete("/api/rooms/{room_id}", response_model=RoomCatalog)
+    async def delete_room(room_id: str, generation: Annotated[int, Query(ge=0)]) -> RoomCatalog:
+        return await rooms.delete(room_id, generation)
+
     @application.post("/api/rooms/{room_id}/connect", response_model=RoomDetails)
     async def connect_room(room_id: str) -> RoomDetails:
         try:
@@ -128,7 +133,7 @@ def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = No
 
     @application.get("/api/session", response_model=Session)
     async def session(scope: Annotated[RoomScope, Depends(room_scope)]) -> Session:
-        return rooms.workflow(scope.room_id, scope.generation).relay.session()
+        return rooms.workflow(scope.room_id, scope.generation, active=scope.room_id is not None).relay.session()
 
     @application.get("/api/events", response_model=list[Caption])
     async def events(scope: Annotated[RoomScope, Depends(room_scope)]) -> list[Caption]:

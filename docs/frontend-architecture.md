@@ -1,6 +1,6 @@
 # フロントエンドの構成
 
-実装確認日：2026-10-29
+実装確認日：2026-10-30
 
 すべてのアプリケーションコンポーネントを Root 配下に置き、Root、Passive View、Presenter、Mediator、Adapter に責務を分ける。現在の操作画面と観客画面は TypeScript、React、XState、shadcn/ui を使用する。システム全体の責務とバックエンドは[システム構成](../ARCHITECTURE.md)、画面の振る舞いは[現行 PoC の仕様](current-behavior.md)を参照する。
 
@@ -77,9 +77,9 @@ Mediatorは字幕IDの索引を保持し、取得・保存・競合結果とと�
 
 ## 状態遷移
 
-ホームの `HomeRoot` は `machines/home.ts` を使い、一覧取得、登録・設定変更、接続を順に行う。`RoomRoot` は `machines/room.ts` で接続と確認付きリセット・離脱を裁定する。字幕画面がある間は `OperatorRoot` がRootを一つ所有し、ルームと字幕の各Mediatorへ `snapshot.can(event)` で通知する。Rootを入れ子にしない。
+ホームの `HomeRoot` は `machines/home.ts` を使い、一覧取得、登録・設定変更、接続、確認付きの削除を裁定する。`RoomRoot` は `machines/room.ts` で接続と確認付きリセット・読み直し・離脱を裁定する。字幕画面がある間は `OperatorRoot` がRootを一つ所有し、ルームと字幕の各Mediatorへ `snapshot.can(event)` で通知する。Rootを入れ子にしない。
 
-`adapters/rooms.ts` はルームAPIとページ遷移を扱う。操作APIと音声WebSocketにはルームとリセットの世代を付け、観客リンクには `room_id` を付ける。リセットが成功したら新しい世代で操作画面を作り直して下書きを捨てる。ホームへ戻る際は、操作画面と離脱確認の購読を解放した後でページを移る。確認ダイアログ内のEscapeは、背後の字幕編集へ通知しない。
+`adapters/rooms.ts` はルームAPIとページ遷移を扱う。操作APIと音声WebSocketにはルームとリセットの世代を付け、観客リンクには `room_id` を付ける。リセット成功時と古いタブの読み直し時は、同じOperatorRootのactorへ新しいAPI・音声Adapterを渡す。古い購読を終了し、字幕・字幕の下書き・保存番号を消して再取得する。辞書・AI・表示・接続設定の下書きと離脱確認は保持する。リセット・接続終了・削除によるエラーは構造化コードで識別し、再取得を止めて復帰先を案内する。ホームへ戻る際は、操作画面と離脱確認の購読を解放した後でページを移る。確認ダイアログ内のEscapeは、背後の字幕編集へ通知しない。
 
 `src/machines/operator.ts`が取得、保存、表示切り替え、公開方法、表示設定、AI設定、接続設定、テスト入力を裁定する。編集行と下書き、最新位置への追従もこのMediatorが保持する。設定パネルは一つの選択状態で管理し、同時に一つだけ開く。閉じても未保存の設定を保持する。接続設定の参加リンクは適用成功時にブラウザの入力状態から消す。
 
@@ -95,7 +95,7 @@ Mediatorは字幕IDの索引を保持し、取得・保存・競合結果とと�
 - 更新取得中に操作が始まると取得 actor を終了する。古い取得結果は適用せず、AbortSignal で HTTP を中断する。
 - 定期取得は XState の after で開始し、actor 終了時にタイマーも終了する。
 
-`src/machines/audience.ts` は配信と全画面表示を並列の状態として管理する。配信は `connecting → live ↔ reconnecting` を遷移する。切断中は直前の字幕を保持し、再接続後のスナップショットで同期する。公開・非公開の決定はバックエンドが担当する。表示設定も公開スナップショットへ含め、Presenterが字幕数・書体・寸法へ変換する。全画面表示は `idle → changing → idle / failed` を遷移し、処理中の重複要求を拒否する。失敗は画面へ表示し、再試行を受理する。Escape などによるブラウザ側の解除も Adapter から通知して同期する。全画面要求はユーザー操作の間に Adapter が開始し、配信の再接続から独立して動作する。
+`src/machines/audience.ts` は配信と全画面表示を並列の状態として管理する。配信は `connecting → live ↔ reconnecting` を遷移し、ブラウザが購読を終了した場合は `unavailable` に移る。切断中は直前の字幕を保持し、再接続後のスナップショットで同期する。公開・非公開の決定はバックエンドが担当する。表示設定も公開スナップショットへ含め、Presenterが字幕数・書体・寸法へ変換する。全画面表示は `idle → changing → idle / failed` を遷移し、処理中の重複要求を拒否する。失敗は画面へ表示し、再試行を受理する。Escape などによるブラウザ側の解除も Adapter から通知して同期する。全画面要求はユーザー操作の間に Adapter が開始し、配信の再接続から独立して動作する。
 
 Zoom送信の名前付き形式は接続設定から `connection.text-format.selected` で選ぶ。Mediatorが値と下書きを保持し、Presenterが選択値を渡す。適用後の接続状態から再取得し、パネルを閉じる場合と再読み込みの場合の両方で設定を表示する。
 

@@ -784,3 +784,40 @@ it("uses current caption data after save, conflict, refresh, and removal", async
   actor.send({ type: "caption.edit.requested", captionId: "two" });
   expect(actor.getSnapshot().context.drafts.get("two")).toMatchObject({ text: "新着", baseRevision: 7 });
 });
+
+
+it("retains every settings draft but clears caption edits and uncertain saves on a room rebind", async () => {
+  const adapter = api();
+  vi.mocked(adapter.save).mockRejectedValue(new TypeError("response lost"));
+  const actor = await start(adapter);
+  actor.send({ type: "caption.edit.requested", captionId: "one" });
+  actor.send({ type: "caption.draft.changed", captionId: "one", text: "消す訂正" });
+  actor.send({ type: "caption.save.requested", captionId: "one" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(actor.getSnapshot().context.drafts.get("one")?.requestId).toBeTruthy();
+  actor.send({ type: "ai.settings.toggled" });
+  actor.send({ type: "ai.background.changed", value: "残す背景" });
+  actor.send({ type: "display.settings.toggled" });
+  actor.send({ type: "display.field.changed", field: "font_size", value: "72" });
+  actor.send({ type: "connection.settings.toggled" });
+  actor.send({ type: "connection.mode.selected", mode: "client" });
+  actor.send({ type: "connection.url.changed", url: "unsaved-link" });
+  actor.send({ type: "dictionary.settings.toggled" });
+  actor.send({ type: "dictionary.word.added" });
+  actor.send({ type: "dictionary.word.changed", index: 0, field: "term", value: "残す単語" });
+  const before = actor.getSnapshot().context;
+  const next = api();
+  vi.mocked(next.load).mockResolvedValue({ visible: true, captions: [], ai: defaultAi, display: defaultDisplay, connection: defaultConnection });
+  actor.send({ type: "operator.binding.changed", api: next, microphone: { available: false, devices: async () => [], start: vi.fn() } });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  const after = actor.getSnapshot().context;
+  for (const field of ["aiDraft", "displayDraft", "connectionDraft", "dictionaryDraft"] as const) {
+    expect(after[field]).toEqual(before[field]);
+    expect(after[field]).not.toBeNull();
+  }
+  expect(after.captions).toEqual([]);
+  expect(after.drafts.size).toBe(0);
+  expect(after.pendingSave).toBeNull();
+  expect(after.saveStatus).toBeNull();
+  expect(presentOperator(actor.getSnapshot()).hasUnsavedChanges).toBe(true);
+});

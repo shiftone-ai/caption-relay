@@ -1,3 +1,4 @@
+import type { ConfirmationParameters } from "./room";
 import type { HomeSnapshot } from "../machines/home";
 
 const usedAt = new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium", timeStyle: "short" });
@@ -5,9 +6,11 @@ const usedAt = new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium", timeStyle
 export function presentHome(snapshot: HomeSnapshot) {
   const { context } = snapshot;
   const busy = !snapshot.matches("ready") && !snapshot.matches("failed");
+  const deletingRoom = context.catalog.rooms.find(room => room.id === context.requestedRoomId);
   return {
     loading: snapshot.matches("loading"), failed: snapshot.matches("failed"), busy,
     newDisabled: !snapshot.can({ type: "home.new.requested" }),
+    notice: context.notice,
     message: context.formOpen ? "" : context.message, destination: context.destination, formOpen: context.formOpen,
     focusReturn: !context.formOpen && context.focusVersion > 0 ? { version: context.focusVersion,
       selector: context.focusReturnRoomId ? `[data-room-settings="${context.focusReturnRoomId}"]` : "[data-room-create]" } : null,
@@ -25,6 +28,10 @@ export function presentHome(snapshot: HomeSnapshot) {
       saveDisabled: !snapshot.can({ type: "home.save.requested" }), busy,
       focusVersion: context.focusVersion,
     },
+    confirmation: { open: snapshot.matches("confirmDelete"), title: "ルームを削除しますか？",
+      body: `「${deletingRoom?.name ?? ""}」の設定・字幕・訂正履歴を削除します。元に戻せません。UDトーク側の字幕は残ります。`,
+      confirmLabel: "ルームを削除", confirm: { type: "home.delete.confirmed" }, cancel: { type: "home.delete.cancelled" },
+    } satisfies ConfirmationParameters,
     rooms: context.catalog.rooms.map(room => ({
       id: room.id, name: room.name,
       lastUsed: room.last_used_at ? usedAt.format(new Date(room.last_used_at)) : "",
@@ -33,6 +40,8 @@ export function presentHome(snapshot: HomeSnapshot) {
       active: room.id === context.catalog.active_room_id,
       connecting: snapshot.matches("connecting") && room.id === context.requestedRoomId,
       disabled: busy,
+      deleteDisabled: !snapshot.can({ type: "home.delete.requested", roomId: room.id }),
+      deleteVisible: Boolean(room.deletable),
     })),
   };
 }

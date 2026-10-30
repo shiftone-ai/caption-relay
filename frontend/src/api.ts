@@ -1,13 +1,16 @@
-import { CaptionConflict, OperationError, type ConnectionStatus, type AiRouting, type AudienceApi, type Caption, type DisplaySettings, type OperatorApi, type PublicSnapshot, type DictionarySnapshot, type RoomBinding } from "./domain";
+import { CaptionConflict, OperationError, RoomStateError, type ConnectionStatus, type AiRouting, type AudienceApi, type Caption, type DisplaySettings, type OperatorApi, type PublicSnapshot, type DictionarySnapshot, type RoomBinding } from "./domain";
 import { defaultDisplay } from "./display";
 import type { components } from "./generated/api";
 
 async function request<T>(path: string, signal: AbortSignal, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, { ...options, signal });
   if (!response.ok) {
-    if (response.status === 409) {
-      const data = await response.json() as components["schemas"]["ConflictResponse"] | components["schemas"]["DictionaryError"];
-      if (typeof data.detail === "string") throw new OperationError(data.detail);
+    if (response.status === 409 || response.status === 404) {
+      const data = await response.json() as components["schemas"]["ConflictResponse"] | components["schemas"]["DictionaryError"] | components["schemas"]["RoomStateError"];
+      if (typeof data.detail === "string") {
+        if ("code" in data && (data.code === "room_reset" || data.code === "room_inactive" || data.code === "room_missing")) throw new RoomStateError(data.code, data.detail);
+        throw new OperationError(data.detail);
+      }
       if (data.detail && typeof data.detail === "object" && data.detail.latest) throw new CaptionConflict(data.detail.latest);
     } else if (response.status === 502) {
       throw new OperationError(await response.text());
@@ -89,7 +92,7 @@ export const audienceApi: AudienceApi = {
     const roomId = new URLSearchParams(window.location.search).get("room_id");
     const stream = new EventSource("/api/view/events" + (roomId ? "?room_id=" + encodeURIComponent(roomId) : ""));
     stream.addEventListener("open", () => emit({ type: "stream.opened" }));
-    stream.addEventListener("error", () => emit({ type: "stream.failed" }));
+    stream.addEventListener("error", () => emit({ type: stream.readyState === EventSource.CLOSED ? "stream.closed" : "stream.failed" }));
     stream.addEventListener("snapshot", event => {
       try {
         const snapshot = JSON.parse(event.data) as PublicSnapshot;
