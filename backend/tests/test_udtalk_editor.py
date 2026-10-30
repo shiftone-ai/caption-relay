@@ -97,6 +97,29 @@ async def wait_until(predicate):
             await asyncio.sleep(0.01)
 
 
+def test_native_numeric_completion_flags_do_not_stop_editing() -> None:
+    async def verify() -> None:
+        server = NativeServer()
+        workflow = CaptionWorkflow(CaptionRelay(), None, {}, editor_transport=httpx.MockTransport(server.handle))
+        workflow.start()
+        try:
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            server.history.append({**speech("入力中"), "phase": "updated", "endOfUtterance": 1})
+            await wait_until(lambda: bool(workflow.relay.captions()))
+            partial = workflow.relay.captions()[0]
+            assert partial.original == "入力中" and not partial.source_final
+            server.history.append({**speech("純正アプリの訂正", timestamp=2.0), "endOfUtterance": 1})
+            await wait_until(lambda: workflow.relay.captions()[0].source_final)
+            caption = workflow.relay.captions()[0]
+            assert caption.original == "純正アプリの訂正"
+            assert workflow.connections.status().state == "live"
+            assert caption.id in workflow.connections.status().editable_caption_ids
+        finally:
+            await workflow.stop()
+    asyncio.run(verify())
+
+
 def test_editor_connection_can_be_stopped_twice() -> None:
     async def verify() -> None:
         server = NativeServer()
@@ -667,4 +690,26 @@ def test_unchanged_manual_save_reaches_a_peer_before_its_ai_can_overwrite():
             release_ai.set()
             await first.stop()
             await second.stop()
+    asyncio.run(verify())
+
+
+@pytest.mark.parametrize("text", ["原文", "訂正した文"])
+def test_saved_native_payload_never_emits_null_reading_metadata(text: str) -> None:
+    async def verify() -> None:
+        server = NativeServer()
+        workflow = CaptionWorkflow(CaptionRelay(), None, {}, editor_transport=httpx.MockTransport(server.handle))
+        workflow.start()
+        try:
+            await workflow.configure(ConnectionSettings(mode="client", editor_url=editor_url()))
+            await wait_until(lambda: workflow.connections.status().state == "live")
+            server.history.append({**speech(), "extendResult": None})
+            await wait_until(lambda: bool(workflow.relay.captions()))
+            caption = workflow.relay.captions()[0]
+            await workflow.patch_caption(caption.id, CaptionPatch(text=text, base_revision=caption.revision))
+            edits = [json.loads(body["mt"]) for route, body in server.requests if route == "/push/editMessage/"]
+            assert len(edits) == 1
+            assert "extendResult" not in edits[0]
+            assert edits[0]["text"] == text
+        finally:
+            await workflow.stop()
     asyncio.run(verify())

@@ -179,6 +179,8 @@ class UdtalkEditor:
             if not command.get("utteranceIdentifier"):
                 continue
             fragment = Fragment.model_validate(command)
+            if "endOfUtterance" in command:
+                command["endOfUtterance"] = fragment.endOfUtterance
             if fragment.phase == "image" or fragment.type == 1:
                 continue
             if command.get("sendingUniqueIdentifier") == self._device:
@@ -344,6 +346,8 @@ class UdtalkEditor:
                         sendingUniqueIdentifier=self._device, rid=self._user, editCount=int(edit_count) + 1)
                     for key in ("sharingTalkId", "sharingUserId", "_udtalkInitialHistory"):
                         command.pop(key, None)
+                    if command.get("extendResult") is None:
+                        command.pop("extendResult", None)
                     self._uncertain_edits[identifier] = command
                     edited = await self._post("/push/editMessage/", {"u": self._user, "t": self.info.talk_id,
                         "m": command["text"], "l": self._push_cursor[0], "c": self._push_cursor[1],
