@@ -2,7 +2,7 @@ import { defaultAi } from "../ai";
 import { createActor, waitFor } from "xstate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { operatorMachine } from "./operator";
-import { CaptionConflict, OperationError, type Caption, type OperatorApi, type Snapshot } from "../domain";
+import { CaptionConflict, OperationError, RoomStateError, type Caption, type OperatorApi, type Snapshot } from "../domain";
 import { defaultConnection } from "../connection";
 import { defaultDisplay } from "../display";
 import { presentOperator } from "../presenters/operator";
@@ -833,4 +833,31 @@ it("updates cached publication labels when polling fails and recovers", async ()
   actor.send({ type: "refresh.requested" });
   await waitFor(actor, state => state.matches({ ready: "idle" }));
   expect(presentOperator(actor.getSnapshot()).rows[0].publication).toBe("観客に表示中");
+});
+
+
+it("reports the local microphone as stopped after a stale room terminates its actor", async () => {
+  const adapter = api();
+  const connection = { ...defaultConnection, input_source: "microphone" as const,
+    recognizers: [{ id: "openai" as const, label: "OpenAI", available: true, message: "" }] };
+  vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [caption], connection });
+  const stop = vi.fn().mockResolvedValue(undefined);
+  const actor = createActor(operatorMachine, { input: { api: adapter,
+    microphone: { available: true, devices: async () => [], start: vi.fn().mockResolvedValue({ label: "試験マイク", stop }) } } }).start();
+  try {
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    actor.send({ type: "microphone.start.requested" });
+    await waitFor(actor, state => state.context.microphoneState === "live");
+    vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [caption], connection: { ...connection,
+      transcription: { ...connection.transcription, state: "live", message: "マイクの音声を認識しています。" } } });
+    actor.send({ type: "refresh.requested" });
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    vi.mocked(adapter.load).mockRejectedValue(new RoomStateError("room_reset", "字幕がリセットされました。"));
+    actor.send({ type: "refresh.requested" });
+    await waitFor(actor, state => state.matches("unavailable"));
+    expect(stop).toHaveBeenCalledOnce();
+    expect(actor.getSnapshot().context.microphoneState).toBe("stopped");
+    expect(presentOperator(actor.getSnapshot()).connection.microphoneStatus).toBe("この画面のマイク認識は停止しています。");
+    expect(presentOperator(actor.getSnapshot()).connection.stopDisabled).toBe(true);
+  } finally { actor.stop(); }
 });

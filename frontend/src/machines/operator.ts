@@ -491,7 +491,7 @@ export const operatorMachine = setup({
         ],
       },
     },
-    unavailable: {},
+    unavailable: { entry: assign({ microphoneState: "stopped", microphoneMessage: "この画面のマイク認識は停止しています。" }) },
     failed: {
       after: { 1500: "loading" },
       on: { "refresh.requested": "loading" },

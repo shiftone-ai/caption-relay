@@ -274,7 +274,7 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
   const aiDisabled = !snapshot.can({ type: "ai.save.requested" });
   const connectionDraft: ConnectionSettings = context.connectionDraft ?? { mode: context.connection.mode, editor_url: "", zoom_text_format: context.connection.zoom_text_format,
     input_source: context.connection.input_source, recognizer: context.connection.recognizer };
-  const microphoneStatus = context.microphoneState === "stopped" && context.connection.transcription.state !== "stopped"
+  const microphoneStatus = !context.roomState && context.microphoneState === "stopped" && context.connection.transcription.state !== "stopped"
     ? context.connection.transcription.message : context.microphoneMessage;
   const unreadIds = new Set(context.unreadIds);
   const firstUnreadId = context.captions.find(caption => unreadIds.has(caption.id))?.id ?? null;
