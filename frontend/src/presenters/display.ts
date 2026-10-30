@@ -23,12 +23,14 @@ export interface DisplayCaption { id?: string; text: string; speaker?: string | 
 
 export interface DisplayPreviewParameters {
   display: CaptionDisplayParameters;
+  surfaceStyle: CSSProperties;
   viewportLabel: string;
   scaleLabel: string;
   sourceLabel: string;
 }
 
 const previewWidth = 1280;
+export const audienceControlsHeight = 64;
 const sampleTexts = [
   "本日はご参加いただき、ありがとうございます。会場では講演の内容を字幕でお伝えします。聞き取りにくい箇所があった場合も、前後の話を合わせてご確認ください。",
   "最初に、この取り組みを始めた背景についてお話しします。私たちは年齢や経験にかかわらず、誰もが同じ情報を受け取れる場をつくりたいと考えています。",
@@ -81,8 +83,10 @@ export function presentCaptionDisplay(settings: DisplaySettings, captions: reado
 
 export function presentDisplayPreview(settings: DisplaySettings, captions: readonly DisplayCaption[]): DisplayPreviewParameters {
   const useSaved = captions.length > 0;
+  const display = presentCaptionDisplay(settings, useSaved ? captions : sampleTexts.map((text, index) => ({ text, speaker: index % 2 ? "登壇者" : "司会" })), previewWidth);
   return {
-    display: presentCaptionDisplay(settings, useSaved ? captions : sampleTexts.map((text, index) => ({ text, speaker: index % 2 ? "登壇者" : "司会" })), previewWidth),
+    display: { ...display, screenStyle: { ...display.screenStyle, height: `calc(100% - ${audienceControlsHeight / previewWidth * 100}cqw)` } },
+    surfaceStyle: { background: settings.background, color: settings.foreground },
     viewportLabel: "基準画面 1280 × 800 px（16:10）",
     scaleLabel: (settings.aspect === "16:9" ? "表示領域 16:9" : "表示領域は画面全体") + " · 枠の幅に合わせて縮小",
     sourceLabel: useSaved ? "字幕プレビュー" : "表示例（配信されません）",

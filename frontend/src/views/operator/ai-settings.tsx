@@ -32,8 +32,8 @@ export function AiSettingsView({ parameters }: { parameters: AiParameters }) {
               <table><caption>USD、入力・出力は100万トークンあたり</caption>
               <thead><tr><th scope="col">AI</th><th scope="col">入力<br />出力</th><th scope="col">参考<br />1,000件</th><th scope="col">応答時間</th></tr></thead>
               <tbody>{parameters.models.map(model => <tr key={model.id}>
-                <td><div className="ai-model-title"><span><strong>{model.provider}</strong><small>{model.variant}</small></span>
-                  <a className="ai-pricing-link" href={model.pricingUrl} target="_blank" rel="noopener noreferrer" aria-label={model.label + "の公式料金（" + model.checkedOn + "確認）"} title={model.label + "の公式料金（" + model.checkedOn + "確認）"}><ExternalLink size={12} aria-hidden="true" /></a></div></td>
+                <td><a className="ai-model-title ai-pricing-link" href={model.pricingUrl} target="_blank" rel="noopener noreferrer" aria-label={model.label + "の公式料金（" + model.checkedOn + "確認）"} title={model.label + "の公式料金（" + model.checkedOn + "確認）"}>
+                  <span><strong>{model.provider}</strong><small>{model.variant}</small></span><ExternalLink size={12} aria-hidden="true" /></a></td>
                 <td><span className="ai-money">{model.inputPrice}</span><span className="ai-money">{model.outputPrice}</span></td>
                 <td>{model.sampleCost}</td><td>{model.latency}</td>
               </tr>)}</tbody>

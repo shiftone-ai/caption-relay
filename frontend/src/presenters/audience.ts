@@ -1,6 +1,7 @@
 import { defaultDisplay } from "../display";
 import type { AudienceSnapshot } from "../machines/audience";
-import { presentCaptionDisplay, type CaptionDisplayParameters } from "./display";
+import type { CSSProperties } from "react";
+import { audienceControlsHeight, presentCaptionDisplay, type CaptionDisplayParameters } from "./display";
 
 export interface AudienceParameters extends CaptionDisplayParameters {
   text: string;
@@ -10,6 +11,7 @@ export interface AudienceParameters extends CaptionDisplayParameters {
   fullscreenIcon: "maximize" | "minimize";
   fullscreenError: string;
   latestVisible: boolean;
+  controlsStyle: CSSProperties;
 }
 
 export function presentAudience(snapshot: AudienceSnapshot): AudienceParameters {
@@ -26,5 +28,6 @@ export function presentAudience(snapshot: AudienceSnapshot): AudienceParameters 
     fullscreenLabel: context.fullscreenActive ? "全画面を解除" : "全画面",
     fullscreenIcon: context.fullscreenActive ? "minimize" : "maximize",
     fullscreenError: context.fullscreenError,
+    controlsStyle: { minHeight: audienceControlsHeight },
   };
 }

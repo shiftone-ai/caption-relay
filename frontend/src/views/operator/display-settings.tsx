@@ -30,7 +30,7 @@ export function DisplaySettingsView({ parameters }: { parameters: DisplayParamet
         {parameters.primaryFields.map(field => <DisplayFieldView key={field.field} parameters={field} />)}
       </fieldset>
       <figure className="display-preview" aria-label="表示設定のプレビュー">
-        <div className="display-sample"><CaptionDisplayView parameters={parameters.preview.display} /></div>
+        <div className="display-sample" style={parameters.preview.surfaceStyle}><CaptionDisplayView parameters={parameters.preview.display} /></div>
         <figcaption className="display-preview-labels">
           <p title={parameters.preview.viewportLabel + " · " + parameters.preview.scaleLabel}>{parameters.preview.sourceLabel}</p>
         </figcaption>

@@ -15,7 +15,7 @@ export function CaptionEditorView({ row }: { row: RowParameters }) {
   const timeId = inputId + "-time";
   const messageId = inputId + "-message";
   const hintId = inputId + "-hint";
-  useEffect(() => { input.current?.focus({ preventScroll: true }); }, [row.focusVersion]);
+  useEffect(() => { input.current?.focus(); }, [row.focusVersion]);
   return (
     <Scope name={"caption-editor:" + row.id}>
       {emit => <>
@@ -44,9 +44,9 @@ export function CaptionEditorView({ row }: { row: RowParameters }) {
               {row.historyOptions.map(edit => <option key={edit.revision} value={edit.revision}>{edit.label}</option>)}
             </select>
           </div>}
+          {row.message && <p id={messageId} role="status" className="operator-error">{row.message}</p>}
         </div>
         <footer className="caption-editor-footer">
-          {row.message && <p id={messageId} role="status" className="operator-error">{row.message}</p>}
           <p className="caption-save-success" role="status" aria-live="polite">{row.saveSuccess}</p>
           <div className="caption-editor-actions">
             <Button className="operator-button" disabled={row.disabled} intent={{ type: "caption.save.requested", captionId: row.id }}>{row.saveLabel}</Button>
