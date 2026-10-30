@@ -821,3 +821,16 @@ it("retains every settings draft but clears caption edits and uncertain saves on
   expect(after.saveStatus).toBeNull();
   expect(presentOperator(actor.getSnapshot()).hasUnsavedChanges).toBe(true);
 });
+
+it("updates cached publication labels when polling fails and recovers", async () => {
+  const adapter = api();
+  const actor = await start(adapter);
+  expect(presentOperator(actor.getSnapshot()).rows[0].publication).toBe("観客に表示中");
+  vi.mocked(adapter.load).mockRejectedValueOnce(new TypeError("offline"));
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(presentOperator(actor.getSnapshot()).rows[0].publication).toBe("前回確認時：観客に表示中");
+  actor.send({ type: "refresh.requested" });
+  await waitFor(actor, state => state.matches({ ready: "idle" }));
+  expect(presentOperator(actor.getSnapshot()).rows[0].publication).toBe("観客に表示中");
+});

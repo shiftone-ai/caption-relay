@@ -308,7 +308,7 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
     const statusTooltipPosition = (sourceStatusOpen || publicationStatusOpen) && context.statusTooltip.measurement?.captionId === caption.id
       && context.statusTooltip.measurement.kind === statusTarget?.kind ? context.statusTooltip.measurement.position : null;
     const savedDisclosure = presentDisclosure(`caption-saved:${caption.id}`, context.openedDisclosures);
-    const dependencies = [draft, saving, rowError, editing, focusVersion, saveSuccess, disabled, readOnly, discardDisabled, editDisabled, republishDisabled,
+    const dependencies = [draft, saving, rowError, editing, focusVersion, saveSuccess, disabled, readOnly, discardDisabled, editDisabled, republishDisabled, context.errorSource === "load",
       sourceModelName, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition, context.visible, currentId === caption.id, displayedIds.has(caption.id), firstUnreadId === caption.id, clientMode, savedDisclosure.open];
     const cached = rowCache.get(caption);
     if (cached && dependencies.every((dependency, index) => dependency === cached.dependencies[index])) return cached.parameters;
