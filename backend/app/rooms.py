@@ -63,7 +63,7 @@ class Rooms:
         identifier = room_id or self.active_room_id or "default"
         room = self._record(identifier)
         if generation is not None and generation != room.generation:
-            raise RoomConflict("字幕がリセットされました。画面を読み直してください。", "room_reset")
+            raise RoomConflict("字幕がリセットされました。「字幕を読み直す」を押してください。", "room_reset")
         if active and self.active_room_id != identifier:
             raise RoomConflict("このルームの接続は終了しました。ホームから接続してください。", "room_inactive")
         if identifier not in self._workflows:

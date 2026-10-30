@@ -280,7 +280,7 @@ it("reloads a reset room without connecting again and warns before discarding ca
   await screen.findByRole("button", { name: "編集：字幕" });
   await userEvent.click(screen.getByRole("button", { name: "編集：字幕" }));
   await userEvent.type(screen.getByRole("textbox", { name: "表示文" }), "未保存");
-  vi.mocked(first.load).mockRejectedValue(new RoomStateError("room_reset", "字幕がリセットされました。画面を読み直してください。"));
+  vi.mocked(first.load).mockRejectedValue(new RoomStateError("room_reset", "字幕がリセットされました。「字幕を読み直す」を押してください。"));
   await screen.findByRole("button", { name: "字幕を読み直す" }, { timeout: 3000 });
   expect(screen.queryByText("観客に表示中", { exact: true })).toBeNull();
   await userEvent.click(screen.getByRole("button", { name: "字幕を読み直す" }));
