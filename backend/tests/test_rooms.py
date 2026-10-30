@@ -1,6 +1,7 @@
 import asyncio
 import json
 import stat
+from pathlib import Path
 
 import httpx2 as httpx
 import pytest
@@ -105,6 +106,7 @@ def test_reset_clears_only_current_captions_rejects_replays_and_keeps_settings()
         assert after["caption_count"] == 0 and after["generation"] == 1
         assert after["background"] == "残す背景"
         assert client.get("/api/events", headers=scope(room)).status_code == 409
+        assert client.get("/api/session", headers=scope(room)).json()["code"] == "room_reset"
         assert client.get("/api/view", params={"room_id": "default"}).json()["captions"] == []
         assert client.get("/api/session", headers=scope(after)).json()["display"]["font_size"] == 64
         assert receive(client, after, "古い発話の再送")["status"] == "stale"
@@ -114,6 +116,17 @@ def test_reset_clears_only_current_captions_rejects_replays_and_keeps_settings()
         assert relay.ai_context(new["id"]).recent_utterances == []
         assert relay.ai_context(new["id"]).background == "残す背景"
         assert client.post("/api/rooms/default/reset", json={"generation": 0}).status_code == 409
+
+
+def test_operator_session_identifies_an_inactive_room_without_reconnecting_it() -> None:
+    with TestClient(create_app(environment={})) as client:
+        old = client.get("/api/rooms/default").json()
+        current = create_room(client, "現在の接続", "")
+        client.post(f"/api/rooms/{current['id']}/connect").raise_for_status()
+        response = client.get("/api/session", headers=scope(old))
+        assert response.status_code == 409
+        assert response.json()["code"] == "room_inactive"
+        assert client.get("/api/rooms").json()["active_room_id"] == current["id"]
 
 
 def test_reset_cancels_inflight_ai_before_clearing():
@@ -225,3 +238,72 @@ def test_reconnecting_after_restart_restores_hidden_state_for_builtin_and_saved_
         public = client.get("/api/view", params={"room_id": room["id"]}).json()
         assert public["visible"] is False
         assert public["captions"] == []
+
+
+def test_delete_room_removes_bookmark_and_captions_durably_and_frees_capacity(tmp_path: Path) -> None:
+    from app.room_models import SavedRoom
+    path = tmp_path / "rooms.json"
+    store = RoomStore(path)
+    for index in range(99):
+        store.put(SavedRoom(id=f"saved-{index}", name=f"ルーム{index}"))
+    with TestClient(create_app(environment={}, room_store=store)) as client:
+        room = client.get("/api/rooms/saved-0").json()
+        client.post("/api/rooms/saved-0/connect").raise_for_status()
+        receive(client, room, "削除する字幕")
+        client.post("/api/rooms/saved-0/leave", json={"generation": 0}).raise_for_status()
+        assert client.post("/api/rooms", json={"name": "上限"}).status_code == 503
+        deleted = client.delete("/api/rooms/saved-0", params={"generation": 0})
+        assert deleted.status_code == 200
+        assert len(deleted.json()["rooms"]) == 99
+        assert client.get("/api/events", headers=scope(room)).status_code == 404
+        assert client.get("/api/view", params={"room_id": room["id"]}).status_code == 404
+        create_room(client, "空いた枠を使う")
+    with TestClient(create_app(environment={}, room_store=RoomStore(path))) as client:
+        assert client.get("/api/rooms/saved-0").status_code == 404
+        assert len(client.get("/api/rooms").json()["rooms"]) == 100
+
+
+def test_delete_rejects_default_active_and_stale_generation_without_losing_data() -> None:
+    with TestClient(create_app(environment={})) as client:
+        assert client.delete("/api/rooms/default", params={"generation": 0}).status_code == 409
+        room = create_room(client, "保護するルーム")
+        client.post(f"/api/rooms/{room['id']}/connect").raise_for_status()
+        receive(client, room, "残す字幕")
+        assert client.delete(f"/api/rooms/{room['id']}", params={"generation": 0}).status_code == 409
+        client.post(f"/api/rooms/{room['id']}/reset", json={"generation": 0}).raise_for_status()
+        client.post(f"/api/rooms/{room['id']}/leave", json={"generation": 1}).raise_for_status()
+        assert client.delete(f"/api/rooms/{room['id']}", params={"generation": 0}).status_code == 409
+        assert client.get(f"/api/rooms/{room['id']}").status_code == 200
+
+
+def test_failed_delete_preserves_memory_and_saved_bookmark(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = tmp_path / "rooms.json"
+    with TestClient(create_app(environment={}, room_store=RoomStore(path))) as client:
+        room = create_room(client, "保存に失敗しても残す")
+        before = path.read_bytes()
+        def fail_replace(*_args: object) -> None:
+            raise OSError("storage unavailable")
+        monkeypatch.setattr("app.room_store.os.replace", fail_replace)
+        assert client.delete(f"/api/rooms/{room['id']}", params={"generation": 0}).status_code == 503
+        assert client.get(f"/api/rooms/{room['id']}").status_code == 200
+        assert path.read_bytes() == before
+
+
+def test_delete_clears_and_closes_existing_audience_subscription() -> None:
+    from app.room_models import RoomDraft
+    async def verify() -> None:
+        initial = CaptionWorkflow(CaptionRelay(), None, {})
+        rooms = Rooms(initial, lambda: CaptionWorkflow(CaptionRelay(), None, {}), RoomStore())
+        room = await rooms.save_room(RoomDraft(name="購読の終了"))
+        await rooms.connect(room.id)
+        target = rooms.workflow(room.id)
+        target.source_event(SourceEvent(utterance_id="one", revision=1, text="削除前の字幕", source_event_id="one"))
+        stream = target.relay.snapshots()
+        assert (await anext(stream)).captions[0].text == "削除前の字幕"
+        await rooms.leave(room.id, room.generation)
+        await rooms.delete(room.id, room.generation)
+        assert (await asyncio.wait_for(anext(stream), 1)).captions == []
+        with pytest.raises(StopAsyncIteration):
+            await asyncio.wait_for(anext(stream), 1)
+        await rooms.stop()
+    asyncio.run(verify())

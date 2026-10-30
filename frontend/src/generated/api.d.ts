@@ -68,7 +68,8 @@ export interface paths {
         /** Update Room */
         put: operations["update_room_api_rooms__room_id__put"];
         post?: never;
-        delete?: never;
+        /** Delete Room */
+        delete: operations["delete_room_api_rooms__room_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -933,6 +934,11 @@ export interface components {
             recognizer: "openai" | "apple";
             /** Background */
             background: string;
+            /**
+             * Deletable
+             * @default false
+             */
+            deletable: boolean;
             connection: components["schemas"]["ConnectionSettings"];
             ai: components["schemas"]["AiSettings"];
         };
@@ -947,6 +953,13 @@ export interface components {
         RoomReset: {
             /** Generation */
             generation: number;
+        };
+        /** RoomStateError */
+        RoomStateError: {
+            /** Detail */
+            detail: string;
+            /** Code */
+            code?: ("room_reset" | "room_inactive" | "room_missing") | null;
         };
         /** RoomSummary */
         RoomSummary: {
@@ -974,6 +987,11 @@ export interface components {
             recognizer: "openai" | "apple";
             /** Background */
             background: string;
+            /**
+             * Deletable
+             * @default false
+             */
+            deletable: boolean;
         };
         /** Session */
         Session: {
@@ -1113,6 +1131,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
         };
     };
     room_index_rooms__room_id__get: {
@@ -1132,6 +1168,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -1162,6 +1216,24 @@ export interface operations {
                     "application/json": components["schemas"]["RoomCatalog"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
         };
     };
     add_room_api_rooms_post: {
@@ -1184,6 +1256,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoomDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1215,6 +1305,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoomDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1252,6 +1360,75 @@ export interface operations {
                     "application/json": components["schemas"]["RoomDetails"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_room_api_rooms__room_id__delete: {
+        parameters: {
+            query: {
+                generation: number;
+            };
+            header?: never;
+            path: {
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomCatalog"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1281,6 +1458,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoomDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1318,6 +1513,24 @@ export interface operations {
                     "application/json": components["schemas"]["RoomCatalog"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1353,6 +1566,24 @@ export interface operations {
                     "application/json": components["schemas"]["RoomDetails"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1380,6 +1611,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
         };
     };
     session_api_session_get: {
@@ -1401,6 +1650,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Session"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1433,6 +1700,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Caption"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1471,6 +1756,24 @@ export interface operations {
                     "application/json": components["schemas"]["Caption"] | components["schemas"]["SourceIgnored"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1503,6 +1806,24 @@ export interface operations {
                     "application/json": components["schemas"]["UdtalkStatus"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1533,6 +1854,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionStatus"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1571,6 +1910,24 @@ export interface operations {
                     "application/json": components["schemas"]["ConnectionStatus"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1600,6 +1957,24 @@ export interface operations {
                 };
                 content: {
                     "text/plain": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1634,6 +2009,24 @@ export interface operations {
                 };
                 content: {
                     "text/plain": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1672,6 +2065,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Caption"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Conflict */
@@ -1721,6 +2123,24 @@ export interface operations {
                     "application/json": components["schemas"]["Caption"] | components["schemas"]["SourceIgnored"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1755,6 +2175,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Visibility"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1793,6 +2231,24 @@ export interface operations {
                     "application/json": components["schemas"]["PublicationMode"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1829,6 +2285,24 @@ export interface operations {
                     "application/json": components["schemas"]["DisplaySettings"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1859,6 +2333,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AiRouting"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1897,6 +2389,24 @@ export interface operations {
                     "application/json": components["schemas"]["AiRouting"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1927,6 +2437,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DictionarySnapshot"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Validation Error */
@@ -1963,6 +2491,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DictionarySnapshot"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
                 };
             };
             /** @description Conflict */
@@ -2014,6 +2551,24 @@ export interface operations {
                     "application/json": components["schemas"]["PublicSnapshot"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -2042,6 +2597,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStateError"];
+                };
             };
             /** @description Validation Error */
             422: {

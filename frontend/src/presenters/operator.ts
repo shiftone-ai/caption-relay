@@ -208,6 +208,7 @@ export interface OperatorParameters {
   panelFocus: { selector: string; version: number } | null;
   toolbar: ToolbarParameters;
   message: string;
+  reloadVisible: boolean;
   rows: RowParameters[];
   editor: RowParameters | null;
   monitor: CaptionMonitorParameters;
@@ -273,12 +274,12 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
   const aiDisabled = !snapshot.can({ type: "ai.save.requested" });
   const connectionDraft: ConnectionSettings = context.connectionDraft ?? { mode: context.connection.mode, editor_url: "", zoom_text_format: context.connection.zoom_text_format,
     input_source: context.connection.input_source, recognizer: context.connection.recognizer };
-  const microphoneStatus = context.microphoneState === "stopped" && context.connection.transcription.state !== "stopped"
+  const microphoneStatus = !context.roomState && context.microphoneState === "stopped" && context.connection.transcription.state !== "stopped"
     ? context.connection.transcription.message : context.microphoneMessage;
   const unreadIds = new Set(context.unreadIds);
   const firstUnreadId = context.captions.find(caption => unreadIds.has(caption.id))?.id ?? null;
   const liveText = clientMode ? currentCaption?.text ?? "" : currentCaption?.public_text ?? currentCaption?.text ?? "";
-  const liveLabel = clientMode ? "UDトークで表示" : !context.visible ? "非表示" : currentId ? "観客に表示中" : "字幕を待っています";
+  const liveLabel = context.errorSource === "load" ? "前回確認した表示" : clientMode ? "UDトークで表示" : !context.visible ? "非表示" : currentId ? "観客に表示中" : "字幕を待っています";
   const recentCaptions = context.captions.slice(-3).map(caption => ({
     id: caption.id, receivedAt: caption.received_at,
     timeLabel: receivedTime.format(new Date(caption.received_at)),
@@ -307,7 +308,7 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
     const statusTooltipPosition = (sourceStatusOpen || publicationStatusOpen) && context.statusTooltip.measurement?.captionId === caption.id
       && context.statusTooltip.measurement.kind === statusTarget?.kind ? context.statusTooltip.measurement.position : null;
     const savedDisclosure = presentDisclosure(`caption-saved:${caption.id}`, context.openedDisclosures);
-    const dependencies = [draft, saving, rowError, editing, focusVersion, saveSuccess, disabled, readOnly, discardDisabled, editDisabled, republishDisabled,
+    const dependencies = [draft, saving, rowError, editing, focusVersion, saveSuccess, disabled, readOnly, discardDisabled, editDisabled, republishDisabled, context.errorSource === "load",
       sourceModelName, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition, context.visible, currentId === caption.id, displayedIds.has(caption.id), firstUnreadId === caption.id, clientMode, savedDisclosure.open];
     const cached = rowCache.get(caption);
     if (cached && dependencies.every((dependency, index) => dependency === cached.dependencies[index])) return cached.parameters;
@@ -318,7 +319,7 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
     const publicationState = clientMode ? "native" : !context.visible || !caption.publish_eligible ? "hidden" : differentPublic && displayedIds.has(caption.id) ? "updating"
       : displayedIds.has(caption.id) ? "live" : caption.published ? "published" : caption.source_final === false ? "receiving" : "waiting";
     const publishes = context.visible && caption.publish_eligible && caption.source_final !== false;
-    const publication = clientMode ? "UDトーク側の字幕表示を使います。受信文と訂正の受付状態は、このアプリで確認できます。" : { hidden: !context.visible ? "観客には非表示" : "公開の対象外", updating: "観客には前の公開文を表示中", live: "観客に表示中", published: "公開済み・現在の表示範囲外", receiving: "発話の確定待ち", waiting: "保存すると公開", native: "UDトーク側の字幕表示を使います。" }[publicationState]
+    const publicationText = clientMode ? "UDトーク側の字幕表示を使います。受信文と訂正の受付状態は、このアプリで確認できます。" : { hidden: !context.visible ? "観客には非表示" : "公開の対象外", updating: "観客には前の公開文を表示中", live: "観客に表示中", published: "公開済み・現在の表示範囲外", receiving: "発話の確定待ち", waiting: "保存すると公開", native: "UDトーク側の字幕表示を使います。" }[publicationState]
       + (differentPublic ? `。公開文「${caption.public_text}」と一覧の字幕は異なります。` : "");
     const parameters: RowParameters = {
       savedDisclosure,
@@ -347,7 +348,7 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
       source, state: draft?.requestId && !saving ? "保存結果が未確認です。修正内容を保持しています。" : source === "ai" && caption.ai_result
         ? "AI修正 · " + sourceModelName
         : { saving: "保存中", unsaved: "未保存の下書きがあります。一覧には変更前の字幕を表示しています。", human: "手修正済み", processing: caption.ai_status === "queued" ? "AI待機中" : "AI校正中", ai: "AI修正", original: caption.ai_status === "running" || caption.ai_status === "queued" ? "AIの訂正待ち" : caption.ai_error ? "原文採用 · " + caption.ai_error : "原文採用" }[source],
-      showPublicationStatus: !clientMode, publicationState, publication, current: currentId === caption.id,
+      showPublicationStatus: !clientMode, publicationState, publication: context.errorSource === "load" ? "前回確認時：" + publicationText : publicationText, current: context.errorSource !== "load" && currentId === caption.id,
       firstUnread: firstUnreadId === caption.id, focusVersion, saveSuccess, sourceStatusOpen, publicationStatusOpen, statusTooltipPosition,
     };
     rowCache.set(caption, { dependencies, parameters });
@@ -384,6 +385,7 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
       localOutput: !clientMode,
     },
     message: context.errorSource === "save" ? "" : context.error,
+    reloadVisible: context.roomState === "room_reset",
     rows, editor: rows.find(row => row.editing) ?? null,
     monitor: { recentCaptions, liveText, liveLabel }, recentCaptions,
     unreadCount: context.unreadIds.length, firstUnreadId,

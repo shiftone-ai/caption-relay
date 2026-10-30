@@ -1,3 +1,4 @@
+import { Button } from "../components/ui/button";
 import { useEffect, useRef } from "react";
 import { viewHierarchy } from "../events/hierarchy";
 import type { OperatorParameters } from "../presenters/operator";
@@ -24,7 +25,7 @@ export function OperatorView({ parameters }: { parameters: OperatorParameters })
       <main ref={screen} className="operator-shell">
         <header className="operator-header"><h1>Caption Relay</h1><ToolbarView parameters={parameters.toolbar} /></header>
         <p className="operator-connection-status" role="status">{parameters.connection.modeLabel} · {parameters.connection.stateLabel}</p>
-        {parameters.message && <p role="status" className="operator-global-error">{parameters.message}</p>}
+        {parameters.message && <div className="operator-global-error"><p role="status">{parameters.message}</p>{parameters.reloadVisible && <Button variant="outline" intent={{ type: "room.reload.requested" }}>字幕を読み直す</Button>}</div>}
         <CaptionMonitorView parameters={parameters.monitor} />
         <div className="operator-workspace">
           <CaptionListView parameters={parameters} />

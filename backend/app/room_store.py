@@ -41,6 +41,14 @@ class RoomStore:
 
     def put(self, room: SavedRoom) -> None:
         records = {**self._rooms, room.id: room.model_copy(deep=True)}
+        self._write(records)
+
+    def remove(self, room_id: str) -> None:
+        records = dict(self._rooms)
+        del records[room_id]
+        self._write(records)
+
+    def _write(self, records: dict[str, SavedRoom]) -> None:
         try:
             data = RoomFile(rooms=list(records.values()))
         except ValueError:

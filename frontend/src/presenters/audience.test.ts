@@ -15,12 +15,20 @@ it("keeps waiting and hidden audience screens separate from preview samples", ()
   }).start();
   try {
     expect(presentAudience(actor.getSnapshot()).texts).toEqual(["字幕を待っています"]);
+    expect(presentAudience(actor.getSnapshot()).connectionNotice).toBe("字幕に接続しています…");
     emit({ type: "stream.snapshot", snapshot: {
       visible: true, display: { ...defaultDisplay, history_count: 3 }, captions: [{ id: "one", text: "短い公開字幕", revision: 1 }],
     } });
     expect(presentAudience(actor.getSnapshot()).texts).toEqual(["短い公開字幕"]);
+    emit({ type: "stream.failed" });
+    expect(presentAudience(actor.getSnapshot()).connectionNotice).toBe("接続が切れました。再接続しています…");
+    expect(presentAudience(actor.getSnapshot()).texts).toEqual(["短い公開字幕"]);
+    emit({ type: "stream.opened" });
+    expect(presentAudience(actor.getSnapshot()).connectionNotice).toBe("");
     emit({ type: "stream.snapshot", snapshot: { visible: false, captions: [{ id: "one", text: "短い公開字幕", revision: 1 }] } });
     expect(presentAudience(actor.getSnapshot()).texts).toEqual([]);
     expect(presentAudience(actor.getSnapshot()).text).toBe("");
+    emit({ type: "stream.closed" });
+    expect(presentAudience(actor.getSnapshot()).connectionNotice).toBe("字幕に接続できません。ページを開き直してください。");
   } finally { actor.stop(); }
 });

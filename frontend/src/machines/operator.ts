@@ -1,7 +1,7 @@
 import { assign, fromPromise, sendTo, setup, type SnapshotFrom } from "xstate";
 import { microphoneActor } from "./microphone";
 import type { MicrophoneAdapter, MicrophoneDevice, TranscriptionStatus } from "../domain";
-import { CaptionConflict, OperationError, disclosureIds, type DisclosureId, type ConnectionSettings, type ConnectionStatus, type AiRouting, type AiSettings, type Caption, type DisplaySettings, type Draft, type OperatorApi, type ViewEvent, type PublicationMode, type SaveRequest, type StatusTooltipGeometry } from "../domain";
+import { CaptionConflict, OperationError, RoomStateError, disclosureIds, type DisclosureId, type ConnectionSettings, type ConnectionStatus, type AiRouting, type AiSettings, type Caption, type DisplaySettings, type Draft, type OperatorApi, type ViewEvent, type PublicationMode, type SaveRequest, type StatusTooltipGeometry } from "../domain";
 import { changeDisplayField, defaultDisplay, selectDisplayPalette } from "../display";
 import { backgroundValidation, editableAiSettings, defaultAi, knownAiModel } from "../ai";
 import { defaultConnection } from "../connection";
@@ -10,6 +10,7 @@ import type { DictionarySnapshot, DictionaryUpdate } from "../domain";
 
 type StatusTarget = { captionId: string; kind: "source" | "publication" };
 type SettingsPanel = "display" | "ai" | "connection" | "dictionary";
+type BindingChanged = { type: "operator.binding.changed"; api: OperatorApi; microphone: MicrophoneAdapter };
 
 interface StatusTooltipPosition {
   top: number;
@@ -32,6 +33,7 @@ interface OperatorContext {
   captionsById: Map<string, Caption>;
   drafts: Map<string, Draft>;
   pendingSave: SaveRequest | null;
+  roomState: RoomStateError["code"] | null;
   error: string;
   errorSource: "load" | "save" | "command" | null;
   errorCaptionId: string | null;
@@ -191,7 +193,7 @@ const operations = {
 export const operatorMachine = setup({
   types: {
     context: {} as OperatorContext,
-    events: {} as ViewEvent,
+    events: {} as ViewEvent | BindingChanged,
     input: {} as { api: OperatorApi; microphone?: MicrophoneAdapter },
   },
   actors: {
@@ -240,9 +242,9 @@ export const operatorMachine = setup({
     validConnectionSettings: ({ context }) => Boolean(context.connectionDraft && (context.connectionDraft.mode === "host"
       || context.connectionDraft.editor_url?.trim())),
     validMode: ({ context, event }) => context.connection.mode === "host" && event.type === "publication.mode.requested" && (event.mode === "auto" || event.mode === "manual"),
-    validShortcutSave: ({ context, event }) => isSaveShortcut(event) && event.type === "caption.editor.keypressed"
+    validShortcutSave: ({ context, event }) => event.type === "caption.editor.keypressed" && isSaveShortcut(event)
       && context.activeCaptionId === event.captionId && canSubmitSave(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId)?.text.trim()),
-    invalidShortcutSave: ({ context, event }) => isSaveShortcut(event) && event.type === "caption.editor.keypressed"
+    invalidShortcutSave: ({ context, event }) => event.type === "caption.editor.keypressed" && isSaveShortcut(event)
       && context.activeCaptionId === event.captionId && canSubmitSave(context, event.captionId) && Boolean(getSaveRequest(context, event.captionId))
       && !getSaveRequest(context, event.captionId)?.text.trim(),
     closeShortcut: ({ context, event }) => event.type === "caption.editor.keypressed" && !event.isComposing
@@ -285,6 +287,20 @@ export const operatorMachine = setup({
       && context.pendingSave?.captionId !== event.captionId,
   },
   actions: {
+    changeBinding: assign(({ context, event }) => {
+      if (event.type !== "operator.binding.changed") return {};
+      return {
+        api: event.api, microphone: event.microphone,
+        microphoneState: "stopped" as const, microphoneMessage: "マイクの認識は停止しています。",
+        captions: [], captionsById: new Map(), drafts: new Map(), pendingSave: null,
+        activeCaptionId: null, editingCaptionVisible: true, roomState: null, error: "", errorSource: null, errorCaptionId: null,
+        followLatest: true, atLatest: true, scrollTarget: "latest" as const, unreadIds: [], saveStatus: null,
+        latestRequest: context.latestRequest + 1, historyFocusCaptionId: null,
+        inspectorResize: null, inspectorPreviewWidth: null,
+        statusTooltip: { pointer: null, focus: null, dismissed: null, measurement: null },
+        openedDisclosures: new Set([...context.openedDisclosures].filter(id => !id.startsWith("caption-saved:"))),
+      };
+    }),
     invalidAi: assign(({ context }) => ({ aiError: backgroundValidation((context.aiDraft ?? context.ai.settings).background), aiBackgroundInvalid: true })),
     discardDictionary: assign({ dictionaryDraft: null, dictionaryError: null, dictionaryNotice: "保存済みの辞書に戻しました。" }),
     clearDictionaryMessage: assign({ dictionaryError: null, dictionaryNotice: "" }),
@@ -444,7 +460,7 @@ export const operatorMachine = setup({
   context: ({ input }) => ({
     microphone: input.microphone, microphoneState: "stopped", microphoneMessage: "マイクの認識は停止しています。",
     microphoneLabel: "", microphoneDevices: [], microphoneDeviceId: "",
-    api: input.api, visible: true, captions: [], captionsById: new Map(), drafts: new Map(), pendingSave: null,
+    api: input.api, roomState: null, visible: true, captions: [], captionsById: new Map(), drafts: new Map(), pendingSave: null,
     error: "", errorSource: null, errorCaptionId: null, inspectorWidth: 384, inspectorMaxWidth: 960, inspectorPreviewWidth: null, inspectorResize: null,
     activeCaptionId: null, editingCaptionVisible: true,
     followLatest: true, atLatest: true, latestRequest: 0, scrollTarget: "latest", editorFocusRequest: 0,
@@ -457,7 +473,11 @@ export const operatorMachine = setup({
     dictionary: emptyDictionary, dictionaryDraft: null, dictionaryError: null, dictionaryNotice: "",
     connection: defaultConnection, receiverUrl: "", connectionDraft: null,
   }),
-  on: { "disclosure.toggled": { guard: "knownDisclosure", actions: "toggleDisclosure" } },
+  on: {
+    "disclosure.toggled": { guard: "knownDisclosure", actions: "toggleDisclosure" },
+    "operator.binding.changed": { guard: ({ context, event }) => context.api !== event.api || context.microphone !== event.microphone,
+      target: ".loading", actions: "changeBinding" },
+  },
   states: {
     loading: {
       invoke: {
@@ -465,9 +485,13 @@ export const operatorMachine = setup({
         onDone: { target: "ready", actions: assign(({ context, event }) => ({ ...event.output,
           captionsById: new Map(event.output.captions.map(caption => [caption.id, caption])), error: "", errorSource: null,
           unreadIds: [], latestRequest: context.latestRequest + 1 })) },
-        onError: { target: "failed", actions: assign({ error: "字幕を取得できませんでした。接続を確認してください。", errorSource: "load" }) },
+        onError: [
+          { guard: ({ event }) => event.error instanceof RoomStateError, target: "unavailable", actions: assign(({ event }) => ({ roomState: (event.error as RoomStateError).code, error: (event.error as RoomStateError).message, errorSource: "load" as const })) },
+          { target: "failed", actions: assign({ error: "字幕を取得できませんでした。接続を確認してください。", errorSource: "load" }) },
+        ],
       },
     },
+    unavailable: { entry: assign({ microphoneState: "stopped", microphoneMessage: "この画面のマイク認識は停止しています。" }) },
     failed: {
       after: { 1500: "loading" },
       on: { "refresh.requested": "loading" },
@@ -576,7 +600,10 @@ export const operatorMachine = setup({
                 errorSource: context.errorSource === "load" ? null : context.errorSource,
               };
             }) },
-            onError: { target: "idle", actions: assign({ error: "字幕を取得できませんでした。接続を確認してください。", errorSource: "load" }) },
+            onError: [
+              { guard: ({ event }) => event.error instanceof RoomStateError, target: "#operator.unavailable", actions: assign(({ event }) => ({ roomState: (event.error as RoomStateError).code, error: (event.error as RoomStateError).message, errorSource: "load" as const })) },
+              { target: "idle", actions: assign({ error: "字幕を取得できませんでした。接続を確認してください。", errorSource: "load" }) },
+            ],
           },
         },
         saving: {

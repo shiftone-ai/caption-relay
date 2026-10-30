@@ -158,3 +158,60 @@ test("audience controls leave the entire subtitle area unobscured and match the 
   await noHorizontalOverflow(page);
   await viewer.close();
 });
+
+test("reset recovery preserves settings drafts and reloads captions without reconnecting", async ({ page, request, context }) => {
+  const room = await connect(page, request);
+  await source(request, "reset-recovery", "リセット前の字幕");
+  await page.getByRole("button", { name: "単語辞書", exact: true }).tap();
+  await page.getByRole("button", { name: "単語を追加", exact: true }).tap();
+  const term = page.getByRole("textbox", { name: /件目の表記/ }).last();
+  await term.fill("残す単語");
+  const other = await context.newPage();
+  try {
+    await other.goto(`/rooms/${room.id}`);
+    await other.getByRole("button", { name: "字幕をリセット", exact: true }).tap();
+    await other.getByRole("dialog").getByRole("button", { name: "字幕をリセット", exact: true }).tap();
+    const reload = page.getByRole("button", { name: "字幕を読み直す", exact: true });
+    await touchTarget(reload);
+    await noHorizontalOverflow(page);
+    await reload.tap();
+    await page.getByRole("dialog").getByRole("button", { name: "読み直す", exact: true }).tap();
+    await expect(term).toHaveValue("残す単語");
+    const save = page.waitForResponse(response => response.url().endsWith("/api/dictionary") && response.request().method() === "PUT");
+    await page.getByRole("button", { name: "辞書を保存", exact: true }).tap();
+    expect((await save).ok()).toBeTruthy();
+    expect((await request.get(`/api/rooms/${room.id}`)).ok()).toBeTruthy();
+    await noHorizontalOverflow(page);
+  } finally { await other.close(); }
+});
+
+test("an inactive room can be deleted with confirmation and releases its home row", async ({ page, request, context }) => {
+  const room = await connect(page, request);
+  await source(request, "delete-" + room.id, "削除前の公開字幕");
+  const viewer = await context.newPage();
+  await viewer.goto(`/view/demo?room_id=${room.id}`);
+  await expect(viewer.getByRole("log", { name: "字幕", exact: true })).toContainText("削除前の公開字幕");
+  await page.getByRole("button", { name: "ホームへ戻る", exact: true }).tap();
+  await expect(page).toHaveURL(/\/$/);
+  // Find this room by the unique settings attribute when previous test rooms share the same name.
+  const selected = page.locator(".home-room").filter({ has: page.locator(`[data-room-settings="${room.id}"]`) });
+  const remove = selected.getByRole("button", { name: room.name + "を削除", exact: true });
+  await touchTarget(remove);
+  await remove.tap();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("元に戻せません");
+  await touchTarget(dialog.getByRole("button", { name: "キャンセル", exact: true }));
+  await dialog.getByRole("button", { name: "キャンセル", exact: true }).tap();
+  await expect(selected).toBeVisible();
+  await remove.tap();
+  const response = page.waitForResponse(result => result.url().includes(`/api/rooms/${room.id}?`) && result.request().method() === "DELETE");
+  await dialog.getByRole("button", { name: "ルームを削除", exact: true }).tap();
+  expect((await response).ok()).toBeTruthy();
+  await expect(selected).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "新しいルームに接続", exact: true })).toBeFocused();
+  expect((await request.get(`/api/rooms/${room.id}`)).status()).toBe(404);
+  await expect(viewer.getByRole("log", { name: "字幕", exact: true })).not.toContainText("削除前の公開字幕");
+  await expect(viewer.getByRole("status")).toContainText("ページを開き直してください");
+  await viewer.close();
+  await noHorizontalOverflow(page);
+});
