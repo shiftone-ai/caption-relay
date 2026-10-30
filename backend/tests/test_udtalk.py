@@ -78,6 +78,22 @@ def test_text_during_recognition_can_have_unknown_type():
     assert partial.text == "途中の入力" and partial.is_final is False
 
 
+def test_native_numeric_completion_flags_keep_partial_and_final_order() -> None:
+    decoder = UdtalkDecoder("room")
+    partial = decoder.decode([message("純正アプリで入力中", phase="updated", end=0)])[0]
+    completed = decoder.decode([message("純正アプリの訂正", clock=2.0, end=1)])[0]
+    assert partial.is_final is False
+    assert completed.utterance_id == partial.utterance_id
+    assert completed.is_final is True
+    assert completed.text == "純正アプリの訂正"
+
+
+@pytest.mark.parametrize("flag", [2, "1", 1.0])
+def test_unknown_completion_flag_is_still_rejected(flag: object) -> None:
+    with pytest.raises(UdtalkProtocolError):
+        UdtalkDecoder("room").decode([message(end=flag)])
+
+
 @pytest.mark.parametrize("phase", ["created", "updated", "modified"])
 def test_empty_partial_keeps_the_published_caption_until_final(phase):
     async def verify():

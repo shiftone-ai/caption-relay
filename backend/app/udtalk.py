@@ -11,7 +11,7 @@ from hashlib import sha256
 from typing import Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .models import SourceEvent
 
@@ -36,6 +36,14 @@ class Fragment(BaseModel):
     finalizedTimestamp: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     endOfUtterance: bool | None = None
     detectedName: str | None = Field(default=None, max_length=256)
+
+    @field_validator("endOfUtterance", mode="before")
+    @classmethod
+    def normalize_completion_flag(cls, value: object) -> object:
+        # The native Mac editor can encode this flag as a JSON integer.
+        if type(value) is int and value in (0, 1):
+            return bool(value)
+        return value
 
     def clock(self) -> tuple[float, float]:
         return (self.finalizedTimestamp or 0, self.connected.timestamp)

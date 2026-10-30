@@ -37,7 +37,7 @@ def test_synthetic_speech_correction_keeps_the_native_fragment_identifiers_and_m
         assert edit["timestamp"] == original["timestamp"]
         assert edit["localeIdentifier"] == original["localeIdentifier"]
         assert edit["connected"] == original["connected"]
-        assert edit["extendResult"] is None
+        assert "extendResult" not in edit
     assert fragments == previous
 
 

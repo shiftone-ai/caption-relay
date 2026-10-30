@@ -56,6 +56,6 @@ def plan_fragment_edits(fragments: Sequence[dict[str, JsonValue]], text: str) ->
         command["text"] = replacement
         if not isinstance(command.get("originalText"), str) or not command["originalText"]:
             command["originalText"] = prior_text
-        command["extendResult"] = None
+        command.pop("extendResult", None)
         edits.append(command)
     return edits
