@@ -7,6 +7,7 @@
 | 文書 | 内容 |
 |---|---|
 | [準備と起動](setup.md) | 必要なツール、起動、AIキー、マイク入力の準備 |
+| [Mac版](macos.md) | Tauriアプリの利用、APIキーの設定、署名・公証と検証範囲 |
 | [利用者向けマニュアル](manual.md) | 入力と配信先の選択、AI・辞書、訂正、観客画面、終了 |
 | [ルームの接続と字幕リセット](rooms.md) | 接続、字幕のリセット、保存される情報 |
 | [単語辞書](dictionary.md) | 登録、認識と校正への反映、保存先 |
@@ -35,6 +36,8 @@
 | 新しい機能の要件を検討する | [v0.2 の設計案](design-v0.2.md) | 将来要件、未確定事項、受け入れ条件の案 |
 | クラウド音声認識を比較する | [クラウド候補の調査](research/2026-10-10-cloud-transcription.md) | Google・Azure・AmiVoice・AWS などの日本語対応、途中結果、料金、データの扱い |
 | OpenAI・端末内音声認識を比較する | [OpenAI・Apple・Whisper の調査](research/2026-10-10-openai-apple-transcription.md) | 現行モデルと API、Apple の対応条件と日本語モデル確認、未実測の範囲 |
+| Macアプリとしての配布を検討する | [Macデスクトップ版の調査](research/2026-10-30-mac-desktop-options.md) | Electron・Tauri・React Native macOSの比較、Python・Swiftの同梱、署名・公証と未検証の範囲 |
+| Macアプリを使う・ビルドする | [Mac版](macos.md) | Tauri、APIキーの設定、同梱、保存先、署名・公証と検証範囲 |
 
 ## 文書と実装の対応
 

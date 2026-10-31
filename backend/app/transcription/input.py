@@ -59,7 +59,7 @@ class MicrophoneInput:
     def options(self) -> list[RecognizerOption]:
         reason = ""
         if not self._environment.get("CAPTION_RELAY_OPENAI_API_KEY"):
-            reason = "このリポジトリ用のOpenAIキーが設定されていません。"
+            reason = "音声認識用のOpenAIキーが設定されていません。"
         else:
             try:
                 usage = self._budget().usage()

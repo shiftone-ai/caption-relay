@@ -20,6 +20,10 @@ dev = [
     "pytest>=8",
     "pyright>=1.1.414",
 ]
+desktop = [
+    "pyinstaller>=6.22,<7",
+    "pyinstaller-hooks-contrib",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -29,3 +33,6 @@ pythonpath = ["."]
 include = ["app"]
 typeCheckingMode = "strict"
 pythonVersion = "3.12"
+
+[tool.uv.sources]
+pyinstaller-hooks-contrib = { git = "https://github.com/Eotel/pyinstaller-hooks-contrib", rev = "4e87e47a6a9d411b539d26a3742251a6546ce25e" }

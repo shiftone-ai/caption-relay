@@ -9,13 +9,14 @@ import platform
 import struct
 import subprocess
 import json
+import os
 
 from pydantic import Field, model_validator
 
 from ..models import Model, RecognizerOption, SourceEvent
 from .openai import PACKET, TranscriptionError
 
-HELPER = Path(__file__).resolve().parents[3] / ".cache" / "apple-speech-helper"
+HELPER = Path(os.environ.get("CAPTION_RELAY_APPLE_HELPER", str(Path(__file__).resolve().parents[3] / ".cache" / "apple-speech-helper")))
 
 
 class AppleResult(Model):

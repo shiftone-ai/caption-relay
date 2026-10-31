@@ -3,6 +3,34 @@ import { createMicrophoneAdapter } from "./microphone";
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
+it("lists microphones after permission without starting recognition and releases capture", async () => {
+  const stop = vi.fn();
+  let permitted = false;
+  const enumerateDevices = vi.fn(async () => permitted ? [
+    { kind: "audioinput", deviceId: "blackhole", label: "BlackHole 2ch" },
+  ] : []);
+  const getUserMedia = vi.fn(async () => {
+    permitted = true;
+    return { getTracks: () => [{ stop }] };
+  });
+  vi.stubGlobal("navigator", { mediaDevices: { enumerateDevices, getUserMedia } });
+  const adapter = createMicrophoneAdapter();
+  expect(await adapter.devices()).toEqual([]);
+  expect(getUserMedia).not.toHaveBeenCalled();
+  expect(await adapter.devices(true)).toEqual([{ id: "blackhole", label: "BlackHole 2ch" }]);
+  expect(stop).toHaveBeenCalledOnce();
+});
+
+it("releases permission capture when device enumeration fails", async () => {
+  const stop = vi.fn();
+  vi.stubGlobal("navigator", { mediaDevices: {
+    getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] }),
+    enumerateDevices: vi.fn().mockRejectedValue(new Error("device query failed")),
+  } });
+  await expect(createMicrophoneAdapter().devices(true)).rejects.toThrow();
+  expect(stop).toHaveBeenCalledOnce();
+});
+
 function browserHarness() {
   const stop = vi.fn();
   const track = { stop, label: "試験マイク", addEventListener: vi.fn() };
@@ -37,6 +65,9 @@ it("rejects a failed finalization instead of reporting a successful stop and rel
   const { stop, close } = browserHarness();
   const states: string[] = [];
   const session = await createMicrophoneAdapter().start({ deviceId: "", recognizer: "apple" }, new AbortController().signal, state => states.push(state.state));
+  expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
+    audio: { channelCount: 1, echoCancellation: false }, video: false,
+  });
   await expect(session.stop()).rejects.toThrow("確定できませんでした。");
   expect(states).toEqual(["live", "failed"]);
   expect(stop).toHaveBeenCalled();

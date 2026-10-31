@@ -29,7 +29,7 @@ from .zoom_input import ReceiverError
 from .transcription.openai import Connector, openai_connect
 
 BASE = Path(__file__).resolve().parents[2]
-FRONTEND = BASE / "frontend" / "dist"
+FRONTEND = Path(os.environ.get("CAPTION_RELAY_FRONTEND_PATH", str(BASE / "frontend" / "dist")))
 
 
 def create_app(relay: CaptionRelay | None = None, *, udtalk_url: str | None = None,

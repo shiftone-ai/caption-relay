@@ -280,6 +280,33 @@ it("keeps a conflicting dictionary draft until the operator explicitly reloads t
   expect(presentOperator(actor.getSnapshot()).dictionary.error).toBe("");
 });
 
+it("requests microphone choices before recognition, then starts with the selected device", async () => {
+  const adapter = api();
+  vi.mocked(adapter.load).mockResolvedValue({ visible: true, captions: [], connection: {
+    ...defaultConnection, input_source: "microphone", recognizers: [{ id: "openai", label: "OpenAI", available: true, message: "" }],
+  } });
+  const microphone = { available: true, devices: vi.fn(async (permission?: boolean) => permission
+    ? [{ id: "blackhole", label: "BlackHole 2ch" }] : []),
+    start: vi.fn().mockResolvedValue({ label: "BlackHole 2ch", stop: vi.fn().mockResolvedValue(undefined) }) };
+  const actor = createActor(operatorMachine, { input: { api: adapter, microphone } }).start();
+  try {
+    await waitFor(actor, state => state.matches({ ready: "idle" }));
+    actor.send({ type: "microphone.devices.requested" });
+    await waitFor(actor, state => state.context.microphoneDevices.length === 1 && state.context.microphoneState === "stopped");
+    expect(microphone.start).not.toHaveBeenCalled();
+    actor.send({ type: "microphone.device.selected", deviceId: "blackhole" });
+    microphone.devices.mockResolvedValue([{ id: "replacement", label: "別のマイク" }]);
+    actor.send({ type: "microphone.devices.requested" });
+    await waitFor(actor, state => state.context.microphoneDevices[0]?.id === "replacement" && state.context.microphoneState === "stopped");
+    expect(actor.getSnapshot().context.microphoneDeviceId).toBe("");
+    expect(presentOperator(actor.getSnapshot()).connection.deviceDisabled).toBe(false);
+    actor.send({ type: "microphone.device.selected", deviceId: "replacement" });
+    actor.send({ type: "microphone.start.requested" });
+    await waitFor(actor, state => state.context.microphoneState === "live");
+    expect(microphone.start.mock.calls[0][0].deviceId).toBe("replacement");
+  } finally { actor.stop(); }
+});
+
 it("keeps microphone recognition running while editing and stops it before input changes", async () => {
   const adapter = api();
   const connection = { ...defaultConnection, input_source: "microphone" as const,

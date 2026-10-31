@@ -15,6 +15,8 @@
 
 手動訂正と独立配信の起動に外部APIキー、データベース、コンテナは不要。AI校正は使う提供元のAPIキー、編集参加は有効なUDトークの編集用リンクが必要。マイク入力は[専用の準備手順](microphone-input.md)を参照する。
 
+MacアプリのビルドにはRustも必要。[Mac版のビルド手順](macos.md#ビルドする)に従い、Python・画面・Swiftを同梱する。通常のWeb開発ではRustは不要。
+
 ## セットアップと起動
 
 ```bash
@@ -87,6 +89,8 @@ bash scripts/check.sh
 | フロントエンドの型検査・ビルド | `npm --prefix frontend run build` |
 | バックエンドの型検査 | `cd backend && uv run --locked --extra dev pyright` |
 | バックエンドの振る舞い | `cd backend && uv run --locked --extra dev pytest -q` |
+| Mac版のRust | `cargo clippy --manifest-path desktop/Cargo.toml --locked -- -D warnings` |
+| 同梱サーバーの独立実行・認証・終了 | `node scripts/verify-desktop.mjs`（Mac版のビルド後） |
 
 API モデルを変更した場合の再生成は[API の型生成](generated/README.md)を参照する。
 

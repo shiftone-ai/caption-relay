@@ -1,7 +1,7 @@
 import { fromCallback } from "xstate";
 import { OperationError, type ConnectionStatus, type MicrophoneAdapter, type MicrophoneSession, type ViewEvent } from "../domain";
 
-type Command = { type: "start"; deviceId: string; recognizer: ConnectionStatus["recognizer"] } | { type: "stop" };
+type Command = { type: "start"; deviceId: string; recognizer: ConnectionStatus["recognizer"] } | { type: "stop" } | { type: "devices" };
 
 // This actor bridges browser lifetimes; the operator Mediator decides when commands are allowed.
 export const microphoneActor = fromCallback<Command, { adapter?: MicrophoneAdapter }>(({ input, receive, sendBack }) => {
@@ -13,7 +13,17 @@ export const microphoneActor = fromCallback<Command, { adapter?: MicrophoneAdapt
   const list = () => input.adapter?.devices().then(devices => emit({ type: "microphone.devices.changed", devices })).catch(() => {});
   void list();
   receive(command => {
-    if (command.type === "start") {
+    if (command.type === "devices") {
+      const current = ++generation;
+      void input.adapter?.devices(true).then(devices => {
+        if (current !== generation) return;
+        emit({ type: "microphone.devices.changed", devices });
+        emit({ type: "microphone.state.changed", state: "stopped", message: "マイクを選択できます。" });
+      }).catch(error => {
+        if (current === generation) emit({ type: "microphone.state.changed", state: "failed", message: error instanceof OperationError
+          ? error.message : "マイクを確認できませんでした。" });
+      });
+    } else if (command.type === "start") {
       if (stopping) return;
       const current = ++generation;
       controller = new AbortController();

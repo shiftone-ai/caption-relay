@@ -49,7 +49,7 @@ export interface MicrophoneDevice { id: string; label: string }
 export interface MicrophoneSession { label: string; stop(): Promise<void> }
 export interface MicrophoneAdapter {
   available: boolean;
-  devices(): Promise<MicrophoneDevice[]>;
+  devices(requestPermission?: boolean): Promise<MicrophoneDevice[]>;
   start(input: { deviceId: string; recognizer: ConnectionStatus["recognizer"] }, signal: AbortSignal, status: (state: TranscriptionStatus) => void): Promise<MicrophoneSession>;
 }
 
@@ -144,6 +144,7 @@ export type OperatorEvent =
   | { type: "connection.recognizer.selected"; recognizer: string }
   | { type: "connection.save.requested" }
   | { type: "microphone.start.requested" }
+  | { type: "microphone.devices.requested" }
   | { type: "microphone.stop.requested" }
   | { type: "microphone.device.selected"; deviceId: string }
   | { type: "microphone.state.changed"; state: TranscriptionStatus["state"]; message: string; label?: string }
@@ -163,7 +164,7 @@ export type AudienceEvent =
   | { type: "stream.snapshot"; snapshot: PublicSnapshot };
 
 export type AudienceViewEvent = Extract<AudienceEvent, { type: "display.fullscreen.requested" | "display.scrolled" | "display.latest.requested" }>;
-export type ViewEvent = OperatorEvent | AudienceViewEvent | HomeEvent | RoomEvent;
+export type ViewEvent = OperatorEvent | AudienceViewEvent | HomeEvent | RoomEvent | import("./desktop").DesktopEvent;
 
 export interface FullscreenAdapter {
   available: boolean;

@@ -28,6 +28,8 @@ export function ConnectionSettingsView({ parameters }: { parameters: ConnectionP
           </select></label>
           <p role="status">{parameters.recognizerMessage}</p>
           <p>{parameters.microphoneStatus}</p>
+          <Button className="operator-button" variant="outline" disabled={parameters.listDevicesDisabled}
+            intent={{ type: "microphone.devices.requested" }}>マイクを確認</Button>
           <label>マイク<select aria-label="マイク" value={parameters.deviceId} disabled={parameters.deviceDisabled}
             onChange={event => emit({ type: "microphone.device.selected", deviceId: event.currentTarget.value })}>
             {parameters.devices.map(device => <option key={device.id} value={device.id}>{device.label}</option>)}

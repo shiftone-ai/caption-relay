@@ -152,7 +152,7 @@ it("applies microphone input without starting recognition and explains a missing
     load: vi.fn().mockImplementation(() => Promise.resolve({ visible: true, captions: [], connection })),
     save: vi.fn(), setVisible: vi.fn(), sendTest: vi.fn(), setPublicationMode: vi.fn(), setDisplay: vi.fn(), setDictionary: vi.fn(), setAi: vi.fn(),
     setConnection: vi.fn().mockImplementation(settings => {
-      connection = { ...defaultConnection, ...settings, recognizers: [{ id: "openai", label: "OpenAI", available: false, message: "このリポジトリ用のOpenAIキーが設定されていません。" }] };
+      connection = { ...defaultConnection, ...settings, recognizers: [{ id: "openai", label: "OpenAI", available: false, message: "音声認識用のOpenAIキーが設定されていません。" }] };
       return Promise.resolve(connection);
     }),
   };
@@ -163,7 +163,7 @@ it("applies microphone input without starting recognition and explains a missing
   await user.click(screen.getByRole("button", { name: "接続を適用" }));
   await waitFor(() => expect(api.setConnection).toHaveBeenCalledWith(expect.objectContaining({ input_source: "microphone", recognizer: "openai" }), expect.any(AbortSignal)));
   expect((screen.getByRole("button", { name: "認識を開始" }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByText("このリポジトリ用のOpenAIキーが設定されていません。")).toBeTruthy();
+  expect(screen.getByText("音声認識用のOpenAIキーが設定されていません。")).toBeTruthy();
 }, 20000);
 
 it("applies the explicit Zoom speaker format and retains it when settings reopen", async () => {

@@ -101,6 +101,8 @@ Zoom送信の名前付き形式は接続設定から `connection.text-format.sel
 
 ## API 型の利用
 
+Mac版のAPIキー画面では`DesktopSettingsRoot`がactorとPresenterを接続する。`machines/desktop-settings.ts`が読み込み・下書き・再起動の確認・保存を裁定する。`adapters/desktop.ts`だけがTauriコマンドを呼ぶ。Viewは共通Form・Button・確認ダイアログで通知し、保存したキーを読み戻さない。画面の経路と保存先は[Mac版](macos.md)を参照する。
+
 [API の型生成](generated/README.md)で OpenAPI と TypeScript 型を同期する。フロントエンドの Adapter は生成した型を使用し、独自に API モデルを再定義しない。TypeScript の型はブラウザでの JSON の実行時検証を行うものではなく、サーバー側の応答検証と組み合わせる。
 
 ## 検証
