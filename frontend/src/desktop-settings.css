@@ -1,0 +1,13 @@
+.desktop-settings { --input: #737373; --focus-ring: #1d4ed8; max-width: 640px; min-height: 100svh; margin: 0 auto; padding: 32px; color: var(--foreground); background: var(--background); font-size: 16px; line-height: 24px; }
+.desktop-settings h1 { margin: 0 0 32px; font-size: 24px; font-weight: 700; line-height: 32px; }
+.desktop-settings form { display: grid; gap: 24px; }
+.desktop-credential { display: grid; gap: 8px; min-width: 0; }
+.desktop-credential > label:first-child { font-weight: 600; }
+.desktop-credential > input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--input); border-radius: 4px; padding: 8px; font: inherit; background: var(--background); color: var(--foreground); }
+.desktop-credential > input::placeholder { color: var(--muted-foreground); }
+.desktop-credential-removal { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.desktop-credential-removal input { width: 20px; height: 20px; }
+.desktop-settings button { min-height: 44px; justify-self: start; padding: 8px 16px; }
+.desktop-settings :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.desktop-settings-error { margin-bottom: 24px; color: var(--destructive); }
+@media (max-width: 480px) { .desktop-settings { padding: 24px 16px; } }

@@ -144,6 +144,7 @@ export interface ConnectionParameters {
   recognizerMessage: string;
   microphoneStatus: string;
   startDisabled: boolean;
+  listDevicesDisabled: boolean;
   stopDisabled: boolean;
   microphoneLabel: string;
   deviceId: string;
@@ -470,6 +471,7 @@ export function presentOperator(snapshot: OperatorSnapshot, roomId?: string): Op
       recognizerMessage: context.connection.recognizers.find(option => option.id === (connectionDraft.recognizer ?? context.connection.recognizer))?.message ?? "接続を適用すると利用条件を確認できます。",
       microphoneStatus,
       startDisabled: !snapshot.can({ type: "microphone.start.requested" }),
+      listDevicesDisabled: !snapshot.can({ type: "microphone.devices.requested" }),
       stopDisabled: !snapshot.can({ type: "microphone.stop.requested" }),
       microphoneLabel: context.microphoneLabel ? `使用するマイク：${context.microphoneLabel}` : "",
       deviceId: context.microphoneDeviceId,

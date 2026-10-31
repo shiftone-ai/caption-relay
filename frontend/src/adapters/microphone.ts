@@ -3,10 +3,16 @@ import { OperationError, type MicrophoneAdapter, type MicrophoneSession, type Tr
 export function createMicrophoneAdapter(room?: RoomBinding): MicrophoneAdapter {
   return {
     available: Boolean(typeof navigator.mediaDevices?.getUserMedia === "function" && typeof AudioContext !== "undefined" && typeof AudioWorkletNode !== "undefined"),
-    async devices() {
-      const devices = await navigator.mediaDevices?.enumerateDevices() ?? [];
-      return devices.filter(device => device.kind === "audioinput" && device.deviceId)
-        .map((device, index) => ({ id: device.deviceId, label: device.label || `マイク ${index + 1}` }));
+    async devices(requestPermission = false) {
+      let stream: MediaStream | undefined;
+      try {
+        if (requestPermission) stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const devices = await navigator.mediaDevices?.enumerateDevices() ?? [];
+        return devices.filter(device => device.kind === "audioinput" && device.deviceId)
+          .map((device, index) => ({ id: device.deviceId, label: device.label || `マイク ${index + 1}` }));
+      } catch {
+        throw new OperationError("マイクを確認できませんでした。マイクの使用許可と機器を確認してください。");
+      } finally { stream?.getTracks().forEach(track => track.stop()); }
     },
     async start({ deviceId, recognizer }, signal, status): Promise<MicrophoneSession> {
       let stream: MediaStream | null = null;
@@ -39,7 +45,7 @@ export function createMicrophoneAdapter(room?: RoomBinding): MicrophoneAdapter {
         release();
       };
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1,
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false,
           ...(deviceId ? { deviceId: { exact: deviceId } } : {}) }, video: false });
         if (signal.aborted) { stream.getTracks().forEach(track => track.stop()); throw new OperationError("マイクの開始を中止しました。"); }
         context = new AudioContext({ latencyHint: "interactive" });

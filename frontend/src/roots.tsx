@@ -19,6 +19,10 @@ import { presentHome } from "./presenters/home";
 import { presentRoom, type RoomParameters } from "./presenters/room";
 import { HomeView } from "./views/home";
 import { RoomActionsView } from "./views/room";
+import { DesktopSettingsView } from "./views/desktop-settings";
+import { desktopSettingsMachine } from "./machines/desktop-settings";
+import { presentDesktopSettings } from "./presenters/desktop-settings";
+import { credentialsApi } from "./adapters/desktop";
 import type { MicrophoneAdapter } from "./domain";
 import type { AudienceApi, FullscreenAdapter, OperatorApi, RoomBinding, RoomsApi, ViewEvent } from "./domain";
 
@@ -26,6 +30,17 @@ interface RoomControls {
   parameters: RoomParameters;
   handle: (event: ViewEvent) => boolean;
   onUnsavedChange: (unsaved: boolean) => void;
+}
+
+export function DesktopSettingsRoot() {
+  const actor = useActorRef(desktopSettingsMachine, { input: { api: credentialsApi } });
+  const parameters = useSelector(actor, presentDesktopSettings);
+  const handle = useCallback((event: ViewEvent) => {
+    if (!actor.getSnapshot().can(event)) return false;
+    actor.send(event);
+    return true;
+  }, [actor]);
+  return <viewHierarchy.Root handle={handle}><DesktopSettingsView parameters={parameters} /></viewHierarchy.Root>;
 }
 
 export function OperatorRoot({ api = operatorApi, microphone, room, controls }: { api?: OperatorApi; microphone?: MicrophoneAdapter; room?: RoomBinding; controls?: RoomControls }) {

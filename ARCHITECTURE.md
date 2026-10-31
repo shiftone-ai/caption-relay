@@ -1,6 +1,6 @@
 # システム構成
 
-実装確認日：2026-10-29
+実装確認日：2026-10-30
 
 Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つローカル PoC。React の操作画面は HTTP で取得・更新し、観客画面は SSE で公開字幕を受け取る。現在の振る舞いは[現行 PoC の仕様](docs/current-behavior.md)、起動方法は[開発手順](docs/development.md)を参照する。
 
@@ -9,6 +9,8 @@ Caption Relay は、単一の FastAPI プロセスが字幕の状態を持つロ
 | 場所 | 責務 |
 |---|---|
 | [backend/app/main.py](backend/app/main.py) | HTTP ルート、エラー応答、SSE、ビルド済み画面の配信 |
+| [desktop/src/main.rs](desktop/src/main.rs) | Tauriのウィンドウ、Keychain、内蔵サーバーの起動・終了 |
+| [backend/app/desktop.py](backend/app/desktop.py) | Mac版のloopback認証、同梱リソース・保存先、親プロセス終了時の停止 |
 | [backend/app/rooms.py](backend/app/rooms.py)・[room_store.py](backend/app/room_store.py) | 一つの入力接続とルームごとのWorkflow、設定の保存・復元、リセットと古い操作の拒否 |
 | [backend/app/relay.py](backend/app/relay.py) | セッション状態、入力の改版・再送判定、手修正と訂正履歴、公開可否と明示的な再公開、購読キュー |
 | [backend/app/workflow.py](backend/app/workflow.py) | 入力、AI処理の開始・取消、訂正先への送信、保存時の改版照合と成功済み要求の再照合 |
@@ -73,7 +75,11 @@ FastAPIはPydanticモデルで入出力を検証し、入力と訂正保存を `
 
 操作APIは `X-Caption-Relay-Room` と `X-Caption-Relay-Generation` で対象とリセットの世代を固定する。書き込みは現在接続中のルームだけに許可し、古い世代には409を返す。観客APIの `room_id` とSSEは取得開始時のRelayを保持し、ルーム切り替えで別の字幕へ切り替えない。リセットは保存・外部送信と直列化し、AI要求の取消完了後に字幕を消す。字幕の改版番号を巻き戻さず、リセット済みの発話IDを再送でも採用しない。
 
-Zoom受信先の資格情報は操作画面用の接続状態だけに返す。編集用URLは適用時だけ送信し、応答・字幕ID・ログへ含めない。AIキーは提供元の認証ヘッダーで送り、画面には設定済みかどうかだけを返す。アクセスログはURLの資格情報を記録しないよう起動スクリプトで無効にする。アプリ全体の認証はなく、loopbackでのローカル利用を前提とする。
+Zoom受信先の資格情報は操作画面用の接続状態だけに返す。編集用URLは適用時だけ送信し、応答・字幕ID・ログへ含めない。AIキーは提供元の認証ヘッダーで送り、画面には設定済みかどうかだけを返す。アクセスログはURLの資格情報を記録しないよう起動スクリプトで無効にする。Web開発用の起動は未認証で、loopbackでのローカル利用を前提とする。
+
+Mac版はTauriのWKWebViewと、PyInstallerで同梱した同じPython処理を使う。Rustが空きloopbackポートのサーバーを起動し、Keychainの設定を標準入力で渡す。起動ごとのトークンをHttpOnly・SameSite=StrictのCookieへ変換し、Host・Originと併せて操作API・音声WebSocket・画面を検査する。Zoom受信の2経路だけは従来の署名認証を使う。設定用のTauriコマンドは設定ウィンドウ・origin・パスを限定し、秘密の保存値を画面へ返さない。
+
+内蔵サーバーは親との標準入力が閉じると終了し、Tauriも終了時に子の停止を待つ。観客画面は同じoriginの別ウィンドウを使い、他ルームから開き直すと表示先を切り替える。操作画面と観客画面は背面での休止を無効にする。保存先・梱包・署名の制限は[Mac版](docs/macos.md)にまとめる。
 
 バックエンドは FastAPI と Pydantic v2 を使用する。入力・応答と内部の状態をモデルで型付けし、`backend/pyproject.toml` の pyright 厳格モードを通す。基底の `Model` は余分な項目と暗黙の型変換を拒否し、代入も検証する。
 

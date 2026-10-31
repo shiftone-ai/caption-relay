@@ -229,6 +229,8 @@ export const operatorMachine = setup({
         && context.connectionDraft.recognizer === context.connection.recognizer && context.connectionDraft.mode === "host"))
       && context.connection.recognizers.some(option => option.id === context.connection.recognizer && option.available)),
     canStopMicrophone: ({ context }) => ["preparing", "live", "retrying"].includes(context.microphoneState),
+    canListMicrophones: ({ context }) => Boolean(context.microphone?.available
+      && !["preparing", "live", "retrying"].includes(context.microphoneState)),
     canSelectMicrophone: ({ context, event }) => event.type === "microphone.device.selected"
       && !["preparing", "live", "retrying"].includes(context.microphoneState)
       && (event.deviceId === "" || context.microphoneDevices.some(device => device.id === event.deviceId)),
@@ -334,6 +336,7 @@ export const operatorMachine = setup({
     }),
     startMicrophone: sendTo("microphone", ({ context }) => ({ type: "start", deviceId: context.microphoneDeviceId, recognizer: context.connection.recognizer })),
     stopMicrophone: sendTo("microphone", { type: "stop" }),
+    listMicrophones: sendTo("microphone", { type: "devices" }),
     toggleDisclosure: assign(({ context, event }) => {
       if (event.type !== "disclosure.toggled") return {};
       const openedDisclosures = new Set(context.openedDisclosures);
@@ -501,9 +504,11 @@ export const operatorMachine = setup({
       initial: "idle",
       on: {
         "microphone.start.requested": { guard: "canStartMicrophone", actions: [assign({ microphoneState: "preparing", microphoneMessage: "マイクを準備しています。" }), "startMicrophone"] },
+        "microphone.devices.requested": { guard: "canListMicrophones", actions: [assign({ microphoneState: "preparing", microphoneMessage: "マイクを確認しています。" }), "listMicrophones"] },
         "microphone.stop.requested": { guard: "canStopMicrophone", actions: "stopMicrophone" },
         "microphone.device.selected": { guard: "canSelectMicrophone", actions: assign(({ event }) => ({ microphoneDeviceId: event.deviceId })) },
-        "microphone.devices.changed": { actions: assign(({ event }) => ({ microphoneDevices: event.devices })) },
+        "microphone.devices.changed": { actions: assign(({ context, event }) => ({ microphoneDevices: event.devices,
+          microphoneDeviceId: event.devices.some(device => device.id === context.microphoneDeviceId) ? context.microphoneDeviceId : "" })) },
         "microphone.state.changed": { actions: assign(({ context, event }) => ({ microphoneState: event.state, microphoneMessage: event.message,
           microphoneLabel: event.label ?? context.microphoneLabel })) },
         "caption.draft.changed": { guard: "canEdit", actions: "editDraft" },
