@@ -31,7 +31,7 @@ web
 
 現行版はローカルの単一プロセスで動く PoC。テスト字幕または本アプリの入力 API でテキストを送って、編集と配信を検証する。UDトークのWeb字幕用の実験Adapterも提供する。実機確認の結果と制約は[入力接続](docs/udtalk-input.md)に記載し、テスト字幕の送信を音声認識の証拠にはしない。
 
-Mac向けにはTauriのWKWebViewとPython・Swiftを同梱する開発版を用意する。利用者によるサーバーの起動とChromiumの導入は不要。一般配布用の署名・公証は未実施であり、確認済みの範囲は[Mac版](docs/macos.md)を参照する。
+Mac向けにはTauriのWKWebViewとPython・Swiftを同梱する。利用者によるサーバーの起動とChromiumの導入は不要。Apple Silicon版はDeveloper ID署名とApple公証を通過し、公証チケットを添付した配布ZIPを作成済み。確認済みの範囲と別Macでの未確認事項は[Mac版](docs/macos.md)を参照する。
 
 起動・開発・検証の手順は [README](README.md) と [開発手順](docs/development.md)を参照する。
 
