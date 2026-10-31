@@ -91,6 +91,7 @@ bash scripts/check.sh
 | バックエンドの振る舞い | `cd backend && uv run --locked --extra dev pytest -q` |
 | Mac版のRust | `cargo clippy --manifest-path desktop/Cargo.toml --locked -- -D warnings` |
 | 同梱サーバーの独立実行・認証・終了 | `node scripts/verify-desktop.mjs`（Mac版のビルド後） |
+| Developer ID署名の検査・公証 | [Mac版の署名と公証](macos.md#developer-id署名と公証) |
 
 API モデルを変更した場合の再生成は[API の型生成](generated/README.md)を参照する。
 

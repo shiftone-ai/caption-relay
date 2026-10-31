@@ -1,4 +1,4 @@
-# Mac版の署名と一般配布
+# Mac版の配布と別Macでの初回起動確認
 
 ## Goal
 
@@ -8,7 +8,12 @@ Mac版をDeveloper IDで署名・公証し、ダウンロードした利用者�
 
 - TauriのMac版とPython・Swiftの同梱は実装済み。使い方と実機確認は[Mac版](../../macos.md)を参照する。
 - Apple SiliconのRelease版をリポジトリ外から起動し、マイク認識・訂正・観客表示・終了を確認した。
-- 現在の設定はad-hoc署名。キーチェーンで利用できるDeveloper ID Applicationの署名用IDはない。
+- 通常の開発用ビルドはad-hoc署名。一般配布用のビルドでは環境変数でDeveloper IDを指定する。
+- 利用者が選んだApple Developerチームで、秘密鍵を伴うDeveloper ID Application証明書をこのMacへ作成済み。
+- Developer ID署名版で録音・認識・訂正・観客表示・終了を確認済み。同梱する28個のMach-Oは同じチームの署名・タイムスタンプ・Hardened Runtimeを確認済み。
+- 配布物の準備と公証の再開は`node scripts/notarize-desktop.mjs --help`、手順は[Mac版](../../macos.md#developer-id署名と公証)を参照する。
+- Apple公証はAccepted（指摘なし）。公証チケット添付、GatekeeperのNotarized Developer ID判定、ZIP展開後の署名・チケット検査が成功している。
+- 配布物の場所は`.cache/distribution/package-path`、提出IDと配布ZIPのSHA-256は配布物内の`verification.json`を参照する。これらのローカル参照ファイルはGitへ保存しない。
 - 開発版の起動確認は、ダウンロード後のGatekeeper確認と区別する。
 
 ## Scope and Non-Goals
@@ -24,18 +29,25 @@ Mac版をDeveloper IDで署名・公証し、ダウンロードした利用者�
 
 ## Remaining Work
 
-1. 利用するDeveloper ID Applicationの証明書と公証の認証方法を確認する。
-2. Tauriと同梱バイナリを署名・公証し、検査した配布物を用意する。
-3. 別のMacでダウンロード後の起動、Keychain、マイク許可、訂正・観客表示・終了を確認する。
-4. 確認した配布物と対応範囲をMac版の手順へ記録する。
+1. ダウンロード後の検証に使う別のMacと、公開先を決める。
+2. 別のMacでダウンロード後の起動、Keychain、マイク許可、訂正・観客表示・終了を確認する。
+3. 確認したCPU・macOSと、実際に使った配布物をMac版の手順へ記録する。
 
 ## Now And Next
 
-Developer IDと公証の認証方法が利用可能になったら、Tauri公式の署名手順と現在のビルド設定を確認する。開発用のad-hoc署名を一般配布用の署名済み配布物として扱わない。
+`.cache/distribution/package-path`を読んで配布物の場所を取得し、`verification.json`と配布ZIPのSHA-256が一致することを確認する。検証用のMacと公開先を決めてから、配布ZIPをそのまま使って初回起動を確認する。
+
+```sh
+CAPTION_RELEASE_DIR="$(cat .cache/distribution/package-path)"
+cat "$CAPTION_RELEASE_DIR/verification.json"
+shasum -a 256 "$CAPTION_RELEASE_DIR/Caption-Relay-macos.zip"
+```
+
+参照ファイルや配布物がない場合は、[署名と公証の手順](../../macos.md#developer-id署名と公証)から新しい配布物を準備する。同じMacでのGatekeeper判定を、別のMacでのダウンロード後の初回起動確認として扱わない。
 
 ## Blockers And Human Tasks
 
-Developer ID Applicationの証明書と公証の認証情報が必要。Apple Developerの契約や認証情報の作成が必要な場合は利用者が行う。公開先へのアップロードは、配布物を検査してから利用者の指示に従う。
+検証に使う別のMacと公開先が未定。公証の認証情報の追加操作は不要。公開先へのアップロードは利用者の指示に従う。初回のKeychain・マイク許可などOSが求める本人確認は利用者が行う。
 
 ## Verification
 
